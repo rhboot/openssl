@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 1
+Release: 2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -381,7 +381,11 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
-* Wed Mar 30 2005 Tomas Mraz <trmaz@redhat.com> 0.9.7f-1
+* Thu Mar 31 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-2
+- add back RC4_CHAR on ia64 and x86_64 so the ABI isn't broken
+- disable broken bignum assembly on x86_64
+
+* Wed Mar 30 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-1
 - reenable optimizations on ppc64 and assembly code on ia64
 - upgrade to new upstream version (no soname bump needed)
 - disable thread test - it was testing the backport of the
