@@ -6,7 +6,8 @@
 # RC5:   5,724,428 03/03/2015
 
 # Bah.  Assembler is hard to port.
-(find crypto/{idea,mdc2,rc5,sha}/asm -type f | xargs -r rm -fv)
+#(find crypto/{idea,mdc2,rc5,sha}/asm -type f | xargs -r rm -fv)
+(find crypto/{idea,mdc2,rc5}/asm -type f | xargs -r rm -fv)
 
 # IDEA, MDC2 and RC5.
 for c in `find crypto/{idea,mdc2,rc5} -name "*.c" -a \! -name "*test*" -type f` ; do
