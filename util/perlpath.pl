@@ -11,6 +11,7 @@ $#ARGV == 0 || print STDERR "usage: perlpath newpath  (eg /usr/bin)\n";
 
 sub wanted
 	{
+	return if /^configure/;
 	return unless /\.pl$/ || /^[Cc]onfigur/;
 
 	open(IN,"<$_") || die "unable to open $dir/$_:$!\n";
