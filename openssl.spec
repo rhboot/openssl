@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7e
-Release: 2
+Release: 3
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -48,7 +48,7 @@ Patch12: openssl-0.9.7a-libica-autoconf.patch
 Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch22: openssl-0.9.7e-no-der_chop.patch
 Patch40: libica-1.3.4-urandom.patch
-Patch42: openssl-0.9.7a-krb5.patch
+Patch42: openssl-0.9.7e-krb5.patch
 Patch50: openssl-0.9.7e-no-fips.patch
 Patch51: openssl-0.9.7e-abi-compat.patch
 License: BSDish
@@ -387,6 +387,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Mar  1 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7e-3
+- libcrypto shouldn't depend on libkrb5 (#135961)
+
 * Mon Feb 28 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7e-2
 - rebuild
 
