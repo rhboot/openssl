@@ -5,7 +5,7 @@
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
 Version: 0.9.6
-Release: 9.71.0sx
+Release: 10
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -13,7 +13,7 @@ Source3: http://download.sourceforge.net/swig/swig%{swig_version}.tar.gz
 Source4: http://mars.post1.com/home/ngps/m2/m2crypto-%{m2crypto_version}.zip
 Source5: ca-bundle.crt
 Source6: RHNS-CA-CERT
-Patch0: openssl-0.9.6-redhatx.patch
+Patch0: openssl-0.9.6-redhat.patch
 Patch1: openssl-0.9.5-rsanull.patch
 Patch2: openssl-0.9.5a-64.patch
 Patch3: openssl-0.9.5a-defaults.patch
@@ -28,6 +28,7 @@ Patch11: openssl-zero-premaster.patch
 Patch12: openssl-0.9.6-memmove.patch
 Patch13: openssl096a-prng.patch
 Patch14: openssl096a-prng-2.patch
+Patch15: openssl-0.9.6b-sec.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -103,6 +104,7 @@ popd
 pushd doc/crypto
 %patch14 -p0 -b .rand-2
 popd
+%patch15 -p0 -b .sec
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -111,6 +113,8 @@ chmod 644 doc/ssleay.txt
 
 # Link the configuration header to the one we're going to make.
 ln -sf ../../crypto/opensslconf.h include/openssl/
+# Link the ssl.h header to the one we're going to make.
+ln -sf ../../ssl/ssl.h include/openssl/
 
 %build 
 PATH=${PATH}:${PWD}/bin
@@ -131,6 +135,7 @@ sslflags=no-asm
 %ifarch ia64
 sslarch=linux-ia64
 sslflags=no-asm
+RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O1"
 %endif
 %ifarch alpha
 sslarch=alpha-gcc
@@ -138,9 +143,6 @@ sslflags=no-asm
 %endif
 %ifarch s390
 sslarch=linux-s390
-%endif
-%ifarch s390x
-sslarch=linux-s390x
 %endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
@@ -282,8 +284,8 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
-* Fri Jan 25 2002 David Sainty <dsainty@redhat.com>
-- s390x support added in redhatx patch (renamed redhat patch) and spec.
+* Thu Jul 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-10
+- add backport of Ben Laurie's patches for OpenSSL 0.9.6d
 
 * Wed Jul 11 2001 Nalin Dahyabhai <nalin@redhat.com>
 - add patches to fix PRNG flaws, supplied by Bodo Moeller and the OpenSSL Group
