@@ -1,11 +1,11 @@
---- openssl-0.9.7a/Makefile.org.krb5	2003-11-28 17:46:20.000000000 +0000
-+++ openssl-0.9.7a/Makefile.org	2003-11-28 17:47:01.000000000 +0000
-@@ -279,7 +279,7 @@
+--- openssl-0.9.7e/Makefile.org.krb5	2005-03-02 00:58:58.171658234 +0100
++++ openssl-0.9.7e/Makefile.org	2005-03-02 01:10:57.224727433 +0100
+@@ -302,7 +302,7 @@
  do_linux-shared: do_gnu-shared
  do_gnu-shared:
  	libs='-L. ${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
 -	if [ "${SHLIBDIRS}" = "ssl" -a -n "$(LIBKRB5)" ]; then \
-+	if [ -z "${SHLIBDIRS%%*ssl*}" -a -n "$(LIBKRB5)" ]; then \
++	if [ "$$i" = "ssl" -a -n "$(LIBKRB5)" ]; then \
  		libs="$(LIBKRB5) $$libs"; \
  	fi; \
  	( set -x; ${CC} ${SHARED_LDFLAGS} \
