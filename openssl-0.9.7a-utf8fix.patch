@@ -1,0 +1,18 @@
+Somewhere deep inside of ASN1_STRING_to_UTF8() (used, among other things, to
+parse PKCS12 certificates), the out_utf8() function is passed to a function
+(traverse_string) which calls it iteratively.  In all cases where it is called,
+arg points to an int, not a long, so we need to avoid screwing things up on
+systems where sizeof(int) != sizeof(long).
+
+diff -u -r1.12 -r1.12.6.1
+--- openssl/crypto/asn1/a_mbstr.c	2000/09/10 14:45:18	1.12
++++ openssl/crypto/asn1/a_mbstr.c	2003/08/21 12:31:17	1.12.6.1
+@@ -296,7 +296,7 @@
+ 
+ static int out_utf8(unsigned long value, void *arg)
+ {
+-	long *outlen;
++	int *outlen;
+ 	outlen = arg;
+ 	*outlen += UTF8_putc(NULL, -1, value);
+ 	return 1;
