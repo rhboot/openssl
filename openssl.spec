@@ -10,7 +10,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 23
+Release: 26
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -26,7 +26,7 @@ Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7a-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7-ibmca.patch
+Patch6: openssl-0.9.7c-ICA_engine-oct202003.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
@@ -42,6 +42,9 @@ Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
+Patch40: libica-1.3.4-urandom.patch
+Patch41: libica-1.3.4-urandom2.patch
+Patch42: openssl-0.9.7a-krb5.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -60,7 +63,7 @@ protocols.
 %package devel
 Summary: Files for development of applications which will use OpenSSL.
 Group: Development/Libraries
-Requires: %{name} = %{version}-%{release}, krb5-devel
+Requires: %{name} = %{version}-%{release}, krb5-devel, zlib-devel
 
 %description devel
 OpenSSL is a toolkit for supporting cryptography. The openssl-devel
@@ -98,7 +101,6 @@ popd
 
 %ifarch s390 s390x
 pushd libica-1.3.4
-#%patch10 -p1 -b .struct
 %patch11 -p1 -b .cleanup
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
@@ -120,6 +122,16 @@ popd
 %patch19 -p1 -b .niscc
 %patch20 -p1 -b .ccert
 %patch21 -p1 -b .utf8fix
+
+# Patch for libica to use /dev/urandom instead of internal pseudo random number
+# generator.
+%patch40 -p1 -b .urandom
+
+# Backported patch from libica-1.3.5 to use /dev/urandom in icalinux.c, too.
+%patch41 -p1 -b .urandom2
+
+# Fix link line for libssl (bug #111154).
+%patch42 -p1 -b .krb5
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -353,6 +365,24 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Sun Nov 30 2003 Tim Waugh <twaugh@redhat.com> 0.9.7a-26
+- Fix link line for libssl (bug #111154).
+
+* Fri Oct 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-25
+- add dependency on zlib-devel for the -devel package, which depends on zlib
+  symbols because we enable zlib for libssl (#102962)
+
+* Fri Oct 24 2003 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-24
+- Use /dev/urandom instead of PRNG for libica.
+- Apply libica-1.3.5 fix for /dev/urandom in icalinux.c
+- Use latest ICA engine patch from IBM.
+
+* Sat Oct  4 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-22.1
+- rebuild
+
+* Wed Oct  1 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-22
+- rebuild (22 wasn't actually built, fun eh?)
+
 * Tue Sep 30 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-23
 - re-disable optimizations on ppc64
 
