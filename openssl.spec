@@ -5,7 +5,7 @@
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
 Version: 0.9.6
-Release: 3
+Release: 8
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -21,6 +21,11 @@ Patch4: openssl-0.9.5a-ia64.patch
 Patch5: openssl-0.9.5a-glibc.patch
 Patch6: openssl-0.9.6-soversion.patch
 Patch7: m2crypto-0.05-snap4-include.patch
+Patch8: openssl-0.9.6-bleichenbacher.patch
+Patch9: openssl-crt.patch
+Patch10: openssl-setugid.patch
+Patch11: openssl-zero-premaster.patch
+Patch12: openssl-0.9.6-memmove.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -34,6 +39,7 @@ provide various cryptographic algorithms and protocols.
 %package devel
 Summary: OpenSSL libraries and development headers.
 Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
 
 %description devel
 The static libraries and include files needed to compile apps
@@ -46,6 +52,7 @@ ftp://ftp.psy.uq.oz.au/pub/Crypto/SSLapps/
 Summary: OpenSSL scripts which require Perl.
 Group: Applications/Internet
 Requires: perl
+Requires: %{name} = %{version}-%{release}
 
 %description perl
 Perl scripts provided with OpenSSL for converting certificates and keys
@@ -55,6 +62,7 @@ from other formats to those used by OpenSSL.
 Summary: Support for using OpenSSL in python scripts.
 Group: Applications/Internet
 Requires: python
+Requires: %{name} = %{version}-%{release}
 
 %description python
 This package allows you to call OpenSSL functions from python scripts.
@@ -82,6 +90,11 @@ pushd m2crypto-%{m2crypto_version}
 	grep -v rc5_  ${file}.tmp > ${file}
     done
 popd
+%patch8  -p1 -b .bleichenbacher
+%patch9  -p1 -b .crt
+%patch10 -p1 -b .setugid
+%patch11 -p1 -b .zero-premaster
+%patch12 -p1 -b .memmove
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -258,6 +271,27 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Jun  1 2001 Nalin Dahyabhai <nalin@redhat.com>
+- change two memcpy() calls to memmove()
+
+* Sun May 27 2001 Philip Copeland <bryce@redhat.com>
+- Removed -DL_ENDIAN for the alpha builds as unsigned long = 8 not 4
+  which both L_ENDIAN / B_ENDIAN require to work correctly
+
+* Tue May 15 2001 Nalin Dahyabhai <nalin@redhat.com>
+- make subpackages depend on the main package
+
+* Thu Apr 26 2001 Nalin Dahyabhai <nalin@redhat.com>
+- rebuild
+
+* Fri Apr 20 2001 Nalin Dahyabhai <nalin@redhat.com>
+- use __libc_enable_secure in OPENSSL_setugid (suggested by solar@openwall.com)
+- make backported OPENSSL_setugid, BN_bntest_rand, and BN_rand_range static
+  functions, which keeps them away from client applications more cleanly
+
+* Tue Apr 17 2001 Nalin Dahyabhai <nalin@redhat.com>
+- backport security fixes from 0.9.6a
+
 * Tue Mar 13 2001 Nalin Dahyabhai <nalin@redhat.com>
 - use BN_LLONG on s390
 
