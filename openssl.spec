@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 26
+Release: 29
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -33,7 +33,7 @@ Patch16: openssl-0.9.6a-add-baltimore.patch
 Patch17: openssl-0.9.6c-aep.patch
 Patch18: openssl-0.9.6c-add-luna.patch
 Patch19: openssl-0.9.6b-sec.patch
-Patch20: openssl-0.9.6c-asn.patch
+Patch20: openssl-0.9.6c-asn.patch.3
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -256,6 +256,16 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Aug  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-29
+- rebuild
+
+* Thu Aug  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-28
+- update asn patch to fix accidental reversal of a logic check
+
+* Wed Jul 31 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-27
+- update asn patch to reduce chance that compiler optimization will remove
+  one of the added tests
+
 * Wed Jul 31 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-26
 - rebuild
 
