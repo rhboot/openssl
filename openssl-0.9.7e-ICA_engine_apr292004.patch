@@ -1842,27 +1842,6 @@ diff -Nru openssl-0.9.7c/crypto/engine/Makefile openssl-0.9.7c-cleanfix/crypto/e
  
  SRC= $(LIBSRC)
  
-diff -Nru openssl-0.9.7c/crypto/engine/Makefile.ssl openssl-0.9.7c-cleanfix/crypto/engine/Makefile.ssl
---- openssl-0.9.7c/crypto/engine/Makefile.ssl	2003-01-16 11:21:13.000000000 -0600
-+++ openssl-0.9.7c-cleanfix/crypto/engine/Makefile.ssl	2004-04-28 17:13:17.000000000 -0500
-@@ -28,13 +28,15 @@
- 	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
- 	eng_openssl.c eng_dyn.c eng_cnf.c \
- 	hw_atalla.c hw_cswift.c hw_ncipher.c hw_nuron.c hw_ubsec.c \
--	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c
-+	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c \
-+	hw_ibmca.c
- LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
- 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
- 	tb_rsa.o tb_dsa.o tb_dh.o tb_rand.o tb_cipher.o tb_digest.o \
- 	eng_openssl.o eng_dyn.o eng_cnf.o \
- 	hw_atalla.o hw_cswift.o hw_ncipher.o hw_nuron.o hw_ubsec.o \
--	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o
-+	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o \
-+	hw_ibmca.o
- 
- SRC= $(LIBSRC)
- 
 diff -Nru openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7c-cleanfix/crypto/engine/vendor_defns/ica_openssl_api.h
 --- openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h	1969-12-31 18:00:00.000000000 -0600
 +++ openssl-0.9.7c-cleanfix/crypto/engine/vendor_defns/ica_openssl_api.h	2004-04-28 17:13:17.000000000 -0500
