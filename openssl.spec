@@ -1,49 +1,34 @@
-%define soversion 2
+# For the curious:
+# 0.9.5a soversion = 0
+# 0.9.6  soversion = 1
+# 0.9.6a soversion = 2
+# 0.9.6c soversion = 3
+# 0.9.7a soversion = 4
+%define soversion 4
 
 Summary: The OpenSSL toolkit.
 Name: openssl
-Version: 0.9.6b
-Release: 33
-Source: openssl-engine-%{version}-usa.tar.bz2
+Version: 0.9.7a
+Release: 2
+Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
 Source3: ca-bundle.crt
 Source4: RHNS-CA-CERT
 Source5: make-dummy-cert
-Source6: hw_ubsec.c
-Source7: hw_ubsec.h
-Source8: ia64.S
-Patch0: openssl-engine-0.9.6b-redhat.patch
-Patch1: openssl-0.9.5a-64.patch
-Patch2: openssl-engine-0.9.6b-defaults.patch
-Patch3: openssl-0.9.5a-ia64.patch
-Patch4: openssl-0.9.5a-glibc.patch
-Patch5: openssl-0.9.6a-soversion.patch
-Patch6: openssl-engine-0.9.6b-add-aep.patch
-Patch7: openssl-engine-0.9.6b-hw_ubsec.patch
-Patch8: openssl-0.9.6-x509.patch
-Patch9: openssl-engine-0.9.6b-default-engine.patch
-Patch10: openssl-engine-0.9.6b-ubsec_failover.patch
-Patch11: openssl-engine-0.9.6b-ubsec_rand.patch
-Patch12: openssl-0.9.6b-mkdepend.patch
-Patch13: openssl-0.9.6a-conf.patch
-Patch14: openssl-0.9.6a-add-engine-version.patch
-Patch15: openssl-0.9.6a-add-ia64-asm.patch
-Patch16: openssl-0.9.6a-add-baltimore.patch
-Patch17: openssl-0.9.6c-aep.patch
-Patch18: openssl-0.9.6c-add-luna.patch
-Patch19: openssl-0.9.6b-sec.patch
-Patch20: openssl-0.9.6c-asn.patch.3
-Patch21: openssl-engine-0.9.6b-4096.patch
-Patch22: openssl-0.9.6-malloc-negative.patch
-Patch23: openssl-0.9.6-vaudenay.patch
-Patch24: openssl-sec3-blinding-0.9.6b.patch
-Patch25: openssl-0.9.7a-klima-pokorny-rosa.patch
+Patch0: openssl-0.9.7a-redhat.patch
+Patch1: openssl-0.9.7-beta5-defaults.patch
+Patch2: openssl-0.9.7-beta6-ia64.patch
+Patch3: openssl-0.9.7a-soversion.patch
+Patch4: openssl-0.9.6-x509.patch
+Patch5: openssl-0.9.7-beta5-version-add-engines.patch
+Patch6: openssl-0.9.7-ibmca.patch
+Patch7: openssl-0.9.7-ppc64.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildPreReq: perl, sed
+BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel
 Requires: mktemp
 
 %define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
@@ -57,7 +42,7 @@ protocols.
 %package devel
 Summary: Files for development of applications which will use OpenSSL.
 Group: Development/Libraries
-Requires: %{name} = %{version}-%{release}
+Requires: %{name} = %{version}-%{release}, krb5-devel
 
 %description devel
 OpenSSL is a toolkit for supporting cryptography. The openssl-devel
@@ -77,57 +62,25 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q -n openssl-engine-%{version}
-%{SOURCE1}
-cp %{SOURCE6} crypto/engine/
-cp %{SOURCE7} crypto/engine/vendor_defns/
-cp %{SOURCE8} crypto/bn/asm/
+%setup -q
+%{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
-%patch1 -p1 -b .64
-%patch2 -p1 -b .defaults
-%patch3 -p1 -b .ia64
-%patch4 -p1 -b .glibc
-%patch5 -p1 -b .soversion
-%patch6 -p1 -b .add-aep
-%patch7 -p1 -b .hw_ubsec
-%patch8 -p1 -b .x509
-%patch9 -p1 -b .default-engine
-%patch10 -p1 -b .ubsec_failover
-%patch11 -p1 -b .rand
-# skip patch 12
-%patch13 -p0 -b .conf
-%patch14 -p1 -b .engver
-%patch15 -p1 -b .ia64
-%patch16 -p1 -b .baltimore
-%patch17 -p1 -b .aep
-%patch18 -p1 -b .luna
-%patch19 -p1 -b .sec
-%patch20 -p1 -b .asn
-%patch21 -p1 -b .4096
-%patch22 -p1 -b .malloc-negative
-%patch23 -p1 -b .vaudenay
-%patch24 -p0 -b .sec3-blinding
-pushd ssl
-%patch25 -p0 -b .klima-pokorny-rosa
-popd
+%patch1 -p1 -b .defaults
+%patch2 -p1 -b .ia64
+%patch3 -p1 -b .soversion
+%patch4 -p1 -b .x509
+%patch5 -p1 -b .version-add-engines
+%patch6 -p1 -b .ibmca
+%patch7 -p1 -b .ppc64
 
-chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
-chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
-chmod 644 doc/openssl_button.html doc/openssl_button.gif
-chmod 644 doc/ssleay.txt
+# Modify the various perl scripts to reference perl in the right location.
+perl util/perlpath.pl `dirname %{__perl}`
 
-# Link the configuration header to the one we're going to make.
-ln -sf ../../crypto/opensslconf.h include/openssl/
-# Link the ssl.h header to the one we're going to make.
-ln -sf ../../ssl/ssl.h include/openssl/
+# Generate a table with the compile settings for my perusal.
+make TABLE PERL=%{__perl}
 
 %build 
-PATH=${PATH}:${PWD}/bin
-TOPDIR=${PWD}
-LD_LIBRARY_PATH=${TOPDIR}:${TOPDIR}/bin ; export LD_LIBRARY_PATH
-
 # Figure out which flags we want to use.
-perl util/perlpath.pl `dirname %{__perl}`
 %ifarch %ix86
 sslarch=linux-elf
 if ! echo %{_target} | grep -q i686 ; then
@@ -143,7 +96,6 @@ sslarch=linux-ia64
 %endif
 %ifarch alpha
 sslarch=alpha-gcc
-sslflags=no-asm
 %endif
 %ifarch s390
 sslarch=linux-s390
@@ -153,21 +105,24 @@ sslarch=linux-s390x
 %endif
 %ifarch x86_64
 sslarch=linux-x86_64
-sslflags=no-asm
 %endif
 %ifarch ppc
 sslarch=linux-ppc
-sslflags=no-asm
 %endif
 %ifarch ppc64
 sslarch=linux-ppc64
-sslflags=no-asm
 %endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
-./config --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} no-idea no-mdc2 no-rc5 shared
-%{__patch} -p1 -b --suffix .mkdepend -s < %{PATCH12}
+./config \
+	--prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} \
+	zlib no-idea no-mdc2 no-rc5 no-ec shared \
+	--with-krb5-include=`%{_prefix}/kerberos/bin/krb5-config --cflags` \
+	--with-krb5-lib=`%{_prefix}/kerberos/bin/krb5-config --libs gssapi` \
+	--with-krb5-flavor=MIT \
+	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib}
+make depend
 make all build-shared
 
 # Generate hashes for the included certs.
@@ -207,7 +162,13 @@ done
 
 # Rename man pages so that they don't conflict with other system man pages.
 for manpage in $RPM_BUILD_ROOT%{_mandir}/man*/* ; do
-	mv ${manpage} ${manpage}ssl
+	if [ -L ${manpage} ]; then
+		TARGET=`ls -l ${manpage} | awk '{ print $NF }'`
+		ln -snf ${TARGET}ssl ${manpage}ssl
+		rm -f ${manpage}
+	else
+		mv ${manpage} ${manpage}ssl
+	fi
 done
 for conflict in passwd rand ; do
 	rename ${conflict} ssl${conflict} $RPM_BUILD_ROOT%{_mandir}/man*/${conflict}*
@@ -232,10 +193,19 @@ cat %{SOURCE3} RHNS-blurb.txt %{SOURCE4} > ca-bundle.crt
 install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/certs/
 ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 
+# Fix libdir.
+sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
+	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc > \
+	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp && \
+cat $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp > \
+	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc && \
+rm -f $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp
+
 %ifarch i686
 rm -rf $RPM_BUILD_ROOT/%{_prefix}/include/openssl
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.a
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.so
+rm -rf $RPM_BUILD_ROOT/%{_libdir}/pkgconfig
 rm -rf $RPM_BUILD_ROOT/%{_mandir}/man3/*
 
 rm -rf $RPM_BUILD_ROOT/%{_bindir}/c_rehash
@@ -278,6 +248,7 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
+%attr(0755,root,root) %{_libdir}/pkgconfig/openssl.pc
 
 %files perl
 %defattr(-,root,root)
@@ -292,20 +263,49 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %postun -p /sbin/ldconfig
 
 %changelog
-* Wed Mar 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-33
-- add backported patch to harden against Klima-Pokorny-Rosa extension
-  of Bleichenbacher's attack (CAN-2003-0131)
+* Thu Feb 27 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-2
+- disable EC algorithms
 
-* Mon Mar 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-32
-- add patch to enable RSA blinding by default, closing a timing attack
-  (CAN-2003-0147)
+* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-1
+- update to 0.9.7a
 
-* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-31
+* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7-8
 - add fix to guard against attempts to allocate negative amounts of memory
 - add patch for CAN-2003-0078, fixing a timing attack
 
-* Tue Feb 11 2003 Nalin Dahyabhai <nalin@redhat.com>
-- incorporate fix for verifying client certs with 4096-bit keys (#77225)
+* Thu Feb 13 2003 Elliot Lee <sopwith@redhat.com> 0.9.7-7
+- Add openssl-ppc64.patch
+
+* Mon Feb 10 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7-6
+- EVP_DecryptInit should call EVP_CipherInit() instead of EVP_CipherInit_ex(),
+  to get the right behavior when passed uninitialized context structures
+  (#83766)
+- build with -mcpu=ev5 on alpha family (#83828)
+
+* Wed Jan 22 2003 Tim Powers <timp@redhat.com>
+- rebuilt
+
+* Fri Jan 17 2003 Phil Knirsch <pknirsch@redhat.com> 0.9.7-4
+- Added IBM hw crypto support patch.
+
+* Wed Jan 15 2003 Nalin Dahyabhai <nalin@redhat.com>
+- add missing builddep on sed
+
+* Thu Jan  9 2003 Bill Nottingham <notting@redhat.com> 0.9.7-3
+- debloat
+- fix broken manpage symlinks
+
+* Wed Jan  8 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7-2
+- fix double-free in 'openssl ca'
+
+* Fri Jan  3 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7-1
+- update to 0.9.7 final
+
+* Tue Dec 17 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.7-0
+- update to 0.9.7 beta6 (DO NOT USE UNTIL UPDATED TO FINAL 0.9.7)
+
+* Wed Dec 11 2002 Nalin Dahyabhai <nalin@redhat.com>
+- update to 0.9.7 beta5 (DO NOT USE UNTIL UPDATED TO FINAL 0.9.7)
 
 * Tue Oct 22 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-30
 - add configuration stanza for x86_64 and use it on x86_64

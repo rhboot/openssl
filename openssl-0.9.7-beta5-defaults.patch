@@ -1,6 +1,6 @@
---- apps/openssl.cnf.orig	Tue May 22 11:14:56 2001
-+++ apps/openssl.cnf	Tue May 22 11:17:58 2001
-@@ -109,17 +109,18 @@
+--- openssl-0.9.7-beta5/apps/openssl.cnf	2001-04-11 09:04:20.000000000 -0400
++++ openssl-0.9.7-beta5/apps/openssl.cnf	2002-12-11 19:21:57.000000000 -0500
+@@ -117,17 +117,18 @@
  
  [ req_distinguished_name ]
  countryName			= Country Name (2 letter code)
@@ -22,3 +22,12 @@
  
  # we can do this but it is not needed normally :-)
  #1.organizationName		= Second Organization Name (eg, company)
+@@ -136,7 +137,7 @@
+ organizationalUnitName		= Organizational Unit Name (eg, section)
+ #organizationalUnitName_default	=
+ 
+-commonName			= Common Name (eg, YOUR name)
++commonName			= Common Name (eg, your name or your server\'s hostname)
+ commonName_max			= 64
+ 
+ emailAddress			= Email Address

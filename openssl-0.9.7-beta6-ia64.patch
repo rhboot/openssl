@@ -1,0 +1,18 @@
+--- openssl/crypto/bn/bn_lcl.h	2002-12-17 16:04:42.000000000 -0500
++++ openssl/crypto/bn/bn_lcl.h	2002-12-17 16:12:59.000000000 -0500
+@@ -245,6 +245,15 @@
+ 		: "a"(a),"g"(b)		\
+ 		: "cc");
+ #  endif
++# elif defined(__ia64) && defined(SIXTY_FOUR_BIT_LONG)
++#  if defined(__GNUC__)
++#   define BN_UMULT_HIGH(a,b) ({      \
++      register BN_ULONG ret;          \
++      asm ("xmpy.hu %0 = %1, %2"      \
++           : "=f"(ret)                \
++           : "f"(a), "f"(b));         \
++      ret;                    })
++#  endif      /* compiler */
+ # endif		/* cpu */
+ #endif		/* OPENSSL_NO_ASM */
+ 
