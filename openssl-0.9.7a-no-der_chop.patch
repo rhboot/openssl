@@ -1,0 +1,13 @@
+Follow upstream and just remove der_chop from the package.
+
+--- openssl-0.9.7a/apps/Makefile.ssl	2004-11-19 14:37:25.081009237 -0500
++++ openssl-0.9.7a/apps/Makefile.ssl	2004-11-19 14:37:35.843624174 -0500
+@@ -37,7 +37,7 @@
+ 
+ PROGRAM= openssl
+ 
+-SCRIPTS=CA.sh CA.pl der_chop
++SCRIPTS=CA.sh CA.pl
+ 
+ EXE= $(PROGRAM)$(EXE_EXT)
+ 
