@@ -9,7 +9,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 2
+Release: 5
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -24,6 +24,8 @@ Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
 Patch6: openssl-0.9.7-ibmca.patch
 Patch7: openssl-0.9.7-ppc64.patch
+Patch8: openssl-sec3-blinding-0.9.7.patch
+Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -72,6 +74,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch5 -p1 -b .version-add-engines
 %patch6 -p1 -b .ibmca
 %patch7 -p1 -b .ppc64
+%patch8 -p0 -b .sec3-blinding
+pushd ssl
+%patch9 -p0 -b .klima-pokorny-rosa
+popd
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -263,6 +269,18 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-5
+- add patch to harden against Klima-Pokorny-Rosa extension of Bleichenbacher's
+  attack (CAN-2003-0131)
+
+* Mon Mar 17 2003 Nalin Dahyabhai <nalin@redhat.com>  0.9.7a-4
+- add patch to enable RSA blinding by default, closing a timing attack
+  (CAN-2003-0147)
+
+* Wed Mar  5 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-3
+- disable use of BN assembly module on x86_64, but continue to allow inline
+  assembly (#83403)
+
 * Thu Feb 27 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-2
 - disable EC algorithms
 
