@@ -1,0 +1,141 @@
+--- openssl-engine-0.9.6b/crypto/engine/Makefile.ssl.hw_ubsec	Thu Sep  7 06:57:29 2000
++++ openssl-engine-0.9.6b/crypto/engine/Makefile.ssl	Tue Jul 24 02:01:46 2001
+@@ -23,9 +23,9 @@
+ 
+ LIB=$(TOP)/libcrypto.a
+ LIBSRC= engine_err.c engine_lib.c engine_list.c engine_openssl.c \
+-	hw_atalla.c hw_cswift.c hw_ncipher.c
++	hw_atalla.c hw_cswift.c hw_ncipher.c hw_ubsec.c
+ LIBOBJ= engine_err.o engine_lib.o engine_list.o engine_openssl.o \
+-	hw_atalla.o hw_cswift.o hw_ncipher.o
++	hw_atalla.o hw_cswift.o hw_ncipher.o hw_ubsec.o
+ 
+ SRC= $(LIBSRC)
+ 
+@@ -218,3 +218,26 @@
+ hw_ncipher.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
+ hw_ncipher.o: ../../include/openssl/x509.h ../../include/openssl/x509_vfy.h
+ hw_ncipher.o: ../cryptlib.h engine_int.h vendor_defns/hwcryptohook.h
++hw_ubsec.o: ../../e_os.h ../../include/openssl/asn1.h
++hw_ubsec.o: ../../include/openssl/bio.h ../../include/openssl/blowfish.h
++hw_ubsec.o: ../../include/openssl/bn.h ../../include/openssl/buffer.h
++hw_ubsec.o: ../../include/openssl/cast.h ../../include/openssl/crypto.h
++hw_ubsec.o: ../../include/openssl/des.h ../../include/openssl/dh.h
++hw_ubsec.o: ../../include/openssl/dsa.h ../../include/openssl/dso.h
++hw_ubsec.o: ../../include/openssl/e_os2.h ../../include/openssl/engine.h
++hw_ubsec.o: ../../include/openssl/err.h ../../include/openssl/evp.h
++hw_ubsec.o: ../../include/openssl/idea.h ../../include/openssl/lhash.h
++hw_ubsec.o: ../../include/openssl/md2.h ../../include/openssl/md4.h
++hw_ubsec.o: ../../include/openssl/md5.h ../../include/openssl/mdc2.h
++hw_ubsec.o: ../../include/openssl/obj_mac.h ../../include/openssl/objects.h
++hw_ubsec.o: ../../include/openssl/opensslconf.h
++hw_ubsec.o: ../../include/openssl/opensslv.h ../../include/openssl/pem.h
++hw_ubsec.o: ../../include/openssl/pem2.h ../../include/openssl/pkcs7.h
++hw_ubsec.o: ../../include/openssl/rand.h ../../include/openssl/rc2.h
++hw_ubsec.o: ../../include/openssl/rc4.h ../../include/openssl/rc5.h
++hw_ubsec.o: ../../include/openssl/ripemd.h ../../include/openssl/rsa.h
++hw_ubsec.o: ../../include/openssl/safestack.h ../../include/openssl/sha.h
++hw_ubsec.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
++hw_ubsec.o: ../../include/openssl/x509.h
++hw_ubsec.o: ../../include/openssl/x509_vfy.h ../cryptlib.h hw_ubsec.c
++hw_ubsec.o: vendor_defns/hw_ubsec.h
+--- openssl-engine-0.9.6b/crypto/engine/engine.h.hw_ubsec	Tue Jul 24 02:01:45 2001
++++ openssl-engine-0.9.6b/crypto/engine/engine.h	Tue Jul 24 02:01:46 2001
+@@ -357,6 +357,14 @@
+ #define ENGINE_F_HWCRHK_RAND_BYTES			 139
+ #define ENGINE_F_HWCRHK_RSA_MOD_EXP			 140
+ #define ENGINE_F_LOG_MESSAGE				 141
++#define ENGINE_F_UBSEC_CTRL				 176
++#define ENGINE_F_UBSEC_DSA_SIGN				 163
++#define ENGINE_F_UBSEC_DSA_VERIFY			 164
++#define ENGINE_F_UBSEC_FINISH				 165
++#define ENGINE_F_UBSEC_INIT				 166
++#define ENGINE_F_UBSEC_MOD_EXP				 167
++#define ENGINE_F_UBSEC_RSA_MOD_EXP			 168
++#define ENGINE_F_UBSEC_RSA_MOD_EXP_CRT			 169
+ 
+ /* Reason codes. */
+ #define ENGINE_R_ALREADY_LOADED				 100
+--- openssl-engine-0.9.6b/crypto/engine/engine_err.c.hw_ubsec	Tue Aug  1 08:22:14 2000
++++ openssl-engine-0.9.6b/crypto/engine/engine_err.c	Tue Jul 24 02:01:46 2001
+@@ -126,6 +126,14 @@
+ {ERR_PACK(0,ENGINE_F_HWCRHK_RAND_BYTES,0),	"HWCRHK_RAND_BYTES"},
+ {ERR_PACK(0,ENGINE_F_HWCRHK_RSA_MOD_EXP,0),	"HWCRHK_RSA_MOD_EXP"},
+ {ERR_PACK(0,ENGINE_F_LOG_MESSAGE,0),	"LOG_MESSAGE"},
++{ERR_PACK(0,ENGINE_F_UBSEC_CTRL,0),	"UBSEC_CTRL"},
++{ERR_PACK(0,ENGINE_F_UBSEC_DSA_SIGN,0),	"UBSEC_DSA_SIGN"},
++{ERR_PACK(0,ENGINE_F_UBSEC_DSA_VERIFY,0),	"UBSEC_DSA_VERIFY"},
++{ERR_PACK(0,ENGINE_F_UBSEC_FINISH,0),	"UBSEC_FINISH"},
++{ERR_PACK(0,ENGINE_F_UBSEC_INIT,0),	"UBSEC_INIT"},
++{ERR_PACK(0,ENGINE_F_UBSEC_MOD_EXP,0),	"UBSEC_MOD_EXP"},
++{ERR_PACK(0,ENGINE_F_UBSEC_RSA_MOD_EXP,0),	"UBSEC_RSA_MOD_EXP"},
++{ERR_PACK(0,ENGINE_F_UBSEC_RSA_MOD_EXP_CRT,0),	"UBSEC_RSA_MOD_EXP_CRT"},
+ {0,NULL}
+ 	};
+ 
+--- openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c.hw_ubsec	Tue Jul 24 02:01:46 2001
++++ openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c	Tue Jul 24 02:01:46 2001
+@@ -112,14 +112,10 @@
+ static int ubsec_rand_status(void);
+ #endif
+ 
++#ifndef ENGINE_CMD_BASE
++#define ENGINE_CMD_BASE			200
++#endif
+ #define UBSEC_CMD_SO_PATH		ENGINE_CMD_BASE
+-static const ENGINE_CMD_DEFN ubsec_cmd_defns[] = {
+-	{UBSEC_CMD_SO_PATH,
+-		"SO_PATH",
+-		"Specifies the path to the 'ubsec' shared library",
+-		ENGINE_CMD_FLAG_STRING},
+-	{0, NULL, NULL, 0}
+-	};
+ 
+ #ifndef OPENSSL_NO_RSA
+ /* Our internal RSA_METHOD that we provide pointers to */
+@@ -207,8 +203,7 @@
+ 			!ENGINE_set_BN_mod_exp_crt(ret, ubsec_mod_exp_crt) ||
+ 			!ENGINE_set_init_function(ret, ubsec_init) ||
+ 			!ENGINE_set_finish_function(ret, ubsec_finish) ||
+-			!ENGINE_set_ctrl_function(ret, ubsec_ctrl) ||
+-			!ENGINE_set_cmd_defns(ret, ubsec_cmd_defns))
++			!ENGINE_set_ctrl_function(ret, ubsec_ctrl))
+ 		{
+ 		ENGINE_free(ret);
+ 		return NULL;
+@@ -277,7 +272,7 @@
+  * symbol names to bind to. 
+  */
+ 
+-static const char *UBSEC_LIBNAME = "ubsec";
++static const char *UBSEC_LIBNAME = "libubsec.so";
+ static const char *UBSEC_F1 = "ubsec_bytes_to_bits";
+ static const char *UBSEC_F2 = "ubsec_bits_to_bytes";
+ static const char *UBSEC_F3 = "ubsec_open";
+--- openssl-engine-0.9.6b/crypto/engine/engine_list.c.hw_ubsec	Fri Jun 30 07:01:56 2000
++++ openssl-engine-0.9.6b/crypto/engine/engine_list.c	Tue Jul 24 02:01:46 2001
+@@ -198,6 +198,10 @@
+ 	if(!engine_list_add(ENGINE_atalla()))
+ 		return 0;
+ #endif /* !NO_HW_ATALLA */
++#ifndef NO_HW_UBSEC
++	if(!engine_list_add(ENGINE_ubsec()))
++		return 0;
++#endif /* !NO_HW_UBSEC */
+ #endif /* !NO_HW */
+ 	engine_list_flag = 1;
+ 	return 1;
+--- openssl-engine-0.9.6b/crypto/engine/engine_int.h.hw_ubsec	Tue Jul 24 02:04:08 2001
++++ openssl-engine-0.9.6b/crypto/engine/engine_int.h	Tue Jul 24 02:04:10 2001
+@@ -151,6 +151,11 @@
+ ENGINE *ENGINE_atalla();
+ #endif /* !NO_HW_ATALLA */
+ 
++#ifndef NO_HW_UBSEC
++/* Returns a structure of ubsec methods. */
++ENGINE *ENGINE_ubsec();
++#endif /* !NO_HW_UBSEC */
++
+ #endif /* !NO_HW */
+ 
+ #ifdef  __cplusplus
