@@ -5,7 +5,7 @@
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
 Version: 0.9.6
-Release: 8
+Release: 9
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -26,6 +26,8 @@ Patch9: openssl-crt.patch
 Patch10: openssl-setugid.patch
 Patch11: openssl-zero-premaster.patch
 Patch12: openssl-0.9.6-memmove.patch
+Patch13: openssl096a-prng.patch
+Patch14: openssl096a-prng-2.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -95,6 +97,12 @@ popd
 %patch10 -p1 -b .setugid
 %patch11 -p1 -b .zero-premaster
 %patch12 -p1 -b .memmove
+pushd crypto/rand
+%patch13 -p0 -b .rand
+popd
+pushd doc/crypto
+%patch14 -p0 -b .rand-2
+popd
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -271,6 +279,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jul 11 2001 Nalin Dahyabhai <nalin@redhat.com>
+- add patches to fix PRNG flaws, supplied by Bodo Moeller and the OpenSSL Group
+
 * Fri Jun  1 2001 Nalin Dahyabhai <nalin@redhat.com>
 - change two memcpy() calls to memmove()
 
