@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 24
+Release: 26
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -33,6 +33,7 @@ Patch16: openssl-0.9.6a-add-baltimore.patch
 Patch17: openssl-0.9.6c-aep.patch
 Patch18: openssl-0.9.6c-add-luna.patch
 Patch19: openssl-0.9.6b-sec.patch
+Patch20: openssl-0.9.6c-asn.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -96,6 +97,7 @@ cp %{SOURCE8} crypto/bn/asm/
 %patch17 -p1 -b .aep
 %patch18 -p1 -b .luna
 %patch19 -p1 -b .sec
+%patch20 -p1 -b .asn
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -254,6 +256,12 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jul 31 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-26
+- rebuild
+
+* Mon Jul 29 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-25
+- add patch to fix ASN.1 vulnerabilities
+
 * Thu Jul 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-24
 - add backport of Ben Laurie's patches for OpenSSL 0.9.6d
 
