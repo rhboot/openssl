@@ -10,7 +10,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 24
+Release: 29
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -44,6 +44,7 @@ Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch41: libica-1.3.4-urandom2.patch
+Patch42: openssl-0.9.7a-krb5.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -62,7 +63,7 @@ protocols.
 %package devel
 Summary: Files for development of applications which will use OpenSSL.
 Group: Development/Libraries
-Requires: %{name} = %{version}-%{release}, krb5-devel
+Requires: %{name} = %{version}-%{release}, krb5-devel, zlib-devel
 
 %description devel
 OpenSSL is a toolkit for supporting cryptography. The openssl-devel
@@ -128,6 +129,9 @@ popd
 
 # Backported patch from libica-1.3.5 to use /dev/urandom in icalinux.c, too.
 %patch41 -p1 -b .urandom2
+
+# Fix link line for libssl (bug #111154).
+%patch42 -p1 -b .krb5
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -305,7 +309,9 @@ then
 fi
 %makeinstall
 mkdir -p $RPM_BUILD_ROOT/%{_libdir}
-mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
+mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so.1
+ln -sf libica.so.1 $RPM_BUILD_ROOT/%{_libdir}/libica.so
+cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
 %endif
 
 %clean
@@ -336,13 +342,16 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 %ifarch s390 s390x
-%attr(0755,root,root) %{_libdir}/libica.so
+%attr(0755,root,root) %{_libdir}/libica.so.1
 %endif
 
 %ifnarch i686
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
+%ifarch s390 s390x
+%{_includedir}/*.h
+%endif
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
@@ -361,6 +370,26 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Feb 13 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-29
+- rebuilt
+
+* Wed Feb 11 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-28
+- Fixed libica build.
+
+* Wed Feb  4 2004 Nalin Dahyabhai <nalin@redhat.com>
+- add "-ldl" to link flags added for Linux-on-ARM (#99313)
+
+* Wed Feb  4 2004 Joe Orton <jorton@redhat.com> 0.9.7a-27
+- updated ca-bundle.crt: removed expired GeoTrust roots, added
+  freessl.com root, removed trustcenter.de Class 0 root
+
+* Sun Nov 30 2003 Tim Waugh <twaugh@redhat.com> 0.9.7a-26
+- Fix link line for libssl (bug #111154).
+
+* Fri Oct 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-25
+- add dependency on zlib-devel for the -devel package, which depends on zlib
+  symbols because we enable zlib for libssl (#102962)
+
 * Fri Oct 24 2003 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-24
 - Use /dev/urandom instead of PRNG for libica.
 - Apply libica-1.3.5 fix for /dev/urandom in icalinux.c
