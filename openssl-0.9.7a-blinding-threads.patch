@@ -1,0 +1,205 @@
+Try to fix thread-safety for RSA blinding without breaking the public ABI.  In
+OpenSSL 0.9.7b, safety is checked by adding a thread ID field to the (public)
+RSA blinding structure, comparing it to the current thread ID when performing
+RSA encryption or decryption, and using a temporary blinding structure if they
+don't match.  In this patch we attempt to do mostly the same thing, but instead
+of storing the thread ID in the blinding structure, we store it as an ex_data
+item in the RSA key structure itself.  We add a private function for checking
+if we're the "owning" thread (OPENSSL_private_rsa_blinding_check_thread_id),
+and wrap the creation of the ex_data item and the comparison inside of the
+RSA_BLINDING lock.  Adding a private function doesn't require changing any of
+the public headers, so the result remains binary-compatible with unpatched
+OpenSSL 0.9.7a.  Of course, if you're moving from 0.9.7/0.9.7a to a newer
+version of OpenSSL, you should just drop this patch.
+
+--- openssl-0.9.7a/crypto/rsa/rsa_lib.c	2003-06-06 17:51:49.000000000 -0400
++++ openssl-0.9.7a/crypto/rsa/rsa_lib.c	2003-06-06 17:57:37.000000000 -0400
+@@ -393,3 +393,69 @@
+ 	r->bignum_data=p;
+ 	return(1);
+ 	}
++
++/* Allocate a thread ID ex_data item. */
++static int new_thread_id(void *parent, void *ptr, CRYPTO_EX_DATA *ad,
++			 int idx, long argl, void *argp)
++	{
++	long *thread_id = OPENSSL_malloc(sizeof(long));
++	*thread_id = -1;
++	return CRYPTO_set_ex_data(ad, idx, thread_id);
++	}
++/* Free a thread ID ex_data item. */
++static void free_thread_id(void *parent, void *ptr, CRYPTO_EX_DATA *ad,
++			   int idx, long argl, void *argp)
++	{
++	long *thread_id = (long*) ptr;
++	if (ptr)
++		{
++		*thread_id = -1;
++		OPENSSL_free(ptr);
++		}
++	}
++/* "Copy" a thread ID ex_data item. */
++static int copy_thread_id(CRYPTO_EX_DATA *to, CRYPTO_EX_DATA *from,
++			  void *from_d, int idx, long argl, void *argp)
++	{
++	long *thread_id = OPENSSL_malloc(sizeof(long));
++	*thread_id = -1;
++	return CRYPTO_set_ex_data(to, idx, thread_id);
++	}
++/* Get the index in the RSA ex_data structure where we can store the ID of
++ * the thread which gets to use the RSA structure's blinding member. */
++static int rsa_blinding_thread_id_index(void)
++	{
++	static int ind = -1;
++	if (ind == -1)
++		{
++		ind = RSA_get_ex_new_index(0, NULL, new_thread_id, copy_thread_id, free_thread_id);
++		}
++	return ind;
++	}
++/* Check if it's "safe" to use the blinding structure in the RSA structure.  If
++ * no thread has claimed it yet, take it for our own. */
++int OPENSSL_private_rsa_blinding_check_thread_id(RSA *rsa)
++	{
++	long *thread_id;
++	int ret;
++	CRYPTO_w_lock(CRYPTO_LOCK_RSA_BLINDING);
++	thread_id = RSA_get_ex_data(rsa, rsa_blinding_thread_id_index());
++	if (thread_id == NULL)
++		{
++		/* Allocate a new thread ID storage area and set it. */
++		thread_id = OPENSSL_malloc(sizeof(long));
++		*thread_id = -1;
++		RSA_set_ex_data(rsa,
++				rsa_blinding_thread_id_index(),
++				thread_id);
++		}
++	if (*thread_id == -1)
++		{
++		/* Stake our claim on this RSA structure's blinding struct. */
++		*thread_id = CRYPTO_thread_id();
++		}
++	/* Compare the value to the current thread ID. */
++	ret = (*thread_id == CRYPTO_thread_id());
++	CRYPTO_w_unlock(CRYPTO_LOCK_RSA_BLINDING);
++	return ret;
++	}
+--- openssl-0.9.7a/crypto/rsa/rsa_eay.c	2003-06-06 17:51:49.000000000 -0400
++++ openssl-0.9.7a/crypto/rsa/rsa_eay.c	2003-06-06 17:55:46.000000000 -0400
+@@ -214,6 +214,42 @@
+ 			err_instr \
+ 	} while(0)
+ 
++int OPENSSL_private_rsa_blinding_check_thread_id(RSA *rsa);
++
++static BN_BLINDING *setup_blinding(RSA *rsa, BN_CTX *ctx)
++	{
++	BIGNUM *A, *Ai;
++	BN_BLINDING *ret = NULL;
++
++	/* added in OpenSSL 0.9.6j and 0.9.7b */
++
++	/* NB: similar code appears in RSA_blinding_on (rsa_lib.c);
++	 * this should be placed in a new function of its own, but for reasons
++	 * of binary compatibility can't */
++
++	BN_CTX_start(ctx);
++	A = BN_CTX_get(ctx);
++	if ((RAND_status() == 0) && rsa->d != NULL && rsa->d->d != NULL)
++		{
++		/* if PRNG is not properly seeded, resort to secret exponent as unpredictable seed */
++		RAND_add(rsa->d->d, rsa->d->dmax * sizeof rsa->d->d[0], 0);
++		if (!BN_pseudo_rand_range(A,rsa->n)) goto err;
++		}
++	else
++		{
++		if (!BN_rand_range(A,rsa->n)) goto err;
++		}
++	if ((Ai=BN_mod_inverse(NULL,A,rsa->n,ctx)) == NULL) goto err;
++
++	if (!rsa->meth->bn_mod_exp(A,A,rsa->e,rsa->n,ctx,rsa->_method_mod_n))
++		goto err;
++	ret = BN_BLINDING_new(A,Ai,rsa->n);
++	BN_free(Ai);
++err:
++	BN_CTX_end(ctx);
++	return ret;
++	}
++
+ /* signing */
+ static int RSA_eay_private_encrypt(int flen, const unsigned char *from,
+ 	     unsigned char *to, RSA *rsa, int padding)
+@@ -222,6 +258,7 @@
+ 	int i,j,k,num=0,r= -1;
+ 	unsigned char *buf=NULL;
+ 	BN_CTX *ctx=NULL;
++	BN_BLINDING *blinding=NULL;
+ 
+ 	BN_init(&f);
+ 	BN_init(&ret);
+@@ -260,8 +297,15 @@
+ 
+ 	BLINDING_HELPER(rsa, ctx, goto err;);
+ 
++	blinding = rsa->blinding;
++	if ((blinding != NULL) &&
++	    !OPENSSL_private_rsa_blinding_check_thread_id(rsa))
++		{
++		blinding = setup_blinding(rsa, ctx);
++		}
++
+ 	if (rsa->flags & RSA_FLAG_BLINDING)
+-		if (!BN_BLINDING_convert(&f,rsa->blinding,ctx)) goto err;
++		if (!BN_BLINDING_convert(&f,blinding,ctx)) goto err;
+ 
+ 	if ( (rsa->flags & RSA_FLAG_EXT_PKEY) ||
+ 		((rsa->p != NULL) &&
+@@ -276,7 +320,10 @@
+ 		}
+ 
+ 	if (rsa->flags & RSA_FLAG_BLINDING)
+-		if (!BN_BLINDING_invert(&ret,rsa->blinding,ctx)) goto err;
++		if (!BN_BLINDING_invert(&ret,blinding,ctx)) goto err;
++
++	if (blinding != rsa->blinding)
++		BN_BLINDING_free(blinding);
+ 
+ 	/* put in leading 0 bytes if the number is less than the
+ 	 * length of the modulus */
+@@ -306,6 +353,7 @@
+ 	unsigned char *p;
+ 	unsigned char *buf=NULL;
+ 	BN_CTX *ctx=NULL;
++	BN_BLINDING *blinding=NULL;
+ 
+ 	BN_init(&f);
+ 	BN_init(&ret);
+@@ -339,8 +387,15 @@
+ 
+ 	BLINDING_HELPER(rsa, ctx, goto err;);
+ 
++	blinding = rsa->blinding;
++	if ((blinding != NULL) &&
++	    !OPENSSL_private_rsa_blinding_check_thread_id(rsa))
++		{
++		blinding = setup_blinding(rsa, ctx);
++		}
++
+ 	if (rsa->flags & RSA_FLAG_BLINDING)
+-		if (!BN_BLINDING_convert(&f,rsa->blinding,ctx)) goto err;
++		if (!BN_BLINDING_convert(&f,blinding,ctx)) goto err;
+ 
+ 	/* do the decrypt */
+ 	if ( (rsa->flags & RSA_FLAG_EXT_PKEY) ||
+@@ -357,7 +412,10 @@
+ 		}
+ 
+ 	if (rsa->flags & RSA_FLAG_BLINDING)
+-		if (!BN_BLINDING_invert(&ret,rsa->blinding,ctx)) goto err;
++		if (!BN_BLINDING_invert(&ret,blinding,ctx)) goto err;
++
++	if (blinding != rsa->blinding)
++		BN_BLINDING_free(blinding);
+ 
+ 	p=buf;
+ 	j=BN_bn2bin(&ret,p); /* j is only used with no-padding mode */

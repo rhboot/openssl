@@ -1,0 +1,14 @@
+--- openssl/ssl/ssl_lib.c	2003-07-15 12:52:54.000000000 -0400
++++ openssl/ssl/ssl_lib.c	2003-07-15 12:52:44.000000000 -0400
+@@ -473,6 +473,11 @@
+ 
+ 	if (s->method != NULL) s->method->ssl_free(s);
+ 
++#ifndef	OPENSSL_NO_KRB5
++	kssl_ctx_free(s->kssl_ctx);
++	s->kssl_ctx = NULL;
++#endif	/* OPENSSL_NO_KRB5 */
++
+ 	OPENSSL_free(s);
+ 	}
+ 

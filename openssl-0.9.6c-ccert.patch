@@ -1,0 +1,24 @@
+
+In ssl3_accept() (ssl/s3_srvr.c) only accept a client certificate if
+the server requested one: as stated in TLS 1.0 and SSL 3.0
+specifications. [Steve Henson]
+
+$ cvs diff -u -r1.108 -r1.109 s3_srvr.c
+--- openssl/ssl/s3_srvr.c	22 Jul 2003 12:34:21 -0000	1.108
++++ openssl/ssl/s3_srvr.c	3 Sep 2003 23:47:34 -0000	1.109
+@@ -456,10 +456,11 @@
+ 			if (ret == 2)
+ 				s->state = SSL3_ST_SR_CLNT_HELLO_C;
+ 			else {
+-				/* could be sent for a DH cert, even if we
+-				 * have not asked for it :-) */
+-				ret=ssl3_get_client_certificate(s);
+-				if (ret <= 0) goto end;
++				if (s->s3->tmp.cert_request)
++					{
++					ret=ssl3_get_client_certificate(s);
++					if (ret <= 0) goto end;
++					}
+ 				s->init_num=0;
+ 				s->state=SSL3_ST_SR_KEY_EXCH_A;
+ 			}
