@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 29
+Release: 31
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -13,7 +13,7 @@ Source5: make-dummy-cert
 Source6: hw_ubsec.c
 Source7: hw_ubsec.h
 Source8: ia64.S
-Patch0: openssl-0.9.6a-redhat.patch
+Patch0: openssl-engine-0.9.6b-redhat.patch
 Patch1: openssl-0.9.5a-64.patch
 Patch2: openssl-engine-0.9.6b-defaults.patch
 Patch3: openssl-0.9.5a-ia64.patch
@@ -34,6 +34,9 @@ Patch17: openssl-0.9.6c-aep.patch
 Patch18: openssl-0.9.6c-add-luna.patch
 Patch19: openssl-0.9.6b-sec.patch
 Patch20: openssl-0.9.6c-asn.patch.3
+Patch21: openssl-engine-0.9.6b-4096.patch
+Patch22: openssl-0.9.6-malloc-negative.patch
+Patch23: openssl-0.9.6-vaudenay.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -98,6 +101,9 @@ cp %{SOURCE8} crypto/bn/asm/
 %patch18 -p1 -b .luna
 %patch19 -p1 -b .sec
 %patch20 -p1 -b .asn
+%patch21 -p1 -b .4096
+%patch22 -p1 -b .malloc-negative
+%patch23 -p1 -b .vaudenay
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -139,6 +145,18 @@ sslarch=linux-s390
 %ifarch s390x
 sslarch=linux-s390x
 %endif
+%ifarch x86_64
+sslarch=linux-x86_64
+sslflags=no-asm
+%endif
+%ifarch ppc
+sslarch=linux-ppc
+sslflags=no-asm
+%endif
+%ifarch ppc64
+sslarch=linux-ppc64
+sslflags=no-asm
+%endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
@@ -155,16 +173,17 @@ make -C test apps tests
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 # Install OpenSSL.
-install -d $RPM_BUILD_ROOT{/lib,%{_bindir},%{_includedir},%{_libdir},%{_mandir}}
+install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir}}
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
-mv $RPM_BUILD_ROOT%{_libdir}/lib*.so.%{solibbase} $RPM_BUILD_ROOT/lib/
-mv $RPM_BUILD_ROOT%{_datadir}/ssl/man/* $RPM_BUILD_ROOT%{_mandir}
+mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{solibbase} $RPM_BUILD_ROOT/%{_lib}/
+mv $RPM_BUILD_ROOT%{_datadir}/ssl/man/* $RPM_BUILD_ROOT%{_mandir}/
 rmdir $RPM_BUILD_ROOT%{_datadir}/ssl/man
-rename so.%{solibbase} so.%{version} $RPM_BUILD_ROOT/lib/*.so.%{solibbase}
-for lib in $RPM_BUILD_ROOT/lib/*.so.%{version} ; do
+mv $RPM_BUILD_ROOT/usr/lib/* $RPM_BUILD_ROOT%{_libdir}/ || :
+rename so.%{solibbase} so.%{version} $RPM_BUILD_ROOT/%{_lib}/*.so.%{solibbase}
+for lib in $RPM_BUILD_ROOT/%{_lib}/*.so.%{version} ; do
 	chmod 755 ${lib}
-	ln -s -f ../../lib/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
-	ln -s -f ../../lib/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
+	ln -s -f ../../%{_lib}/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
+	ln -s -f ../../%{_lib}/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
 done
 
 # Install a makefile for generating keys and self-signed certs, and a script
@@ -207,6 +226,17 @@ cat %{SOURCE3} RHNS-blurb.txt %{SOURCE4} > ca-bundle.crt
 install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/certs/
 ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 
+%ifarch i686
+rm -rf $RPM_BUILD_ROOT/%{_prefix}/include/openssl
+rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.a
+rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.so
+rm -rf $RPM_BUILD_ROOT/%{_mandir}/man3/*
+
+rm -rf $RPM_BUILD_ROOT/%{_bindir}/c_rehash
+rm -rf $RPM_BUILD_ROOT/%{_mandir}/man1*/*.pl*
+rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
+%endif
+
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
@@ -230,7 +260,7 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %config(noreplace) %{_datadir}/ssl/openssl.cnf
 
 %attr(0755,root,root) %{_bindir}/openssl
-%attr(0755,root,root) /lib/*.so.%{version}
+%attr(0755,root,root) /%{_lib}/*.so.%{version}
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
@@ -256,6 +286,22 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-31
+- add fix to guard against attempts to allocate negative amounts of memory
+- add patch for CAN-2003-0078, fixing a timing attack
+
+* Tue Feb 11 2003 Nalin Dahyabhai <nalin@redhat.com>
+- incorporate fix for verifying client certs with 4096-bit keys (#77225)
+
+* Tue Oct 22 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-30
+- add configuration stanza for x86_64 and use it on x86_64
+- build for linux-ppc on ppc
+- start running the self-tests again
+
+* Wed Oct 02 2002 Elliot Lee <sopwith@redhat.com> 0.9.6b-29hammer.3
+- Merge fixes from previous hammer packages, including general x86-64 and
+  multilib
+
 * Tue Aug  6 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-29
 - rebuild
 
