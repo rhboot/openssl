@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 38
+Release: 39
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -404,6 +404,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Jun 15 2004 Elliot Lee <sopwith@redhat.com>
+- rebuilt
+
 * Mon Jun 14 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-38
 - Updated ICA engine IBM patch to latest upstream version.
 
