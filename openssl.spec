@@ -123,6 +123,7 @@ aclocal
 touch Makefile.macros
 automake --gnu -acf
 autoconf
+libtoolize --copy --force
 popd
 %endif
 
