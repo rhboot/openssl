@@ -62,6 +62,7 @@
 #include <openssl/lhash.h>
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
+#include <openssl/rand.h>
 #ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
 #endif
@@ -334,7 +335,16 @@ int RSA_blinding_on(RSA *rsa, BN_CTX *p_ctx)
 
 	BN_CTX_start(ctx);
 	A = BN_CTX_get(ctx);
-	if (!BN_rand_range(A,rsa->n)) goto err;
+	if ((RAND_status() == 0) && rsa->d != NULL && rsa->d->d != NULL)
+		{
+		/* if PRNG is not properly seeded, resort to secret exponent as unpredictable seed */
+		RAND_add(rsa->d->d, rsa->d->dmax * sizeof rsa->d->d[0], 0);
+		if (!BN_pseudo_rand_range(A,rsa->n)) goto err;
+		}
+	else
+		{
+		if (!BN_rand_range(A,rsa->n)) goto err;
+		}
 	if ((Ai=BN_mod_inverse(NULL,A,rsa->n,ctx)) == NULL) goto err;
 
 	if (!rsa->meth->bn_mod_exp(A,A,rsa->e,rsa->n,ctx,rsa->_method_mod_n))
