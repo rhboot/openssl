@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 15
+Release: 16
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -227,6 +227,9 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-16
+- rebuild
+
 * Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-15
 - only build subpackages on primary arches
 
