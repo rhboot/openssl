@@ -473,6 +473,11 @@ void SSL_free(SSL *s)
 
 	if (s->method != NULL) s->method->ssl_free(s);
 
+#ifndef	OPENSSL_NO_KRB5
+	kssl_ctx_free(s->kssl_ctx);
+	s->kssl_ctx = NULL;
+#endif	/* OPENSSL_NO_KRB5 */
+
 	OPENSSL_free(s);
 	}
 
