@@ -1,0 +1,20 @@
+--- openssl-0.9.5a/test/rsa_test.c	Fri Jun  2 19:27:25 2000
++++ openssl-0.9.5a/test/rsa_test.c	Fri Jun  2 19:31:02 2000
+@@ -240,6 +240,9 @@
+ 	break;
+ 	}
+ 
++#ifdef RSA_NULL
++        printf("NULL RSA support only\n");
++#else
+ 	num = RSA_public_encrypt(plen, ptext_ex, ctext, key,
+ 				 RSA_PKCS1_PADDING);
+ 	if (num != clen)
+@@ -301,6 +304,7 @@
+ 	    }
+ 	else
+ 	    printf("OAEP encryption/decryption ok\n");
++#endif
+     next:
+ 	RSA_free(key);
+ 	}
