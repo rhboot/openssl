@@ -1,0 +1,13 @@
+Don't barf when attempting to very client certs which use 4096-bit keys (#77225)
+
+--- openssl-engine-0.9.6b/ssl/s3_srvr.c	2003-02-11 00:00:43.000000000 -0500
++++ openssl-engine-0.9.6b/ssl/s3_srvr.c	2003-02-11 00:00:34.000000000 -0500
+@@ -1477,7 +1477,7 @@
+ 		SSL3_ST_SR_CERT_VRFY_A,
+ 		SSL3_ST_SR_CERT_VRFY_B,
+ 		-1,
+-		512, /* 512? */
++		514, /* 514? */
+ 		&ok);
+ 
+ 	if (!ok) return((int)n);
