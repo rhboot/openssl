@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 4
+Release: 5
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -18,8 +18,8 @@ Patch2: openssl-engine-0.9.6b-defaults.patch
 Patch3: openssl-0.9.5a-ia64.patch
 Patch4: openssl-0.9.5a-glibc.patch
 Patch5: openssl-0.9.6a-soversion.patch
-Patch6: openssl-engine-0.9.6b-hw_ubsec.patch
-Patch7: openssl-engine-0.9.6b-add-aep.patch
+Patch6: openssl-engine-0.9.6b-add-aep.patch
+Patch7: openssl-engine-0.9.6b-hw_ubsec.patch
 Patch8: openssl-0.9.6-x509.patch
 Patch9: openssl-engine-0.9.6b-default-engine.patch
 License: BSDish
@@ -70,8 +70,8 @@ cp %{SOURCE7} crypto/engine/vendor_defns/
 %patch3 -p1 -b .ia64
 %patch4 -p1 -b .glibc
 %patch5 -p1 -b .soversion
-%patch6 -p1 -b .hw_ubsec
-%patch7 -p1 -b .add-aep
+%patch6 -p1 -b .add-aep
+%patch7 -p1 -b .hw_ubsec
 %patch8 -p1 -b .x509
 %patch9 -p1 -b .default-engine
 
@@ -124,10 +124,6 @@ make rehash build-shared
 
 # Verify that what was compiled actually works.
 make -C test apps tests
-
-# Relink the main binary to get it dynamically linked.
-rm apps/openssl
-make all build-shared
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -224,26 +220,30 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
-* Fri Aug 10 2001 Nalin Dahyabhai <nalin@redhat.com>
-- move man pages back to %%{_mandir}/man?/foo.?ssl from %%{_mandir}/man?ssl/foo.?
+* Thu Aug 23 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-5
+- update ubsec engine driver from Broadcom
+
+* Fri Aug 10 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-4
+- move man pages back to %%{_mandir}/man?/foo.?ssl from
+  %%{_mandir}/man?ssl/foo.?
 - add an [ engine ] section to the default configuration file
 
 * Thu Aug  9 2001 Nalin Dahyabhai <nalin@redhat.com>
 - add a patch for selecting a default engine in SSL_library_init()
 
-* Mon Jul 23 2001 Nalin Dahyabhai <nalin@redhat.com>
+* Mon Jul 23 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-3
 - add patches for AEP hardware support
 - add patch to keep trying when we fail to load a cert from a file and
   there are more in the file
 - add missing prototype for ENGINE_ubsec() in engine_int.h
 
-* Wed Jul 18 2001 Nalin Dahyabhai <nalin@redhat.com>
+* Wed Jul 18 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-2
 - actually add hw_ubsec to the engine list
 
 * Tue Jul 17 2001 Nalin Dahyabhai <nalin@redhat.com>
 - add in the hw_ubsec driver from CVS
 
-* Wed Jul 11 2001 Nalin Dahyabhai <nalin@redhat.com>
+* Wed Jul 11 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-1
 - update to 0.9.6b
 
 * Thu Jul  5 2001 Nalin Dahyabhai <nalin@redhat.com>

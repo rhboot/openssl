@@ -1,14 +1,14 @@
---- openssl-engine-0.9.6b/crypto/engine/Makefile.ssl.hw_ubsec	Thu Sep  7 06:57:29 2000
-+++ openssl-engine-0.9.6b/crypto/engine/Makefile.ssl	Tue Jul 24 02:01:46 2001
+--- openssl-engine-0.9.6b/crypto/engine/Makefile.ssl	Thu Aug 23 01:03:40 2001
++++ openssl-engine-0.9.6b/crypto/engine/Makefile.ssl	Thu Aug 23 01:04:19 2001
 @@ -23,9 +23,9 @@
  
  LIB=$(TOP)/libcrypto.a
  LIBSRC= engine_err.c engine_lib.c engine_list.c engine_openssl.c \
--	hw_atalla.c hw_cswift.c hw_ncipher.c
-+	hw_atalla.c hw_cswift.c hw_ncipher.c hw_ubsec.c
+-	hw_atalla.c hw_cswift.c hw_ncipher.c hw_aep.c
++	hw_atalla.c hw_cswift.c hw_ncipher.c hw_aep.c hw_ubsec.c
  LIBOBJ= engine_err.o engine_lib.o engine_list.o engine_openssl.o \
--	hw_atalla.o hw_cswift.o hw_ncipher.o
-+	hw_atalla.o hw_cswift.o hw_ncipher.o hw_ubsec.o
+-	hw_atalla.o hw_cswift.o hw_ncipher.o hw_aep.o
++	hw_atalla.o hw_cswift.o hw_ncipher.o hw_aep.o hw_ubsec.o
  
  SRC= $(LIBSRC)
  
@@ -39,9 +39,9 @@
 +hw_ubsec.o: ../../include/openssl/x509.h
 +hw_ubsec.o: ../../include/openssl/x509_vfy.h ../cryptlib.h hw_ubsec.c
 +hw_ubsec.o: vendor_defns/hw_ubsec.h
---- openssl-engine-0.9.6b/crypto/engine/engine.h.hw_ubsec	Tue Jul 24 02:01:45 2001
-+++ openssl-engine-0.9.6b/crypto/engine/engine.h	Tue Jul 24 02:01:46 2001
-@@ -357,6 +357,14 @@
+--- openssl-engine-0.9.6b/crypto/engine/engine.h	Thu Aug 23 01:03:40 2001
++++ openssl-engine-0.9.6b/crypto/engine/engine.h	Thu Aug 23 01:03:40 2001
+@@ -363,6 +363,16 @@
  #define ENGINE_F_HWCRHK_RAND_BYTES			 139
  #define ENGINE_F_HWCRHK_RSA_MOD_EXP			 140
  #define ENGINE_F_LOG_MESSAGE				 141
@@ -53,12 +53,14 @@
 +#define ENGINE_F_UBSEC_MOD_EXP				 167
 +#define ENGINE_F_UBSEC_RSA_MOD_EXP			 168
 +#define ENGINE_F_UBSEC_RSA_MOD_EXP_CRT			 169
++#define ENGINE_F_UBSEC_DH_COMPUTE_KEY                    171
++#define ENGINE_F_UBSEC_RNG_BYTES                         172
  
  /* Reason codes. */
- #define ENGINE_R_ALREADY_LOADED				 100
---- openssl-engine-0.9.6b/crypto/engine/engine_err.c.hw_ubsec	Tue Aug  1 08:22:14 2000
-+++ openssl-engine-0.9.6b/crypto/engine/engine_err.c	Tue Jul 24 02:01:46 2001
-@@ -126,6 +126,14 @@
+ #define ENGINE_R_AEP_INIT_FAILURE			 132
+--- openssl-engine-0.9.6b/crypto/engine/engine_err.c	Thu Aug 23 01:03:40 2001
++++ openssl-engine-0.9.6b/crypto/engine/engine_err.c	Thu Aug 23 01:03:40 2001
+@@ -132,6 +132,14 @@
  {ERR_PACK(0,ENGINE_F_HWCRHK_RAND_BYTES,0),	"HWCRHK_RAND_BYTES"},
  {ERR_PACK(0,ENGINE_F_HWCRHK_RSA_MOD_EXP,0),	"HWCRHK_RSA_MOD_EXP"},
  {ERR_PACK(0,ENGINE_F_LOG_MESSAGE,0),	"LOG_MESSAGE"},
@@ -73,16 +75,24 @@
  {0,NULL}
  	};
  
---- openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c.hw_ubsec	Tue Jul 24 02:01:46 2001
-+++ openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c	Tue Jul 24 02:01:46 2001
-@@ -112,14 +112,10 @@
+--- openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c	Thu Aug 23 01:03:40 2001
++++ openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c	Thu Aug 23 01:03:40 2001
+@@ -62,9 +62,9 @@
+ #include <openssl/crypto.h>
+ #include "cryptlib.h"
+ #include <openssl/dso.h>
+-#include <openssl/engine.h>
+ #include <openssl/bn.h>
+ #include "engine_int.h"
++#include <openssl/engine.h>
+ 
+ #ifndef OPENSSL_NO_HW
+ #ifndef OPENSSL_NO_HW_UBSEC
+@@ -116,15 +116,6 @@
  static int ubsec_rand_status(void);
  #endif
- 
-+#ifndef ENGINE_CMD_BASE
-+#define ENGINE_CMD_BASE			200
-+#endif
- #define UBSEC_CMD_SO_PATH		ENGINE_CMD_BASE
+  
+-#define UBSEC_CMD_SO_PATH		ENGINE_CMD_BASE
 -static const ENGINE_CMD_DEFN ubsec_cmd_defns[] = {
 -	{UBSEC_CMD_SO_PATH,
 -		"SO_PATH",
@@ -90,10 +100,11 @@
 -		ENGINE_CMD_FLAG_STRING},
 -	{0, NULL, NULL, 0}
 -	};
- 
+-
  #ifndef OPENSSL_NO_RSA
  /* Our internal RSA_METHOD that we provide pointers to */
-@@ -207,8 +203,7 @@
+ static RSA_METHOD ubsec_rsa =
+@@ -227,8 +218,7 @@
  			!ENGINE_set_BN_mod_exp_crt(ret, ubsec_mod_exp_crt) ||
  			!ENGINE_set_init_function(ret, ubsec_init) ||
  			!ENGINE_set_finish_function(ret, ubsec_finish) ||
@@ -103,7 +114,7 @@
  		{
  		ENGINE_free(ret);
  		return NULL;
-@@ -277,7 +272,7 @@
+@@ -298,7 +288,7 @@
   * symbol names to bind to. 
   */
  
@@ -112,12 +123,35 @@
  static const char *UBSEC_F1 = "ubsec_bytes_to_bits";
  static const char *UBSEC_F2 = "ubsec_bits_to_bytes";
  static const char *UBSEC_F3 = "ubsec_open";
---- openssl-engine-0.9.6b/crypto/engine/engine_list.c.hw_ubsec	Fri Jun 30 07:01:56 2000
-+++ openssl-engine-0.9.6b/crypto/engine/engine_list.c	Tue Jul 24 02:01:46 2001
-@@ -198,6 +198,10 @@
- 	if(!engine_list_add(ENGINE_atalla()))
+@@ -477,22 +467,8 @@
+ 
+ static int ubsec_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)())
+ 	{
+-	int initialised = ((ubsec_dso == NULL) ? 0 : 1);
+ 	switch(cmd)
+ 		{
+-	case UBSEC_CMD_SO_PATH:
+-		if(p == NULL)
+-			{
+-			ENGINEerr(ENGINE_F_UBSEC_CTRL,ERR_R_PASSED_NULL_PARAMETER);
+-			return 0;
+-			}
+-		if(initialised)
+-			{
+-			ENGINEerr(ENGINE_F_UBSEC_CTRL,ENGINE_R_ALREADY_LOADED);
+-			return 0;
+-			}
+-		UBSEC_LIBNAME = (const char *)p;
+-		return 1;
+ 	default:
+ 		break;
+ 		}
+--- openssl-engine-0.9.6b/crypto/engine/engine_list.c	Thu Aug 23 01:03:40 2001
++++ openssl-engine-0.9.6b/crypto/engine/engine_list.c	Thu Aug 23 01:05:09 2001
+@@ -202,6 +202,10 @@
+ 	if(!engine_list_add(ENGINE_aep()))
  		return 0;
- #endif /* !NO_HW_ATALLA */
+ #endif /* !NO_HW_AEP */
 +#ifndef NO_HW_UBSEC
 +	if(!engine_list_add(ENGINE_ubsec()))
 +		return 0;
@@ -125,9 +159,9 @@
  #endif /* !NO_HW */
  	engine_list_flag = 1;
  	return 1;
---- openssl-engine-0.9.6b/crypto/engine/engine_int.h.hw_ubsec	Tue Jul 24 02:04:08 2001
-+++ openssl-engine-0.9.6b/crypto/engine/engine_int.h	Tue Jul 24 02:04:10 2001
-@@ -151,6 +151,11 @@
+--- openssl-engine-0.9.6b/crypto/engine/engine_int.h	Thu Aug 23 01:03:40 2001
++++ openssl-engine-0.9.6b/crypto/engine/engine_int.h	Thu Aug 23 01:08:53 2001
+@@ -156,6 +156,11 @@
  ENGINE *ENGINE_atalla();
  #endif /* !NO_HW_ATALLA */
  
