@@ -1,0 +1,24 @@
+--- apps/openssl.cnf.orig	Tue May 22 11:14:56 2001
++++ apps/openssl.cnf	Tue May 22 11:17:58 2001
+@@ -109,17 +109,18 @@
+ 
+ [ req_distinguished_name ]
+ countryName			= Country Name (2 letter code)
+-countryName_default		= AU
++countryName_default		= GB
+ countryName_min			= 2
+ countryName_max			= 2
+ 
+ stateOrProvinceName		= State or Province Name (full name)
+-stateOrProvinceName_default	= Some-State
++stateOrProvinceName_default	= Berkshire
+ 
+ localityName			= Locality Name (eg, city)
++localityName_default		= Newbury
+ 
+ 0.organizationName		= Organization Name (eg, company)
+-0.organizationName_default	= Internet Widgits Pty Ltd
++0.organizationName_default	= My Company Ltd
+ 
+ # we can do this but it is not needed normally :-)
+ #1.organizationName		= Second Organization Name (eg, company)

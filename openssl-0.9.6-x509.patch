@@ -1,3 +1,5 @@
+Do not treat duplicate certs as an error.
+
 --- openssl-0.9.6/crypto/x509/by_file.c	Wed Sep 27 15:09:05 2000
 +++ openssl-0.9.6/crypto/x509/by_file.c	Wed Sep 27 14:21:20 2000
 @@ -163,8 +163,12 @@
