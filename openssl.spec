@@ -5,12 +5,23 @@
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
 %define soversion 4
-%define thread_test_threads %{?threads:%{threads}}%{!?threads:100}
+
+# Number of threads to spawn when testing some threading fixes.
+%define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
+
+# Arches on which we need to prevent arch conflicts on opensslconf.h, must
+# also be handled in opensslconf-new.h.
+%define multilib_arches %{ix86} ia64 ppc ppc64 s390 s390x x86_64
+
+# Arches for which we don't build subpackages.
+%define optimize_arches i686
+
+%define libicaversion 1.3.5
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 26
+Release: 34
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -18,15 +29,17 @@ Source3: ca-bundle.crt
 Source4: https://rhn.redhat.com/help/RHNS-CA-CERT
 Source5: https://rhn.redhat.com/help/RHNS-CA-CERT.asc
 Source6: make-dummy-cert
-Source7: libica-1.3.4.tar.gz
+Source7: libica-%{libicaversion}.tar.gz
 Source8: openssl-thread-test.c
+Source9: opensslconf-new.h
+Source10: opensslconf-new-warning.h
 Patch0: openssl-0.9.7a-redhat.patch
 Patch1: openssl-0.9.7-beta5-defaults.patch
 Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7a-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7c-ICA_engine-oct202003.patch
+Patch6: openssl-0.9.7c-ICA_engine-nov072003.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
@@ -43,7 +56,6 @@ Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
 Patch40: libica-1.3.4-urandom.patch
-Patch41: libica-1.3.4-urandom2.patch
 Patch42: openssl-0.9.7a-krb5.patch
 License: BSDish
 Group: System Environment/Libraries
@@ -100,7 +112,7 @@ pushd ssl
 popd
 
 %ifarch s390 s390x
-pushd libica-1.3.4
+pushd libica-%{libicaversion}
 %patch11 -p1 -b .cleanup
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
@@ -127,9 +139,6 @@ popd
 # generator.
 %patch40 -p1 -b .urandom
 
-# Backported patch from libica-1.3.5 to use /dev/urandom in icalinux.c, too.
-%patch41 -p1 -b .urandom2
-
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
 
@@ -141,7 +150,7 @@ make TABLE PERL=%{__perl}
 
 %build 
 %ifarch s390 s390x
-pushd libica-1.3.4
+pushd libica-%{libicaversion}
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
 fi
@@ -289,7 +298,20 @@ cat $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp > \
 	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc && \
 rm -f $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp
 
-%ifarch i686
+%ifarch %{multilib_arches}
+# Do an opensslconf.h switcheroo to avoid file conflicts on systems where you
+# can have both a 32- and 64-bit version of the library, and they each need
+# their own correct-but-different versions of opensslconf.h to be usable.
+install -m644 $RPM_SOURCE_DIR/opensslconf-new-warning.h \
+   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-%{_arch}.h
+cat $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h >> \
+   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-%{_arch}.h
+install -m644 $RPM_SOURCE_DIR/opensslconf-new.h \
+   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
+%endif
+
+%ifarch %{optimize_arches}
+# Remove bits which belong in subpackages.
 rm -rf $RPM_BUILD_ROOT/%{_prefix}/include/openssl
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.a
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.so
@@ -302,14 +324,17 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %endif
 
 %ifarch s390 s390x
-pushd libica-1.3.4
+pushd libica-%{libicaversion}
 if [[ $RPM_BUILD_ROOT  ]] ;
 then
         export INSROOT=$RPM_BUILD_ROOT
 fi
 %makeinstall
 mkdir -p $RPM_BUILD_ROOT/%{_libdir}
-mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
+mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so.1
+ln -sf libica.so.1 $RPM_BUILD_ROOT/%{_libdir}/libica.so
+cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
+popd
 %endif
 
 %clean
@@ -340,13 +365,16 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 %ifarch s390 s390x
-%attr(0755,root,root) %{_libdir}/libica.so
+%attr(0755,root,root) %{_libdir}/libica.so.1
 %endif
 
-%ifnarch i686
+%ifnarch %{optimize_arches}
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
+%ifarch s390 s390x
+%{_includedir}/*.h
+%endif
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
@@ -365,6 +393,39 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Mar 10 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-34
+- ppc/ppc64 define __powerpc__/__powerpc64__, not __ppc__/__ppc64__, fix
+  the intermediate header
+
+* Wed Mar 10 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-33
+- add an intermediate <openssl/opensslconf.h> which points to the right
+  arch-specific opensslconf.h on multilib arches
+
+* Tue Mar 02 2004 Elliot Lee <sopwith@redhat.com>
+- rebuilt
+
+* Thu Feb 26 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-32
+- Updated libica to latest upstream version 1.3.5.
+
+* Tue Feb 17 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-31
+- Update ICA crypto engine patch from IBM to latest version.
+
+* Fri Feb 13 2004 Elliot Lee <sopwith@redhat.com>
+- rebuilt
+
+* Fri Feb 13 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-29
+- rebuilt
+
+* Wed Feb 11 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-28
+- Fixed libica build.
+
+* Wed Feb  4 2004 Nalin Dahyabhai <nalin@redhat.com>
+- add "-ldl" to link flags added for Linux-on-ARM (#99313)
+
+* Wed Feb  4 2004 Joe Orton <jorton@redhat.com> 0.9.7a-27
+- updated ca-bundle.crt: removed expired GeoTrust roots, added
+  freessl.com root, removed trustcenter.de Class 0 root
+
 * Sun Nov 30 2003 Tim Waugh <twaugh@redhat.com> 0.9.7a-26
 - Fix link line for libssl (bug #111154).
 
