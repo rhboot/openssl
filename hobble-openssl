@@ -1,18 +1,19 @@
 #!/bin/sh
 
-# quit out if anything fails.
+# Quit out if anything fails.
 set -e
 
 # Clean out patent-or-otherwise-encumbered code.
 # MDC-2: 4,908,861 13/03/2007
 # IDEA:  5,214,703 25/05/2010
 # RC5:   5,724,428 03/03/2015
+# EC:    ????????? ??/??/2015
 
 # Remove assembler portions of IDEA, MDC2, and RC5.
 (find crypto/{idea,mdc2,rc5}/asm -type f | xargs -r rm -fv)
 
-# IDEA, MDC2 and RC5.
-for a in idea mdc2 rc5; do
+# IDEA, MDC2, RC5, EC.
+for a in idea mdc2 rc5 ec; do
   for c in `find crypto/$a -name "*.c" -a \! -name "*test*" -type f` ; do
 	echo Destroying $c
 	> $c
@@ -25,13 +26,14 @@ for c in `find crypto/evp -name "*_rc5.c" -o -name "*_idea.c" -o -name "*_mdc2.c
 done
 
 for h in `find crypto ssl apps test -name "*.h"` ; do
-	echo Removing IDEA, MDC2, and RC5 references from $h
+	echo Removing IDEA, MDC2, RC5, and EC references from $h
 	cat $h | \
 	awk    'BEGIN {ech=1;} \
 		/#[ \t]*if/ {if(ech < 1) ech--;} \
 		/#[ \t]*ifndef.*NO_IDEA/ {ech--;} \
 		/#[ \t]*ifndef.*NO_MDC2/ {ech--;} \
 		/#[ \t]*ifndef.*NO_RC5/ {ech--;} \
+		/#[ \t]*ifndef.*NO_EC/ {ech--;} \
 		{if(ech>0) {;print $0};} \
 		/#endif/ {if(ech < 1) ech++;}' > $h.hobbled && \
 	mv $h.hobbled $h
