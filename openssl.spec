@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.12
+Release: 33.13
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -43,6 +43,7 @@ Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
+Patch22: openssl-0.9.7a-no-der_chop.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
 Patch43: openssl-0.9.7a-krb5-security.patch
@@ -124,6 +125,7 @@ popd
 %patch19 -p1 -b .niscc
 %patch20 -p1 -b .ccert
 %patch21 -p1 -b .utf8fix
+%patch22 -p1 -b .no-der_chop
 
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
@@ -376,6 +378,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov 19 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-33.13
+- remove der_chop, as upstream cvs has done (CAN-2004-0975, #136302)
+
 * Tue Jun 22 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-33.12
 - Updated ICA engine patch from IBM to latest upstream version.
 - Updated libica to latest upstream version.
