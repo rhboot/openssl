@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 34
+Release: 35
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -57,6 +57,8 @@ Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
+Patch43: openssl-0.9.7a-krb5-security.patch
+Patch44: openssl-0.9.7a-dccs.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -141,6 +143,10 @@ popd
 
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
+
+# Security fixes
+%patch43 -p1 -b .krb5-security
+%patch44 -p1 -b .dccs
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -331,8 +337,7 @@ then
 fi
 %makeinstall
 mkdir -p $RPM_BUILD_ROOT/%{_libdir}
-mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so.1
-ln -sf libica.so.1 $RPM_BUILD_ROOT/%{_libdir}/libica.so
+mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so
 cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
 popd
 %endif
@@ -365,7 +370,7 @@ popd
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 %ifarch s390 s390x
-%attr(0755,root,root) %{_libdir}/libica.so.1
+%attr(0755,root,root) %{_libdir}/libica.so
 %endif
 
 %ifnarch %{optimize_arches}
@@ -393,6 +398,12 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Mar 25 2004 Joe Orton <jorton@redhat.com> 0.9.7a-35
+- add security fixes for CAN-2004-0079, CAN-2004-0112
+
+* Tue Mar 16 2004 Phil Knirsch <pknirsch@redhat.com>
+- Fixed libica filespec.
+
 * Thu Mar 10 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-34
 - ppc/ppc64 define __powerpc__/__powerpc64__, not __ppc__/__ppc64__, fix
   the intermediate header
