@@ -1,51 +1,34 @@
-%define m2crypto_version 0.05-snap4
-%define swig_version 1.1p5
-%define soversion 1
+%define soversion 2
 
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
-Version: 0.9.6
-Release: 16.0p
-Source: openssl-%{version}-usa.tar.bz2
+Version: 0.9.6b
+Release: 3
+Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
-Source3: http://download.sourceforge.net/swig/swig%{swig_version}.tar.gz
-Source4: http://mars.post1.com/home/ngps/m2/m2crypto-%{m2crypto_version}.zip
-Source5: ca-bundle.crt
-Source6: RHNS-CA-CERT
-Patch0: openssl-0.9.6-redhat.patch
-Patch1: openssl-0.9.5-rsanull.patch
-Patch2: openssl-0.9.5a-64.patch
-Patch3: openssl-0.9.5a-defaults.patch
-Patch4: openssl-0.9.5a-ia64.patch
-Patch5: openssl-0.9.5a-glibc.patch
-Patch6: openssl-0.9.6-soversion.patch
-Patch7: m2crypto-0.05-snap4-include.patch
-Patch8: openssl-0.9.6-bleichenbacher.patch
-Patch9: openssl-crt.patch
-Patch10: openssl-setugid.patch
-Patch11: openssl-zero-premaster.patch
-Patch12: openssl-0.9.6-memmove.patch
-Patch13: openssl096a-prng.patch
-Patch14: openssl096a-prng-2.patch
-Patch15: openssl-0.9.6b-sec.patch
-Patch16: openssl-0.9.6c-asn.patch.3
-Patch17: openssl-0.9.6-malloc-negative.patch
-Patch18: openssl-0.9.6-vaudenay.patch
-Patch19: openssl-sec3-blinding-0.9.6b.patch
-Patch20: openssl-0.9.6-klima-pokorny-rosa.patch
+Source3: ca-bundle.crt
+Source4: RHNS-CA-CERT
+Source5: make-dummy-cert
+Source6: hw_ubsec.c
+Source7: hw_ubsec.h
+Patch0: openssl-0.9.6a-redhat.patch
+Patch1: openssl-0.9.5a-64.patch
+Patch2: openssl-0.9.5a-defaults.patch
+Patch3: openssl-0.9.5a-ia64.patch
+Patch4: openssl-0.9.5a-glibc.patch
+Patch5: openssl-0.9.6a-soversion.patch
+Patch6: openssl-engine-0.9.6b-hw_ubsec.patch
+Patch7: openssl-engine-0.9.6b-add-aep.patch
+Patch8: openssl-0.9.6-x509.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildPreReq: perl, python-devel, unzip
+BuildPreReq: perl, sed
+Requires: mktemp
 
-# the gcc-2.96 compiler on ppc has some optimization problems.
-# gcc296ppc is true in this case.
-%define gcc296ppc 0
-%ifarch ppc ppc64
-%define gcc296ppc %(gcc -v 2>&1 1>/dev/null|grep -qF 2.96 && echo 1 || echo 0)
-%endif
+%define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
 
 %description
 The OpenSSL certificate management tool and the shared libraries that
@@ -58,7 +41,8 @@ Requires: %{name} = %{version}-%{release}
 
 %description devel
 The static libraries and include files needed to compile apps
-with support for various cryptographic algorithms and protocols.
+with support for various the cryptographic algorithms and protocols
+supported by OpenSSL.
 
 Patches for many networking apps can be found at:
 ftp://ftp.psy.uq.oz.au/pub/Crypto/SSLapps/
@@ -73,57 +57,20 @@ Requires: %{name} = %{version}-%{release}
 Perl scripts provided with OpenSSL for converting certificates and keys
 from other formats to those used by OpenSSL.
 
-%package python
-Summary: Support for using OpenSSL in python scripts.
-Group: Applications/Internet
-Requires: python
-Requires: %{name} = %{version}-%{release}
-
-%description python
-This package allows you to call OpenSSL functions from python scripts.
-
 %prep
-%setup -q
+%setup -q -n openssl-engine-%{version}
 %{SOURCE1}
+cp %{SOURCE6} crypto/engine/
+cp %{SOURCE7} crypto/engine/vendor_defns/
 %patch0 -p1 -b .redhat
-%patch1 -p1 -b .rsanull
-%ifarch alpha ia64
-%patch2 -p1 -b .64
-%endif
-%patch3 -p1 -b .defaults
-%patch4 -p1 -b .ia64
-%patch5 -p1 -b .glibc
-%patch6 -p1 -b .soversion
-
-# Extract what we need for building extensions.
-gzip -dc %{SOURCE3} | tar xf -
-unzip -q %{SOURCE4}
-pushd m2crypto-%{m2crypto_version}
-%patch7 -p1 -b .include
-    for file in demo/evp_ciph_test.py demo/bio_ciph_test.py swig/_evp.i ; do
-	grep -v idea_ ${file} > ${file}.tmp
-	grep -v rc5_  ${file}.tmp > ${file}
-    done
-popd
-%patch8  -p1 -b .bleichenbacher
-%patch9  -p1 -b .crt
-%patch10 -p1 -b .setugid
-%patch11 -p1 -b .zero-premaster
-%patch12 -p1 -b .memmove
-pushd crypto/rand
-%patch13 -p0 -b .prng
-popd
-pushd doc/crypto
-%patch14 -p0 -b .prng-2
-popd
-%patch15 -p0 -b .sec
-%patch16 -p1 -b .asn
-%patch17 -p1 -b .malloc-negative
-%patch18 -p1 -b .vaudenay
-%patch19 -p0 -b .sec3-blinding
-pushd ssl
-%patch20 -p0 -b .klima-pokorny-rosa
-popd
+%patch1 -p1 -b .64
+%patch2 -p1 -b .defaults
+%patch3 -p1 -b .ia64
+%patch4 -p1 -b .glibc
+%patch5 -p1 -b .soversion
+%patch6 -p1 -b .hw_ubsec
+%patch7 -p1 -b .add-aep
+%patch8 -p1 -b .x509
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -132,20 +79,18 @@ chmod 644 doc/ssleay.txt
 
 # Link the configuration header to the one we're going to make.
 ln -sf ../../crypto/opensslconf.h include/openssl/
-# Link the ssl.h header to the one we're going to make.
-ln -sf ../../ssl/ssl.h include/openssl/
 
 %build 
 PATH=${PATH}:${PWD}/bin
 TOPDIR=${PWD}
-LD_LIBRARY_PATH=${TOPDIR}:${PATH} ; export LD_LIBRARY_PATH
+LD_LIBRARY_PATH=${TOPDIR}:${TOPDIR}/bin ; export LD_LIBRARY_PATH
 
-# Figure out which flags we want to use.  Assembly is broken on some platforms,
-# required on others.
+# Figure out which flags we want to use.  Can't use assembler because it's
+# not lowest-common-denominator in most cases.
 perl util/perlpath.pl `dirname %{__perl}`
 %ifarch %ix86
 sslarch=linux-elf
-sslflags=no-asm
+sslflags="no-asm 386"
 %endif
 %ifarch sparc
 sslarch=linux-sparcv9
@@ -154,7 +99,6 @@ sslflags=no-asm
 %ifarch ia64
 sslarch=linux-ia64
 sslflags=no-asm
-RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O1"
 %endif
 %ifarch alpha
 sslarch=alpha-gcc
@@ -163,64 +107,45 @@ sslflags=no-asm
 %ifarch s390
 sslarch=linux-s390
 %endif
-%if %{gcc296ppc}
-RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O1"
+%ifarch s390x
+sslarch=linux-s390x
 %endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
-./config --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} no-idea no-mdc2 no-rc5
-make all libcrypto.so libssl.so
+./config --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} no-idea no-mdc2 no-rc5 shared
+make all build-shared
 
-# Build the Perl bindings.
-#pushd perl
-#perl Makefile.PL
-#make
-#popd
+# Generate hashes for the included certs.
+make rehash build-shared
 
 # Verify that what was compiled actually works.
 make -C test apps tests
 
-# Build a copy of swig with which to build the extensions.
-pushd SWIG%{swig_version}
-autoconf
-./configure --prefix=${TOPDIR}
-make all install
-popd
-
-# Build the python extensions.
-pushd m2crypto-%{m2crypto_version}/swig
-export PATH=`pwd`/../../bin:$PATH
-make \
-	INCLUDE="-I. -I../../include" \
-	LIBS="-L${TOPDIR} -lssl -lcrypto -lc" \
-	PYINCLUDE="-DHAVE_CONFIG_H -I/usr/include/python1.5 -I/usr/lib/python1.5/config" \
-	PYLIB=/usr/lib/python1.5/config
-cd ../doc
-sh -x go
-popd
-
 # Relink the main binary to get it dynamically linked.
 rm apps/openssl
-make all
+make all build-shared
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 # Install OpenSSL.
-install -d $RPM_BUILD_ROOT{%{_bindir},%{_includedir},%{_libdir},%{_mandir}}
-make INSTALL_PREFIX=$RPM_BUILD_ROOT install
+install -d $RPM_BUILD_ROOT{/lib,%{_bindir},%{_includedir},%{_libdir},%{_mandir}}
+make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
+mv $RPM_BUILD_ROOT%{_libdir}/lib*.so.%{solibbase} $RPM_BUILD_ROOT/lib/
 mv $RPM_BUILD_ROOT%{_datadir}/ssl/man/* $RPM_BUILD_ROOT%{_mandir}
 rmdir $RPM_BUILD_ROOT%{_datadir}/ssl/man
-install -m 755 *.so.* $RPM_BUILD_ROOT%{_libdir}
-for lib in $RPM_BUILD_ROOT%{_libdir}/*.so.%{version} ; do
-	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
+rename so.%{solibbase} so.%{version} $RPM_BUILD_ROOT/lib/*.so.%{solibbase}
+for lib in $RPM_BUILD_ROOT/lib/*.so.%{version} ; do
+	chmod 755 ${lib}
+	ln -s -f ../../lib/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
+	ln -s -f ../../lib/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
 done
 
+# Install a makefile for generating keys and self-signed certs, and a script
+# for generating them on the fly.
 mkdir -p $RPM_BUILD_ROOT%{_datadir}/ssl/certs
 install -m644 $RPM_SOURCE_DIR/Makefile.certificate $RPM_BUILD_ROOT%{_datadir}/ssl/certs/Makefile
-
-strip    $RPM_BUILD_ROOT%{_bindir}/*    ||:
-strip -g $RPM_BUILD_ROOT%{_libdir}/lib* ||:
+install -m644 $RPM_SOURCE_DIR/make-dummy-cert      $RPM_BUILD_ROOT%{_datadir}/ssl/certs/make-dummy-cert
 
 # Make sure we actually include the headers we built against.
 for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
@@ -229,9 +154,16 @@ for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
 	fi
 done
 
-# Fudge this.
-mv $RPM_BUILD_ROOT%{_mandir}/man1/passwd.1 $RPM_BUILD_ROOT%{_mandir}/man1/sslpasswd.1
-mv $RPM_BUILD_ROOT%{_mandir}/man3/rand.3 $RPM_BUILD_ROOT%{_mandir}/man3/sslrand.3
+# Rename man pages so that they don't conflict with system man pages.  We used
+# to change the file extensions, but that only prevents file conflicts.  The
+# man viewer still can't select either of the two unless we physically change
+# the directory.
+for section in 1 2 3 4 5 6 7 8 ; do
+	if test -d $RPM_BUILD_ROOT%{_mandir}/man${section} ; then
+		mv $RPM_BUILD_ROOT%{_mandir}/man${section} \
+		   $RPM_BUILD_ROOT%{_mandir}/man${section}ssl
+	fi
+done
 
 # Pick a CA script.
 pushd  $RPM_BUILD_ROOT%{_datadir}/ssl/misc
@@ -245,17 +177,9 @@ cat << EOF > RHNS-blurb.txt
 #  RHNS CA certificate.  Appended to the ca-bundle at package build-time.
 #
 EOF
-cat %{SOURCE5} RHNS-blurb.txt %{SOURCE6} > ca-bundle.crt
+cat %{SOURCE3} RHNS-blurb.txt %{SOURCE4} > ca-bundle.crt
 install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/certs/
 ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
-
-# Install the python extensions.
-pushd m2crypto-%{m2crypto_version}/M2Crypto
-mkdir -p $RPM_BUILD_ROOT/usr/lib/python1.5/site-packages/M2Crypto/{PGP,SSL}
-find -name "*.py" | xargs -i install -m644 '{}' $RPM_BUILD_ROOT/usr/lib/python1.5/site-packages/M2Crypto/'{}'
-find -name "*.so" | xargs -i install -m755 '{}' $RPM_BUILD_ROOT/usr/lib/python1.5/site-packages/M2Crypto/'{}'
-python -c "import compileall; compileall.compile_dir('"$RPM_BUILD_ROOT/usr/lib/python1.5/site-packages/M2Crypto"', 3, '/usr/lib/python1.5/site-packages/M2Crypto')"
-popd
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -274,89 +198,93 @@ popd
 %{_datadir}/ssl/misc/c_*
 %{_datadir}/ssl/private
 
-%config %{_datadir}/ssl/openssl.cnf
+%config(noreplace) %{_datadir}/ssl/openssl.cnf
 
 %attr(0755,root,root) %{_bindir}/openssl
-%attr(0755,root,root) %{_libdir}/*.so.%{version}
-%attr(0644,root,root) %{_mandir}/man1/[a-z]*
-%attr(0644,root,root) %{_mandir}/man5/*
-%attr(0644,root,root) %{_mandir}/man7/*
+%attr(0755,root,root) /lib/*.so.%{version}
+%attr(0755,root,root) %dir %{_mandir}/man1*
+%attr(0644,root,root) %{_mandir}/man1*/*
+%attr(0755,root,root) %dir %{_mandir}/man5*
+%attr(0644,root,root) %{_mandir}/man5*/*
+%attr(0755,root,root) %dir %{_mandir}/man7*
+%attr(0644,root,root) %{_mandir}/man7*/*
 
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
-%attr(0644,root,root) %{_mandir}/man3/*
+%attr(0755,root,root) %dir %{_mandir}/man3*
+%attr(0644,root,root) %{_mandir}/man3*/*
 
 %files perl
 %defattr(-,root,root)
 %attr(0755,root,root) %{_bindir}/c_rehash
-%attr(0644,root,root) %{_mandir}/man1/*.pl*
+%attr(0755,root,root) %dir %{_mandir}/man1*
+%attr(0644,root,root) %{_mandir}/man1*/*.pl*
 %{_datadir}/ssl/misc/*.pl
-
-%files python
-%defattr(-,root,root)
-%doc m2crypto-%{m2crypto_version}/{BUGS,CHANGES,LIC*,README,TODO}
-%doc m2crypto-%{m2crypto_version}/doc/{README,*.html}
-%{_libdir}/python1.5/site-packages/M2Crypto
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
 %changelog
-* Thu Jun 19 2003 Guy Streeter <streeter@redhat.com> 0.9.6-16.0p
-- build at -O1 for broken 7.1 ppc compiler
+* Mon Jul 23 2001 Nalin Dahyabhai <nalin@redhat.com>
+- add patches for AEP hardware support
+- add patch to keep trying when we fail to load a cert from a file and
+  there are more in the file
+- add missing prototype for ENGINE_ubsec() in engine_int.h
 
-* Wed Mar 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-16
-- add backported patch to harden against Klima-Pokorny-Rosa extension
-  of Bleichenbacher's attack (CAN-2003-0131)
+* Wed Jul 18 2001 Nalin Dahyabhai <nalin@redhat.com>
+- actually add hw_ubsec to the engine list
 
-* Mon Mar 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-15
-- add patch to enable RSA blinding by default, closing a timing attack
-  (CAN-2003-0147)
-
-* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-14
-- add fix to guard against attempts to allocate negative amounts of memory
-- add patch for CAN-2003-0078, fixing a timing attack
-
-* Thu Aug  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-13
-- update asn patch to fix accidental reversal of a logic check
-
-* Wed Jul 31 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-12
-- update asn patch to reduce chance that compiler optimization will remove
-  one of the added tests
-
-* Mon Jul 29 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-11
-- add patch to fix ASN.1 vulnerabilities
-
-* Thu Jul 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-10
-- add backport of Ben Laurie's patches for OpenSSL 0.9.6d
+* Tue Jul 17 2001 Nalin Dahyabhai <nalin@redhat.com>
+- add in the hw_ubsec driver from CVS
 
 * Wed Jul 11 2001 Nalin Dahyabhai <nalin@redhat.com>
-- add patches to fix PRNG flaws, supplied by Bodo Moeller and the OpenSSL Group
+- update to 0.9.6b
+
+* Thu Jul  5 2001 Nalin Dahyabhai <nalin@redhat.com>
+- move .so symlinks back to %%{_libdir}
+
+* Tue Jul  3 2001 Nalin Dahyabhai <nalin@redhat.com>
+- move shared libraries to /lib (#38410)
+
+* Mon Jun 25 2001 Nalin Dahyabhai <nalin@redhat.com>
+- switch to engine code base
+
+* Mon Jun 18 2001 Nalin Dahyabhai <nalin@redhat.com>
+- add a script for creating dummy certificates
+- move man pages from %%{_mandir}/man?/foo.?ssl to %%{_mandir}/man?ssl/foo.?
+
+* Thu Jun 07 2001 Florian La Roche <Florian.LaRoche@redhat.de>
+- add s390x support
 
 * Fri Jun  1 2001 Nalin Dahyabhai <nalin@redhat.com>
 - change two memcpy() calls to memmove()
-
-* Sun May 27 2001 Philip Copeland <bryce@redhat.com>
-- Removed -DL_ENDIAN for the alpha builds as unsigned long = 8 not 4
-  which both L_ENDIAN / B_ENDIAN require to work correctly
+- don't define L_ENDIAN on alpha
 
 * Tue May 15 2001 Nalin Dahyabhai <nalin@redhat.com>
 - make subpackages depend on the main package
 
-* Thu Apr 26 2001 Nalin Dahyabhai <nalin@redhat.com>
-- rebuild
+* Tue May  1 2001 Nalin Dahyabhai <nalin@redhat.com>
+- adjust the hobble script to not disturb symlinks in include/ (fix from
+  Joe Orton)
 
-* Fri Apr 20 2001 Nalin Dahyabhai <nalin@redhat.com>
-- use __libc_enable_secure in OPENSSL_setugid (suggested by solar@openwall.com)
-- make backported OPENSSL_setugid, BN_bntest_rand, and BN_rand_range static
-  functions, which keeps them away from client applications more cleanly
+* Fri Apr 26 2001 Nalin Dahyabhai <nalin@redhat.com>
+- drop the m2crypo patch we weren't using
 
-* Tue Apr 17 2001 Nalin Dahyabhai <nalin@redhat.com>
-- backport security fixes from 0.9.6a
+* Tue Apr 24 2001 Nalin Dahyabhai <nalin@redhat.com>
+- configure using "shared" as well
+
+* Sun Apr  8 2001 Nalin Dahyabhai <nalin@redhat.com>
+- update to 0.9.6a
+- use the build-shared target to build shared libraries
+- bump the soversion to 2 because we're no longer compatible with
+  our 0.9.5a packages or our 0.9.6 packages
+- drop the patch for making rsatest a no-op when rsa null support is used
+- put all man pages into <section>ssl instead of <section>
+- break the m2crypto modules into a separate package
 
 * Tue Mar 13 2001 Nalin Dahyabhai <nalin@redhat.com>
 - use BN_LLONG on s390
@@ -475,13 +403,13 @@ popd
 - run ldconfig directly in post/postun
 - add FAQ
 
-* Sat Dec 18 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
+* Sat Dec 18 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - Fix build on non-x86 platforms
 
-* Fri Nov 12 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
+* Fri Nov 12 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - move /usr/share/ssl/* from -devel to main package
 
-* Tue Oct 26 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
+* Tue Oct 26 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - inital packaging
 - changes from base:
   - Move /usr/local/ssl to /usr/share/ssl for FHS compliance

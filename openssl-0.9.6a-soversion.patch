@@ -1,0 +1,33 @@
+Define and use a soname -- because we have to care about binary
+compatibility, we have to increment the soname in order to allow
+this version to co-exist with another versions and have everything
+work right.  Only works for GNU and Solaris toolchains.
+
+--- openssl-0.9.6a/Makefile.org.soversion	Thu Apr  5 16:08:02 2001
++++ openssl-0.9.6a/Makefile.org	Fri Apr  6 13:54:43 2001
+@@ -10,6 +10,7 @@
+ SHLIB_MAJOR=
+ SHLIB_MINOR=
+ SHLIB_EXT=
++SHLIB_SOVER=2
+ PLATFORM=dist
+ OPTIONS=
+ CONFIGURE_ARGS=
+@@ -256,7 +257,7 @@
+ do_gnu-shared:
+ 	libs='-L. ${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
+ 	( set -x; ${CC}  -shared -o lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+-		-Wl,-S,-soname=lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
++		-Wl,-S,-soname=lib$$i.so.${SHLIB_SOVER} \
+ 		-Wl,--whole-archive lib$$i.a \
+ 		-Wl,--no-whole-archive $$libs ${EX_LIBS} -lc ) || exit 1; \
+ 	libs="$$libs -l$$i"; \
+@@ -275,7 +276,7 @@
+ do_solaris-shared:
+ 	libs='-L. ${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
+ 	( PATH=/usr/ccs/bin:$$PATH ; export PATH; \
+-	  set -x; ${CC}  -G -o lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
++	  set -x; ${CC}  -G -o lib$$i.so.${SHLIB_SOVER} \
+ 		-h lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+ 		-z allextract lib$$i.a $$libs ${EX_LIBS} -lc ) || exit 1; \
+ 	libs="$$libs -l$$i"; \
