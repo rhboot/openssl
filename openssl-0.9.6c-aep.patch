@@ -1,0 +1,410 @@
+Patch from AEP to disable random number generation so that this
+code works with their future board release, and other minor
+tweaks already submitted for 0.9.6d
+
+diff -ur engine.orig/hw_aep.c engine/hw_aep.c
+--- openssl/crypto/engine.orig/hw_aep.c	Tue Mar 26 00:42:28 2002
++++ openssl/crypto/engine/hw_aep.c	Tue Mar 26 00:44:04 2002
+@@ -74,11 +74,11 @@
+ #include "vendor_defns/aep.h"
+ #endif
+ 
+-
+ static int aep_init(void);
+ static int aep_finish(void);
+ static int aep_get_connection(AEP_CONNECTION_HNDL *hConnection);
+-static int aep_return_connection(AEP_CONNECTION_HNDL hConnection);
++static int aep_return_connection(AEP_CONNECTION_HNDL hConnection);
++static int aep_close_connection(AEP_CONNECTION_HNDL hConnection);
+ 
+ /* BIGNUM stuff */
+ static int aep_mod_exp(BIGNUM *r, BIGNUM *a, const BIGNUM *p,
+@@ -103,9 +103,11 @@
+ /* This function is aliased to mod_exp (with the DH and mont dropped). */
+ static int aep_mod_exp_dh(DH *dh, BIGNUM *r, BIGNUM *a, const BIGNUM *p,
+ 			  const BIGNUM *m, BN_CTX *ctx, BN_MONT_CTX *m_ctx);
+-		
++
++#ifdef AEP_RAND	
+ /* rand stuff   */
+ static int aep_rand(unsigned char *buf, int num);
++#endif
+ 
+ /* Our internal RSA_METHOD that we provide pointers to */
+ static RSA_METHOD aep_rsa =
+@@ -151,7 +153,9 @@
+   NULL,
+   0,
+   NULL
+-};
++};
++
++#ifdef AEP_RAND
+ /* our internal RAND_method that we provide pointers to  */
+ static RAND_METHOD aep_random =
+ {
+@@ -162,7 +166,8 @@
+   NULL,
+   aep_rand,
+   NULL,
+-};
++};
++#endif
+ 	
+ /* Our ENGINE structure. */
+ static ENGINE engine_aep =
+@@ -172,7 +177,11 @@
+   &aep_rsa,
+   &aep_dsa,
+   &aep_dh,
+-  &aep_random,
++#ifdef AEP_RAND
++  &aep_random,
++#else
++  NULL,
++#endif
+   aep_mod_exp,
+   NULL,
+   aep_init,
+@@ -190,12 +199,15 @@
+ 
+ /*Used to determine if this is a new process*/
+ static pid_t    recorded_pid = 0;
+-
++
++#ifdef AEP_RAND
+ static int rnd_reference;
+ 
+ static AEP_U8   rand_block[RAND_BLK_SIZE];
+-static AEP_U32  rand_block_bytes = 0;
+-
++static AEP_U32  rand_block_bytes = 0;
++#endif
++
++static int max_key_len = 2176;
+ 
+ 
+ /* As this is only ever called once, there's no need for locking
+@@ -251,8 +263,10 @@
+  * successfully (un)loaded. */
+ static t_AEP_OpenConnection    *p_AEP_OpenConnection  = NULL;
+ static t_AEP_ModExp            *p_AEP_ModExp          = NULL;
+-static t_AEP_ModExpCrt         *p_AEP_ModExpCrt       = NULL;
+-static t_AEP_GenRandom         *p_AEP_GenRandom       = NULL;
++static t_AEP_ModExpCrt         *p_AEP_ModExpCrt       = NULL;
++#ifdef AEP_RAND
++static t_AEP_GenRandom         *p_AEP_GenRandom       = NULL;
++#endif
+ static t_AEP_Initialize        *p_AEP_Initialize      = NULL;
+ static t_AEP_Finalize          *p_AEP_Finalize        = NULL;
+ static t_AEP_SetBNCallBacks    *p_AEP_SetBNCallBacks  = NULL;
+@@ -261,15 +275,15 @@
+ static int aep_init()
+ {
+   t_AEP_ModExp          *p1;
+-  t_AEP_ModExpCrt       *p2;
+-  t_AEP_GenRandom       *p3;
++  t_AEP_ModExpCrt       *p2;
++#ifdef AEP_RAND
++  t_AEP_GenRandom       *p3;
++#endif
+   t_AEP_Finalize        *p4;
+   t_AEP_Initialize      *p5;
+   t_AEP_OpenConnection  *p6;
+   t_AEP_SetBNCallBacks  *p7;
+ 
+-  unsigned int hConnection,rv;
+-
+   int to_return = 0;
+  
+  
+@@ -290,8 +304,10 @@
+     }
+ 
+   if(!(p1 = (t_AEP_ModExp *)         DSO_bind_func( aep_dso,AEP_F1))  ||
+-     !(p2 = (t_AEP_ModExpCrt*)       DSO_bind_func( aep_dso,AEP_F2))  ||
+-     !(p3 = (t_AEP_GenRandom*)       DSO_bind_func( aep_dso,AEP_F3))  ||
++     !(p2 = (t_AEP_ModExpCrt*)       DSO_bind_func( aep_dso,AEP_F2))  ||
++#ifdef AEP_RAND
++     !(p3 = (t_AEP_GenRandom*)       DSO_bind_func( aep_dso,AEP_F3))  ||
++#endif
+      !(p4 = (t_AEP_Finalize*)        DSO_bind_func( aep_dso,AEP_F4))  ||
+      !(p5 = (t_AEP_Initialize*)      DSO_bind_func( aep_dso,AEP_F5))  ||
+      !(p6 = (t_AEP_OpenConnection*)  DSO_bind_func( aep_dso,AEP_F6))  ||
+@@ -305,8 +321,10 @@
+   /* Copy the pointers */
+   
+   p_AEP_ModExp           = p1;
+-  p_AEP_ModExpCrt        = p2;
+-  p_AEP_GenRandom        = p3;
++  p_AEP_ModExpCrt        = p2;
++#ifdef AEP_RAND
++  p_AEP_GenRandom        = p3;
++#endif
+   p_AEP_Finalize         = p4;
+   p_AEP_Initialize       = p5;
+   p_AEP_OpenConnection   = p6;
+@@ -315,19 +333,12 @@
+ 
+   /* Perform a basic test to see if there's actually any unit
+    * running. */
+-	
++	
++#ifdef AEP_RAND
+   CRYPTO_add(&rnd_reference, 1, CRYPTO_LOCK_DYNLOCK); 
+-  
+-  rv = aep_get_connection(&hConnection);
+-     
+-  if (rv != AEP_R_OK)     
+-       goto err;
+-   
+-  /* Everything's fine. */
+- 
+-  rv = aep_return_connection(hConnection);
+- 
+-  to_return = 1;
++#endif
++
++  to_return = 1;
+  
+   return to_return;
+ 
+@@ -338,8 +349,10 @@
+ 		
+   p_AEP_OpenConnection    = NULL;
+   p_AEP_ModExp            = NULL;
+-  p_AEP_ModExpCrt         = NULL;
+-  p_AEP_GenRandom         = NULL;
++  p_AEP_ModExpCrt         = NULL;
++#ifdef AEP_RAND
++  p_AEP_GenRandom         = NULL;
++#endif
+   p_AEP_Initialize        = NULL;
+   p_AEP_Finalize          = NULL;
+   p_AEP_SetBNCallBacks    = NULL;
+@@ -366,13 +379,17 @@
+   aep_dso = NULL;
+   p_AEP_OpenConnection    = NULL;
+   p_AEP_ModExp            = NULL;
+-  p_AEP_ModExpCrt         = NULL;
+-  p_AEP_GenRandom         = NULL;
++  p_AEP_ModExpCrt         = NULL;
++#ifdef AEP_RAND
++  p_AEP_GenRandom         = NULL;
++#endif
+   p_AEP_Initialize        = NULL;
+   p_AEP_Finalize          = NULL;
+   p_AEP_SetBNCallBacks    = NULL;
+-
++
++#ifdef AEP_RAND
+   CRYPTO_add(&rnd_reference, -1, CRYPTO_LOCK_DYNLOCK);    
++#endif
+ 
+   to_return = 1;
+  err:
+@@ -382,25 +399,48 @@
+ static int aep_mod_exp(BIGNUM *r, BIGNUM *a, const BIGNUM *p,
+ 		       const BIGNUM *m, BN_CTX *ctx)
+ {
+-  int to_return = 0;
++  int to_return = 0;
++  int 	r_len = 0;
+ 
+-  unsigned int hConnection, rv;
++  unsigned int hConnection, rv;
++	
++  r_len = BN_num_bits(m);
++
++  /* Perform in software if modulus is too large for hardware. */
++
++  if (r_len > max_key_len){
++	ENGINE *e;
++	e = ENGINE_openssl();
++	to_return = e->bn_mod_exp(r, a, p, m, ctx);
++	goto err;
++  } 
+ 
+   /*Grab a connection from the pool*/
+   rv = aep_get_connection(&hConnection);
+   if (rv != AEP_R_OK)
+-    {     
+-      ENGINEerr(ENGINE_F_AEP_MOD_EXP,ENGINE_R_GET_HANDLE_FAILED);
+-      goto err;
++    {  
++		ENGINE *e;
++		ENGINEerr(ENGINE_F_AEP_MOD_EXP,ENGINE_R_GET_HANDLE_FAILED);
++
++		e = ENGINE_openssl();
++		to_return = e->bn_mod_exp(r, a, p, m, ctx);
++		goto err;
+     }
+ 
+   /*To the card with the mod exp*/
+   rv = p_AEP_ModExp(hConnection,(void*)a, (void*)p,(void*)m, (void*)r,NULL);
+                             
+   if (rv !=  AEP_R_OK)
+-    {
++    {
++	  ENGINE *e;
++
++	  aep_close_connection(hConnection);
++
+       ENGINEerr(ENGINE_F_AEP_MOD_EXP,ENGINE_R_MOD_EXP_FAILED);
+-      rv = aep_return_connection(hConnection);
++
++	  e = ENGINE_openssl();
++	  to_return = e->bn_mod_exp(r, a, p, m, ctx);
++
+       goto err;
+     }
+ 
+@@ -421,13 +461,32 @@
+ 			   const BIGNUM *dmp1,const BIGNUM *dmq1,const BIGNUM *iqmp, BN_CTX *ctx)
+ {
+   AEP_RV rv = AEP_R_OK;
+-  AEP_U32 hConnection;
++  AEP_U32 hConnection;
++
++  /* Perform in software if modulus is too large for hardware. */
++
++  if (BN_num_bits(p) > max_key_len || BN_num_bits(q) > max_key_len){
++	ENGINE *e;
++	e = ENGINE_openssl();
++	rv = e->bn_mod_exp_crt(r, a, p, q, dmp1, dmq1, iqmp, ctx);
++	goto err;
++ }
+ 
+   /*Grab a connection from the pool*/
+   rv = aep_get_connection(&hConnection);
+   if (rv != AEP_R_OK)
+-    {
+-      ENGINEerr(ENGINE_F_AEP_MOD_EXP_CRT,ENGINE_R_GET_HANDLE_FAILED);
++    {
++	  ENGINE *e;
++
++	  ENGINEerr(ENGINE_F_AEP_MOD_EXP_CRT,ENGINE_R_GET_HANDLE_FAILED);
++	  
++	  e = ENGINE_openssl();
++
++	  if (e->bn_mod_exp_crt(r, a, p, q, dmp1, dmq1, iqmp, ctx) > 0)
++		rv = 0;
++	  else
++		rv = 1;
++ 
+       goto err;
+     }
+ 
+@@ -435,9 +494,20 @@
+   rv = p_AEP_ModExpCrt(hConnection,(void*)a, (void*)p, (void*)q, (void*)dmp1,(void*)dmq1,
+ 		       (void*)iqmp,(void*)r,NULL);
+   if (rv != AEP_R_OK)
+-  {
+-      ENGINEerr(ENGINE_F_AEP_MOD_EXP_CRT,ENGINE_R_MOD_EXP_CRT_FAILED);
+-      rv = aep_return_connection(hConnection);
++  {
++	  ENGINE *e;
++
++	  aep_close_connection(hConnection);
++	  
++	  ENGINEerr(ENGINE_F_AEP_MOD_EXP_CRT,ENGINE_R_MOD_EXP_CRT_FAILED);
++
++	  e = ENGINE_openssl();
++
++	  if (e->bn_mod_exp_crt(r, a, p, q, dmp1, dmq1, iqmp, ctx) > 0)
++		rv = 0;
++	  else
++		rv = 1;
++
+       goto err;
+   }
+ 
+@@ -448,12 +518,12 @@
+       ENGINEerr(ENGINE_F_AEP_RAND,ENGINE_R_RETURN_CONNECTION_FAILED); 
+  	goto err;
+   }
+- 
++
+  err:
+   return rv;
+ }
+ 	
+-
++#ifdef AEP_RAND
+ static int aep_rand(unsigned char *buf,int len )
+ {
+   AEP_RV rv = AEP_R_OK;
+@@ -523,7 +593,7 @@
+  err:
+   return to_return;
+ }
+-	
++#endif
+ 
+ static int aep_rsa_mod_exp(BIGNUM *r0, BIGNUM *I, RSA *rsa)
+ {
+@@ -658,9 +728,11 @@
+ 		CRYPTO_w_unlock(CRYPTO_LOCK_ENGINE);
+ 		return rv;
+ 	}
+-
++
++#ifdef AEP_RAND
+       /*Reset the rand byte count*/
+       rand_block_bytes = 0;
++#endif
+ 
+       /*Init the structures*/
+       for (count = 0;count < MAX_PROCESS_CONNECTIONS;count ++)
+@@ -748,6 +820,29 @@
+ 
+   return AEP_R_OK;
+ }
++
++static int aep_close_connection(unsigned int hConnection)
++{
++  int count;
++
++   CRYPTO_w_lock(CRYPTO_LOCK_ENGINE);
++
++  /*Find the connection item that matches this connection handle*/
++  for(count = 0;count < MAX_PROCESS_CONNECTIONS;count ++)
++    {
++     
++      if (aep_app_conn_table[count].conn_hndl == hConnection)
++	{
++	  aep_app_conn_table[count].conn_state = NotConnected;
++	  close(aep_app_conn_table[count].conn_hndl);
++	  break;
++	}
++    }
++
++   CRYPTO_w_unlock(CRYPTO_LOCK_ENGINE);
++
++  return AEP_R_OK;
++}
+ 
+ /*BigNum call back functions, used to convert OpenSSL bignums into AEP bignums.
+ Note only 32bit Openssl build support*/
+diff -ur engine.orig/vendor_defns/aep.h engine/vendor_defns/aep.h
+--- openssl/crypto/engine.orig/vendor_defns/aep.h	Tue Mar 26 00:42:28 2002
++++ openssl/crypto/engine/vendor_defns/aep.h	Tue Mar 26 00:44:18 2002
+@@ -128,7 +128,7 @@
+ /*Return value type*/
+ typedef AEP_U32					AEP_RV;
+ 
+-#define MAX_PROCESS_CONNECTIONS 5
++#define MAX_PROCESS_CONNECTIONS 256
+ 
+ #define RAND_BLK_SIZE 1024
+ 
+@@ -184,7 +184,9 @@
+ 
+ static const char *AEP_F1    = "AEP_ModExp";
+ static const char *AEP_F2    = "AEP_ModExpCrt";
++#ifdef AEP_RAND
+ static const char *AEP_F3    = "AEP_GenRandom";
++#endif
+ static const char *AEP_F4    = "AEP_Finalize";
+ static const char *AEP_F5    = "AEP_Initialize";
+ static const char *AEP_F6    = "AEP_OpenConnection";

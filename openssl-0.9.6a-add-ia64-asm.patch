@@ -1,0 +1,22 @@
+--- openssl-engine-0.9.6a/Configure	Sat Jun  2 14:22:28 2001
++++ openssl-engine-0.9.6a-new/Configure	Sat Jun  2 14:13:09 2001
+@@ -316,7 +316,7 @@
+ "linux-m68k",   "gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "linux-s390",	"gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "linux-s390x",        "gcc:-DB_ENDIAN -DTERMIO -DNO_ASM $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::SIXTY_FOUR_BIT_LONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+-"linux-ia64",   "gcc:-DL_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::(unknown)::SIXTY_FOUR_BIT_LONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
++"linux-ia64",   "gcc:-DL_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -fPIC -mfixed-range=f32-f127 -Wall::(unknown):-ldl:SIXTY_FOUR_BIT_LONG:asm/ia64.o::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "NetBSD-sparc",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -mv8 -Wall -DB_ENDIAN::(unknown)::BN_LLONG MD2_CHAR RC4_INDEX DES_UNROLL::::::::::dlfcn:bsd-gcc-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "NetBSD-m68",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -Wall -DB_ENDIAN::(unknown)::BN_LLONG MD2_CHAR RC4_INDEX DES_UNROLL::::::::::dlfcn:bsd-gcc-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "NetBSD-x86",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -m486 -Wall::(unknown)::BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}::::::::::dlfcn:bsd-gcc-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+--- openssl-engine-0.9.6a/crypto/bn/Makefile.ssl	Thu Apr  5 21:25:32 2001
++++ openssl-engine-0.9.6a-new/crypto/bn/Makefile.ssl	Sat Jun  2 13:56:12 2001
+@@ -114,6 +114,8 @@
+ 
+ asm/sparcv8plus.o: asm/sparcv8plus.S
+ 
++asm/ia64.o: asm/ia64.S
++
+ # Old GNU assembler doesn't understand V9 instructions, so we
+ # hire /usr/ccs/bin/as to do the job. Note that option is called
+ # *-gcc27, but even gcc 2>=8 users may experience similar problem

@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 16
+Release: 18
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -12,6 +12,7 @@ Source4: RHNS-CA-CERT
 Source5: make-dummy-cert
 Source6: hw_ubsec.c
 Source7: hw_ubsec.h
+Source8: ia64.S
 Patch0: openssl-0.9.6a-redhat.patch
 Patch1: openssl-0.9.5a-64.patch
 Patch2: openssl-engine-0.9.6b-defaults.patch
@@ -24,6 +25,13 @@ Patch8: openssl-0.9.6-x509.patch
 Patch9: openssl-engine-0.9.6b-default-engine.patch
 Patch10: openssl-engine-0.9.6b-ubsec_failover.patch
 Patch11: openssl-engine-0.9.6b-ubsec_rand.patch
+Patch12: openssl-0.9.6b-mkdepend.patch
+Patch13: openssl-0.9.6a-conf.patch
+Patch14: openssl-0.9.6a-add-engine-version.patch
+Patch15: openssl-0.9.6a-add-ia64-asm.patch
+Patch16: openssl-0.9.6a-add-baltimore.patch
+Patch17: openssl-0.9.6c-aep.patch
+Patch18: openssl-0.9.6c-add-luna.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -66,6 +74,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %{SOURCE1}
 cp %{SOURCE6} crypto/engine/
 cp %{SOURCE7} crypto/engine/vendor_defns/
+cp %{SOURCE8} crypto/bn/asm/
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .64
 %patch2 -p1 -b .defaults
@@ -78,6 +87,13 @@ cp %{SOURCE7} crypto/engine/vendor_defns/
 %patch9 -p1 -b .default-engine
 %patch10 -p1 -b .ubsec_failover
 %patch11 -p1 -b .rand
+# skip patch 12
+%patch13 -p0 -b .conf
+%patch14 -p1 -b .engver
+%patch15 -p1 -b .ia64
+%patch16 -p1 -b .baltimore
+%patch17 -p1 -b .aep
+%patch18 -p1 -b .luna
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -92,8 +108,7 @@ PATH=${PATH}:${PWD}/bin
 TOPDIR=${PWD}
 LD_LIBRARY_PATH=${TOPDIR}:${TOPDIR}/bin ; export LD_LIBRARY_PATH
 
-# Figure out which flags we want to use.  Can't use assembler because it's
-# not lowest-common-denominator in most cases.
+# Figure out which flags we want to use.
 perl util/perlpath.pl `dirname %{__perl}`
 %ifarch %ix86
 sslarch=linux-elf
@@ -122,6 +137,7 @@ sslarch=linux-s390x
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
 ./config --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} no-idea no-mdc2 no-rc5 shared
+%{__patch} -p1 -b --suffix .mkdepend -s < %{PATCH12}
 make all build-shared
 
 # Generate hashes for the included certs.
@@ -172,6 +188,9 @@ mv CA.sh CA
 mv der_chop der_chop.pl
 popd
 
+mkdir -m700 $RPM_BUILD_ROOT%{_datadir}/ssl/CA
+mkdir -m700 $RPM_BUILD_ROOT%{_datadir}/ssl/CA/private
+
 # Install root CA stuffs.
 cat << EOF > RHNS-blurb.txt
 #
@@ -196,6 +215,8 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %{_datadir}/ssl/cert.pem
 %{_datadir}/ssl/lib
 %{_datadir}/ssl/misc/CA
+%dir %{_datadir}/ssl/CA
+%dir %{_datadir}/ssl/CA/private
 %{_datadir}/ssl/misc/c_*
 %{_datadir}/ssl/private
 
@@ -227,26 +248,32 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
-* Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-16
-- rebuild
+* Thu Apr  4 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-17, 0.9.6b-18
+- merge RHL-specific bits into stronghold package, rename
+
+* Tue Apr 02 2002 Gary Benson <gbenson@redhat.com> stronghold-0.9.6c-2
+- add support for Chrysalis Luna token
+
+* Tue Mar 26 2002 Gary Benson <gbenson@redhat.com>
+- disable AEP random number generation, other AEP fixes
 
 * Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-15
 - only build subpackages on primary arches
-
-* Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-14
-- rebuild
 
 * Thu Mar 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-13
 - on ia32, only disable use of assembler on i386
 - enable assembly on ia64
 
-* Wed Jan 09 2002 Tim Powers <timp@redhat.com> 0.9.6b-12
-- automated rebuild
-
-* Mon Jan 07 2002 Florian La Roche <Florian.LaRoche@redhat.de> 0.9.6b-11
+* Mon Jan  7 2002 Florian La Roche <Florian.LaRoche@redhat.de> 0.9.6b-11
 - fix sparcv9 entry
 
-* Wed Oct 10 2001 Florian La Roche <Florian.LaRoche@redhat.de> 0.9.6b-10
+* Mon Jan  7 2002 Gary Benson <gbenson@redhat.com> stronghold-0.9.6c-1
+- upgrade to 0.9.6c
+- bump BuildArch to i686 and enable assembler on all platforms
+- synchronise with shrimpy and rawhide
+- bump soversion to 3
+
+* Wed Oct 10 2001 Florian La Roche <Florian.LaRoche@redhat.de>
 - delete BN_LLONG for s390x, patch from Oliver Paukstadt
 
 * Mon Sep 17 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-9
@@ -309,6 +336,17 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 * Fri Jun  1 2001 Nalin Dahyabhai <nalin@redhat.com>
 - change two memcpy() calls to memmove()
 - don't define L_ENDIAN on alpha
+
+* Wed May 23 2001 Joe Orton <jorton@redhat.com> stronghold-0.9.6a-1
+- Add 'stronghold-' prefix to package names.
+- Obsolete standard openssl packages.
+
+* Wed May 16 2001 Joe Orton <jorton@redhat.com>
+- Add BuildArch: i586 as per Nalin's advice.
+
+* Tue May 15 2001 Joe Orton <jorton@redhat.com>
+- Enable assembler on ix86 (using new .tar.bz2 which does
+  include the asm directories).
 
 * Tue May 15 2001 Nalin Dahyabhai <nalin@redhat.com>
 - make subpackages depend on the main package
@@ -449,13 +487,13 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 - run ldconfig directly in post/postun
 - add FAQ
 
-* Sat Dec 18 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
+* Sat Dec 18 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
 - Fix build on non-x86 platforms
 
-* Fri Nov 12 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
+* Fri Nov 12 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
 - move /usr/share/ssl/* from -devel to main package
 
-* Tue Oct 26 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
+* Tue Oct 26 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
 - inital packaging
 - changes from base:
   - Move /usr/local/ssl to /usr/share/ssl for FHS compliance
