@@ -1,48 +1,6 @@
-diff -urN openssl-0.9.7c/crypto/engine/Makefile openssl-0.9.7c-key-1107/crypto/engine/Makefile
---- openssl-0.9.7c/crypto/engine/Makefile	Thu Jan 16 11:21:13 2003
-+++ openssl-0.9.7c-key-1107/crypto/engine/Makefile	Wed Nov  5 10:48:02 2003
-@@ -28,13 +28,15 @@
- 	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
- 	eng_openssl.c eng_dyn.c eng_cnf.c \
- 	hw_atalla.c hw_cswift.c hw_ncipher.c hw_nuron.c hw_ubsec.c \
--	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c
-+	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c \
-+	hw_ibmca.c
- LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
- 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
- 	tb_rsa.o tb_dsa.o tb_dh.o tb_rand.o tb_cipher.o tb_digest.o \
- 	eng_openssl.o eng_dyn.o eng_cnf.o \
- 	hw_atalla.o hw_cswift.o hw_ncipher.o hw_nuron.o hw_ubsec.o \
--	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o
-+	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o \
-+	hw_ibmca.o
- 
- SRC= $(LIBSRC)
- 
-diff -urN openssl-0.9.7c/crypto/engine/Makefile.ssl openssl-0.9.7c-key-1107/crypto/engine/Makefile.ssl
---- openssl-0.9.7c/crypto/engine/Makefile.ssl	Thu Jan 16 11:21:13 2003
-+++ openssl-0.9.7c-key-1107/crypto/engine/Makefile.ssl	Wed Nov  5 10:48:02 2003
-@@ -28,13 +28,15 @@
- 	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
- 	eng_openssl.c eng_dyn.c eng_cnf.c \
- 	hw_atalla.c hw_cswift.c hw_ncipher.c hw_nuron.c hw_ubsec.c \
--	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c
-+	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c \
-+	hw_ibmca.c
- LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
- 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
- 	tb_rsa.o tb_dsa.o tb_dh.o tb_rand.o tb_cipher.o tb_digest.o \
- 	eng_openssl.o eng_dyn.o eng_cnf.o \
- 	hw_atalla.o hw_cswift.o hw_ncipher.o hw_nuron.o hw_ubsec.o \
--	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o
-+	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o \
-+	hw_ibmca.o
- 
- SRC= $(LIBSRC)
- 
-diff -urN openssl-0.9.7c/crypto/engine/eng_all.c openssl-0.9.7c-key-1107/crypto/engine/eng_all.c
---- openssl-0.9.7c/crypto/engine/eng_all.c	Thu Jan 16 12:29:33 2003
-+++ openssl-0.9.7c-key-1107/crypto/engine/eng_all.c	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/eng_all.c openssl-0.9.7c-cleanfix/crypto/engine/eng_all.c
+--- openssl-0.9.7c/crypto/engine/eng_all.c	2003-01-16 12:29:33.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/eng_all.c	2004-04-28 17:13:17.000000000 -0500
 @@ -89,6 +89,9 @@
  #ifndef OPENSSL_NO_HW_AEP
  	ENGINE_load_aep();
@@ -53,9 +11,9 @@ diff -urN openssl-0.9.7c/crypto/engine/eng_all.c openssl-0.9.7c-key-1107/crypto/
  #ifndef OPENSSL_NO_HW_SUREWARE
  	ENGINE_load_sureware();
  #endif
-diff -urN openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key-1107/crypto/engine/eng_err.c
---- openssl-0.9.7c/crypto/engine/eng_err.c	Tue Oct 15 20:32:35 2002
-+++ openssl-0.9.7c-key-1107/crypto/engine/eng_err.c	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-cleanfix/crypto/engine/eng_err.c
+--- openssl-0.9.7c/crypto/engine/eng_err.c	2002-10-15 20:32:35.000000000 -0500
++++ openssl-0.9.7c-cleanfix/crypto/engine/eng_err.c	2004-04-28 17:13:17.000000000 -0500
 @@ -97,6 +97,16 @@
  {ERR_PACK(0,ENGINE_F_ENGINE_TABLE_REGISTER,0),	"ENGINE_TABLE_REGISTER"},
  {ERR_PACK(0,ENGINE_F_ENGINE_UNLOAD_KEY,0),	"ENGINE_UNLOAD_KEY"},
@@ -102,9 +60,9 @@ diff -urN openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key-1107/crypto/
  {ENGINE_R_VERSION_INCOMPATIBILITY        ,"version incompatibility"},
  {0,NULL}
  	};
-diff -urN openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key-1107/crypto/engine/engine.h
---- openssl-0.9.7c/crypto/engine/engine.h	Sat Sep 27 15:29:10 2003
-+++ openssl-0.9.7c-key-1107/crypto/engine/engine.h	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-cleanfix/crypto/engine/engine.h
+--- openssl-0.9.7c/crypto/engine/engine.h	2003-09-27 15:29:10.000000000 -0500
++++ openssl-0.9.7c-cleanfix/crypto/engine/engine.h	2004-04-28 17:13:17.000000000 -0500
 @@ -674,6 +674,16 @@
  #define ENGINE_F_ENGINE_TABLE_REGISTER			 184
  #define ENGINE_F_ENGINE_UNLOAD_KEY			 152
@@ -151,18 +109,18 @@ diff -urN openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key-1107/crypto/e
  #define ENGINE_R_VERSION_INCOMPATIBILITY		 145
  
  #ifdef  __cplusplus
-diff -urN openssl-0.9.7c/crypto/engine/hw.ec openssl-0.9.7c-key-1107/crypto/engine/hw.ec
---- openssl-0.9.7c/crypto/engine/hw.ec	Wed Feb 27 16:44:43 2002
-+++ openssl-0.9.7c-key-1107/crypto/engine/hw.ec	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/hw.ec openssl-0.9.7c-cleanfix/crypto/engine/hw.ec
+--- openssl-0.9.7c/crypto/engine/hw.ec	2002-02-27 16:44:43.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/hw.ec	2004-04-28 17:13:17.000000000 -0500
 @@ -6,3 +6,4 @@
  L SUREWARE	hw_sureware_err.h		hw_sureware_err.c
  L UBSEC		hw_ubsec_err.h			hw_ubsec_err.c
  L CCA4758	hw_4758_cca_err.h		hw_4758_cca_err.c
 +L IBMCA		hw_ibmca_err.h			hw_ibmca_err.c
-diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca.c
---- openssl-0.9.7c/crypto/engine/hw_ibmca.c	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca.c	Fri Nov  7 14:00:52 2003
-@@ -0,0 +1,1521 @@
+diff -Nru openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-cleanfix/crypto/engine/hw_ibmca.c
+--- openssl-0.9.7c/crypto/engine/hw_ibmca.c	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/hw_ibmca.c	2004-04-29 12:51:51.991366240 -0500
+@@ -0,0 +1,1487 @@
 +/* crypto/engine/hw_ibmca.c */
 +/* Written by Geoff Thorpe (geoff@geoffthorpe.net) for the OpenSSL
 + * project 2000.
@@ -1016,7 +974,9 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +			     unsigned long inlen)
 +{
 +	IBMCA_SHA_CTX *ibmca_sha_ctx = ctx->md_data;
-+	unsigned int message_part, fill_size=0, tmp_len=LENGTH_SHA_HASH;
++	unsigned int message_part=SHA_MSG_PART_MIDDLE,
++		fill_size=0,
++		tmp_len=LENGTH_SHA_HASH;
 +	unsigned long in_data_len=inlen;
 +	unsigned char tmp_hash[LENGTH_SHA_HASH];
 +
@@ -1030,15 +990,6 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +		if(ibmca_sha_ctx->tail_len) {
 +			in_data_len &= ~0x3f;
 +			memcpy(ibmca_sha_ctx->tail, in_data + in_data_len, ibmca_sha_ctx->tail_len);
-+		} else {
-+#if 0
-+			memcpy(ibmca_sha_ctx->tail, 
-+				in_data + in_data_len - SHA_BLOCK_SIZE, 
-+				SHA_BLOCK_SIZE);
-+			in_data_len -= SHA_BLOCK_SIZE;
-+			ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
-+#endif
-+			// SHA it now, down below
 +		}
 +	}
 +	else if( ibmca_sha_ctx->c.runningLength == 0 && ibmca_sha_ctx->tail_len > 0 ) {
@@ -1084,20 +1035,9 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +				in_data + fill_size + in_data_len,
 +				ibmca_sha_ctx->tail_len);
 +			// fill_size is added to in_data down below
-+		} else {
-+#if 0
-+			memcpy(ibmca_sha_ctx->tail, 
-+				in_data + fill_size + in_data_len - SHA_BLOCK_SIZE, 
-+				SHA_BLOCK_SIZE);
-+			in_data_len -= SHA_BLOCK_SIZE;
-+			ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
-+#endif
-+			// SHA it now, down below
 +		}
 +	}
 +	else if( ibmca_sha_ctx->c.runningLength > 0 ) {
-+		message_part = SHA_MSG_PART_MIDDLE;
-+
 +		if(ibmca_sha_ctx->tail_len) {
 +			fill_size = SHA_BLOCK_SIZE - ibmca_sha_ctx->tail_len;
 +			if(fill_size < in_data_len) {
@@ -1122,8 +1062,10 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +				return 1;
 +			}
 +
-+			/* We had to use some of the data from in_data to fill out the
-+			 * empty part of save data, so adjust in_data_len
++			/* 
++			 * We had to use some of the data from in_data to 
++			 * fill out the empty part of save data, so adjust
++			 * in_data_len
 +			 */
 +			in_data_len -= fill_size;
 +
@@ -1133,15 +1075,6 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +				memcpy(ibmca_sha_ctx->tail, 
 +					in_data + fill_size +in_data_len,
 +					ibmca_sha_ctx->tail_len);
-+			} else {
-+#if 0
-+				memcpy(ibmca_sha_ctx->tail, 
-+					in_data + fill_size + in_data_len - SHA_BLOCK_SIZE, 
-+					SHA_BLOCK_SIZE);
-+				in_data_len -= SHA_BLOCK_SIZE;
-+				ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
-+#endif
-+				// SHA it now, down below
 +			}
 +		} else {
 +			/* This is the odd case, where we need to go ahead and
@@ -1153,15 +1086,6 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +				in_data_len &= ~0x3f;
 +				memcpy(ibmca_sha_ctx->tail, in_data + in_data_len,
 +						ibmca_sha_ctx->tail_len);
-+			} else {
-+#if 0
-+				memcpy(ibmca_sha_ctx->tail, 
-+					in_data + in_data_len - SHA_BLOCK_SIZE, 
-+					SHA_BLOCK_SIZE);
-+				in_data_len -= SHA_BLOCK_SIZE;
-+				ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
-+#endif
-+				// SHA it now, down below
 +			}
 +		}
 +	}
@@ -1684,9 +1608,9 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto
 +#endif				/* ENGINE_DYNAMIC_SUPPORT */
 +#endif				/* !OPENSSL_NO_HW_IBMCA */
 +#endif				/* !OPENSSL_NO_HW */
-diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.c
---- openssl-0.9.7c/crypto/engine/hw_ibmca_err.c	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.c	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-cleanfix/crypto/engine/hw_ibmca_err.c
+--- openssl-0.9.7c/crypto/engine/hw_ibmca_err.c	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/hw_ibmca_err.c	2004-04-28 17:13:17.000000000 -0500
 @@ -0,0 +1,157 @@
 +/* hw_ibmca_err.c */
 +/* ====================================================================
@@ -1845,9 +1769,9 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key-1107/cr
 +		IBMCA_lib_error_code = ERR_get_next_error_library();
 +	ERR_PUT_error(IBMCA_lib_error_code, function, reason, file, line);
 +}
-diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.h
---- openssl-0.9.7c/crypto/engine/hw_ibmca_err.h	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.h	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-cleanfix/crypto/engine/hw_ibmca_err.h
+--- openssl-0.9.7c/crypto/engine/hw_ibmca_err.h	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/hw_ibmca_err.h	2004-04-28 17:13:17.000000000 -0500
 @@ -0,0 +1,48 @@
 +
 +#ifndef HEADER_IBMCA_ERR_H
@@ -1897,9 +1821,51 @@ diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-key-1107/cr
 +#define IBMCA_R_CIPHER_MODE_NOT_SUPPORTED		 115
 +
 +#endif
-diff -urN openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7c-key-1107/crypto/engine/vendor_defns/ica_openssl_api.h
---- openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key-1107/crypto/engine/vendor_defns/ica_openssl_api.h	Wed Nov  5 10:48:02 2003
+diff -Nru openssl-0.9.7c/crypto/engine/Makefile openssl-0.9.7c-cleanfix/crypto/engine/Makefile
+--- openssl-0.9.7c/crypto/engine/Makefile	2003-01-16 11:21:13.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/Makefile	2004-04-28 17:13:17.000000000 -0500
+@@ -28,13 +28,15 @@
+ 	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
+ 	eng_openssl.c eng_dyn.c eng_cnf.c \
+ 	hw_atalla.c hw_cswift.c hw_ncipher.c hw_nuron.c hw_ubsec.c \
+-	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c
++	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c \
++	hw_ibmca.c
+ LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
+ 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
+ 	tb_rsa.o tb_dsa.o tb_dh.o tb_rand.o tb_cipher.o tb_digest.o \
+ 	eng_openssl.o eng_dyn.o eng_cnf.o \
+ 	hw_atalla.o hw_cswift.o hw_ncipher.o hw_nuron.o hw_ubsec.o \
+-	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o
++	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o \
++	hw_ibmca.o
+ 
+ SRC= $(LIBSRC)
+ 
+diff -Nru openssl-0.9.7c/crypto/engine/Makefile.ssl openssl-0.9.7c-cleanfix/crypto/engine/Makefile.ssl
+--- openssl-0.9.7c/crypto/engine/Makefile.ssl	2003-01-16 11:21:13.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/Makefile.ssl	2004-04-28 17:13:17.000000000 -0500
+@@ -28,13 +28,15 @@
+ 	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
+ 	eng_openssl.c eng_dyn.c eng_cnf.c \
+ 	hw_atalla.c hw_cswift.c hw_ncipher.c hw_nuron.c hw_ubsec.c \
+-	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c
++	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c \
++	hw_ibmca.c
+ LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
+ 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
+ 	tb_rsa.o tb_dsa.o tb_dh.o tb_rand.o tb_cipher.o tb_digest.o \
+ 	eng_openssl.o eng_dyn.o eng_cnf.o \
+ 	hw_atalla.o hw_cswift.o hw_ncipher.o hw_nuron.o hw_ubsec.o \
+-	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o
++	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o \
++	hw_ibmca.o
+ 
+ SRC= $(LIBSRC)
+ 
+diff -Nru openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7c-cleanfix/crypto/engine/vendor_defns/ica_openssl_api.h
+--- openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7c-cleanfix/crypto/engine/vendor_defns/ica_openssl_api.h	2004-04-28 17:13:17.000000000 -0500
 @@ -0,0 +1,225 @@
 +
 +#ifndef __ICA_OPENSSL_API_H__
