@@ -391,7 +391,7 @@ popd
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
-%attr(0755,root,root) %{_libdir}/pkgconfig/openssl.pc
+%attr(0644,root,root) %{_libdir}/pkgconfig/openssl.pc
 
 %files perl
 %defattr(-,root,root)
