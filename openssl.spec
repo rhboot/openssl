@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 44
+Release: 45
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -406,6 +406,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Dec 23 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-45
+- Fixed and updated libica-1.3.4-urandom.patch patch (#122967)
+
 * Fri Nov 19 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-44
 - rebuild
 
