@@ -421,11 +421,26 @@ long rand_get_next_64( ICA_ADAPTER_HANDLE devhandle, unsigned char * random )
    */
 
 
+   /*
+   **   Change 10/24/03 PK: Use /dev/urandom instead.
+   */
    static unsigned char get_byte(u_int32 *array5, int current_byte)
    {
-
       u_int32 val;
+      static int rfd = 0;	/* File descriptor to /dev/urandom */
+      unsigned char retval;
 
+      if (!rfd) {
+          rfd = open("/dev/urandom", O_RDONLY);
+      }
+
+      /* If we have a valid fd for /dev/urandom then use it */
+      if (rfd) {
+         read(rfd, &retval, 1);
+         return retval;
+      }
+
+      /* Otherwise use the old pseudo random number generator */
       val = *(array5 + current_byte/4);
 
       current_byte %= 4;
