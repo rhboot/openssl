@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 8
+Release: 15
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -97,7 +97,9 @@ LD_LIBRARY_PATH=${TOPDIR}:${TOPDIR}/bin ; export LD_LIBRARY_PATH
 perl util/perlpath.pl `dirname %{__perl}`
 %ifarch %ix86
 sslarch=linux-elf
-sslflags="no-asm 386"
+if ! echo %{_target} | grep -q i686 ; then
+	sslflags="no-asm 386"
+fi
 %endif
 %ifarch sparc
 sslarch=linux-sparcv9
@@ -105,7 +107,6 @@ sslflags=no-asm
 %endif
 %ifarch ia64
 sslarch=linux-ia64
-sslflags=no-asm
 %endif
 %ifarch alpha
 sslarch=alpha-gcc
@@ -202,10 +203,11 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /lib/*.so.%{version}
-%attr(0644,root,root) %{_mandir}/man1*/*
+%attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 
+%ifnarch i686
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
@@ -218,12 +220,38 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %attr(0755,root,root) %{_bindir}/c_rehash
 %attr(0644,root,root) %{_mandir}/man1*/*.pl*
 %{_datadir}/ssl/misc/*.pl
+%endif
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-15
+- only build subpackages on primary arches
+
+* Fri Mar 15 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-14
+- rebuild
+
+* Thu Mar 14 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-13
+- on ia32, only disable use of assembler on i386
+- enable assembly on ia64
+
+* Wed Jan 09 2002 Tim Powers <timp@redhat.com> 0.9.6b-12
+- automated rebuild
+
+* Mon Jan 07 2002 Florian La Roche <Florian.LaRoche@redhat.de> 0.9.6b-11
+- fix sparcv9 entry
+
+* Wed Oct 10 2001 Florian La Roche <Florian.LaRoche@redhat.de> 0.9.6b-10
+- delete BN_LLONG for s390x, patch from Oliver Paukstadt
+
+* Mon Sep 17 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-9
+- update AEP driver patch
+
+* Mon Sep 10 2001 Nalin Dahyabhai <nalin@redhat.com>
+- adjust RNG disabling patch to match version of patch from Broadcom
+
 * Fri Sep  7 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-8
 - disable the RNG in the ubsec engine driver
 

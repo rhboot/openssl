@@ -16,7 +16,7 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
  # it's a real mess with -mcpu=ultrasparc option under Linux, but
  # -Wa,-Av8plus should do the trick no matter what.
 -"linux-sparcv9","gcc:-mcpu=ultrasparc -DB_ENDIAN -DTERMIO -O3 -fomit-frame-pointer -Wall -Wa,-Av8plus -DULTRASPARC -DBN_DIV2W::-D_REENTRANT::BN_LLONG RC4_CHAR RC4_CHUNK DES_UNROLL BF_PTR:asm/sparcv8plus.o:::asm/md5-sparcv8plus.o:",
-+"linux-sparcv9","gcc:-DB_ENDIAN -DTERMIO -Wall -DULTRASPARC -DBN_DIV2W::-D_REENTRANT::BN_LLONG RC4_CHAR RC4_CHUNK DES_UNROLL BF_PTR:asm/sparcv8plus.o:::asm/md5-sparcv8plus.o:::::::linux-shared:-fPIC",
++"linux-sparcv9","gcc:-DB_ENDIAN -DTERMIO -Wall -DULTRASPARC -DBN_DIV2W::-D_REENTRANT::BN_LLONG RC4_CHAR RC4_CHUNK DES_UNROLL BF_PTR:asm/sparcv8plus.o:asm/md5-sparcv8plus.o:dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
  # !!!Folowing can't be even tested yet!!!
  #    We have to wait till 64-bit glibc for SPARC is operational!!!
 -#"linux64-sparcv9","sparc64-linux-gcc:-m64 -mcpu=v9 -DB_ENDIAN -DTERMIO -O3 -fomit-frame-pointer -Wall -DULTRASPARC -DBN_DIV2W::-D_REENTRANT::BN_LLONG RC4_CHAR RC4_CHUNK DES_UNROLL BF_PTR::::asm/md5-sparcv9.o:",
@@ -56,7 +56,7 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
 +"linux-ppc",    "gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
 +"linux-m68k",   "gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
 +"linux-s390",	"gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
-+"linux-s390x",        "gcc:-DB_ENDIAN -DTERMIO -DNO_ASM $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::SIXTY_FOUR_BIT_LONG BN_LLONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
++"linux-s390x",        "gcc:-DB_ENDIAN -DTERMIO -DNO_ASM $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::SIXTY_FOUR_BIT_LONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
 +"linux-ia64",   "gcc:-DL_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::(unknown)::SIXTY_FOUR_BIT_LONG:::dlfcn::::::::linux-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
  "NetBSD-sparc",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -mv8 -Wall -DB_ENDIAN::(unknown)::BN_LLONG MD2_CHAR RC4_INDEX DES_UNROLL::::::::::dlfcn:bsd-gcc-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
  "NetBSD-m68",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -Wall -DB_ENDIAN::(unknown)::BN_LLONG MD2_CHAR RC4_INDEX DES_UNROLL::::::::::dlfcn:bsd-gcc-shared:-fPIC:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
