@@ -1,3 +1,5 @@
+UTF8 := $(shell locale -c LC_CTYPE -k | grep -q charmap.*UTF-8 && echo -utf8)
+
 .PHONY: usage
 .SUFFIXES: .key .csr .crt .pem
 .PRECIOUS: %.key %.csr %.crt %.pem
@@ -30,7 +32,7 @@ usage:
 	umask 77 ; \
 	PEM1=`/bin/mktemp /tmp/openssl.XXXXXX` ; \
 	PEM2=`/bin/mktemp /tmp/openssl.XXXXXX` ; \
-	/usr/bin/openssl req -newkey rsa:1024 -keyout $$PEM1 -nodes -x509 -days 365 -out $$PEM2 ; \
+	/usr/bin/openssl req $(UTF8) -newkey rsa:1024 -keyout $$PEM1 -nodes -x509 -days 365 -out $$PEM2 ; \
 	cat $$PEM1 >  $@ ; \
 	echo ""    >> $@ ; \
 	cat $$PEM2 >> $@ ; \
@@ -42,11 +44,11 @@ usage:
 
 %.csr: %.key
 	umask 77 ; \
-	/usr/bin/openssl req -new -key $^ -out $@
+	/usr/bin/openssl req $(UTF8) -new -key $^ -out $@
 
 %.crt: %.key
 	umask 77 ; \
-	/usr/bin/openssl req -new -key $^ -x509 -days 365 -out $@
+	/usr/bin/openssl req $(UTF8) -new -key $^ -x509 -days 365 -out $@
 
 KEY=/etc/httpd/conf/ssl.key/server.key
 CSR=/etc/httpd/conf/ssl.csr/server.csr
@@ -58,8 +60,8 @@ testcert: $(CRT)
 
 $(CSR): $(KEY)
 	umask 77 ; \
-	/usr/bin/openssl req -new -key $(KEY) -out $(CSR)
+	/usr/bin/openssl req $(UTF8) -new -key $(KEY) -out $(CSR)
 
 $(CRT): $(KEY)
 	umask 77 ; \
-	/usr/bin/openssl req -new -key $(KEY) -x509 -days 365 -out $(CRT)
+	/usr/bin/openssl req $(UTF8) -new -key $(KEY) -x509 -days 365 -out $(CRT)

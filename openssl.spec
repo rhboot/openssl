@@ -64,7 +64,7 @@ License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel
+BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 Requires: mktemp
 
 %define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
@@ -406,6 +406,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Feb 10 2005 Tomas Mraz <tmraz@redhat.com>
+- Support UTF-8 charset in the Makefile.certificate (#134944)
+- Added cmp to BuildPrereq
+
 * Thu Jan 27 2005 Joe Orton <jorton@redhat.com> 0.9.7a-46
 - generate new ca-bundle.crt from Mozilla certdata.txt (revision 1.32)
 
