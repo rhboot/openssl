@@ -66,6 +66,13 @@
 **          		Real RFC2712 KerberosWrapper replaces AP_REQ.
 */
 
+#ifndef OPENSSL_NO_KRB5
+
+#include <errno.h>
+/* Signal 1.3 headers to declare bits and pieces of the 1.2 API. */
+#define KRB5_PRIVATE 1
+#define KRB5_DEPRECATED 1
+
 #include <openssl/opensslconf.h>
 
 #define _XOPEN_SOURCE /* glibc2 needs this to declare strptime() */
@@ -76,8 +83,6 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/krb5_asn.h>
-
-#ifndef OPENSSL_NO_KRB5
 
 /* 
  * When OpenSSL is built on Windows, we do not want to require that
