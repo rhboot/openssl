@@ -1,0 +1,12 @@
+diff -u -r1.12 -r1.12.6.1
+--- openssl/crypto/asn1/a_mbstr.c	2000/09/10 14:45:18	1.12
++++ openssl/crypto/asn1/a_mbstr.c	2003/08/21 12:31:17	1.12.6.1
+@@ -296,7 +296,7 @@
+ 
+ static int out_utf8(unsigned long value, void *arg)
+ {
+-	long *outlen;
++	int *outlen;
+ 	outlen = arg;
+ 	*outlen += UTF8_putc(NULL, -1, value);
+ 	return 1;

@@ -10,7 +10,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 20.2
+Release: 23
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -41,15 +41,12 @@ Patch17: openssl-0.9.7a-krb5-leak.patch
 Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
-Patch21: openssl-0.9.7a-krb5-security.patch
-Patch22: openssl-0.9.7a-dccs.patch
-Patch23: openssl-0.9.7a-krb5.patch
+Patch21: openssl-0.9.7a-utf8fix.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel
-ExclusiveArch: %{ix86}
 Requires: mktemp
 
 %define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
@@ -122,9 +119,7 @@ popd
 %patch18 -p1 -b .krb5-1.3
 %patch19 -p1 -b .niscc
 %patch20 -p1 -b .ccert
-%patch21 -p1 -b .krb5-security
-%patch22 -p1 -b .dccs
-%patch23 -p1 -b .krb5
+%patch21 -p1 -b .utf8fix
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -188,6 +183,10 @@ RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O0"
 	--with-krb5-flavor=MIT \
 	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib} \
 	${sslarch}
+
+# Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
+# marked as not requiring an executable stack.
+RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wa,--noexecstack"
 make depend
 make all build-shared
 
@@ -201,6 +200,7 @@ make -C test apps tests
 %{__cc} -o openssl-thread-test \
 	`krb5-config --cflags` \
 	-I./include \
+	$RPM_OPT_FLAGS \
 	$RPM_SOURCE_DIR/openssl-thread-test.c \
 	libssl.a libcrypto.a \
 	`krb5-config --libs` \
@@ -353,13 +353,24 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %postun -p /sbin/ldconfig
 
 %changelog
-* Wed Mar 17 2004 Joe Orton <jorton@redhat.com> 0.9.7a-20.2
-- pull in fix for libssl link line (Tim Waugh, #111154)
+* Tue Sep 30 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-23
+- re-disable optimizations on ppc64
 
-* Mon Mar  8 2004 Joe Orton <jorton@redhat.com> 0.9.7a-20.1
-- add security fixes for CAN-2004-0079, CAN-2004-0112
-- updated ca-bundle.crt: removed expired GeoTrust roots, added
-  freessl.com root, removed trustcenter.de Class 0 root
+* Tue Sep 30 2003 Joe Orton <jorton@redhat.com>
+- add a_mbstr.c fix for 64-bit platforms from CVS
+
+* Tue Sep 30 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-22
+- add -Wa,--noexecstack to RPM_OPT_FLAGS so that assembled modules get tagged
+  as not needing executable stacks
+
+* Mon Sep 29 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-21
+- rebuild
+
+* Thu Sep 25 2003 Nalin Dahyabhai <nalin@redhat.com>
+- re-enable optimizations on ppc64
+
+* Thu Sep 25 2003 Nalin Dahyabhai <nalin@redhat.com>
+- remove exclusivearch
 
 * Wed Sep 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-20
 - only parse a client cert if one was requested
