@@ -4,11 +4,11 @@
 # 0.9.6a soversion = 2
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
-# 0.9.7e soversion = 5
+# 0.9.7ef soversion = 5
 %define soversion 5
 
 # Number of threads to spawn when testing some threading fixes.
-%define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
+#%define thread_test_threads %{?threads:%{threads}}%{!?threads:100}
 
 # Arches on which we need to prevent arch conflicts on opensslconf.h, must
 # also be handled in opensslconf-new.h.
@@ -21,8 +21,8 @@
 
 Summary: The OpenSSL toolkit.
 Name: openssl
-Version: 0.9.7e
-Release: 3
+Version: 0.9.7f
+Release: 1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -34,23 +34,19 @@ Source7: libica-%{libicaversion}.tar.gz
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
-Patch0: openssl-0.9.7e-redhat.patch
+Patch0: openssl-0.9.7f-redhat.patch
 Patch1: openssl-0.9.7-beta5-defaults.patch
 Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7e-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
 Patch6: openssl-0.9.7e-ICA_engine_apr292004.patch
-Patch7: openssl-0.9.7-ppc64.patch
 Patch10: libica-1.2-struct.patch
 Patch11: libica-1.2-cleanup.patch
 Patch12: openssl-0.9.7a-libica-autoconf.patch
 Patch18: openssl-0.9.7a-krb5-1.3.patch
-Patch22: openssl-0.9.7e-no-der_chop.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7e-krb5.patch
-Patch50: openssl-0.9.7e-no-fips.patch
-Patch51: openssl-0.9.7e-abi-compat.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -99,7 +95,6 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch4 -p1 -b .x509
 %patch5 -p1 -b .version-add-engines
 %patch6 -p1 -b .ibmca
-%patch7 -p1 -b .ppc64
 
 %ifarch s390 s390x
 pushd libica-%{libicaversion}
@@ -117,7 +112,6 @@ popd
 
 %patch12 -p1 -b .libica-autoconf
 %patch18 -p1 -b .krb5-1.3
-%patch22 -p1 -b .no-der_chop
 
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
@@ -129,8 +123,6 @@ popd
 # Security fixes
 
 # Additional fixes
-%patch50 -p1 -b .no-fips
-%patch51 -p1 -b .abi-compat
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -165,7 +157,6 @@ sslflags=no-asm
 %endif
 %ifarch ia64
 sslarch=linux-ia64
-sslflags=no-asm
 %endif
 %ifarch alpha
 sslarch=linux-alpha-gcc
@@ -184,7 +175,6 @@ sslarch=linux-ppc
 %endif
 %ifarch ppc64
 sslarch=linux-ppc64
-RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O0"
 %endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
@@ -217,7 +207,7 @@ make -C test apps tests
 	libssl.a libcrypto.a \
 	`krb5-config --libs` \
 	-lpthread -lz -ldl
-./openssl-thread-test --threads %{thread_test_threads}
+#./openssl-thread-test --threads %{thread_test_threads}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -319,6 +309,9 @@ rm -rf $RPM_BUILD_ROOT/%{_mandir}/man1*/*.pl*
 rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %endif
 
+# Remove fips fingerprint script 
+rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
+
 %ifarch s390 s390x
 pushd libica-%{libicaversion}
 if [[ $RPM_BUILD_ROOT  ]] ;
@@ -387,6 +380,13 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar 30 2005 Tomas Mraz <trmaz@redhat.com> 0.9.7f-1
+- reenable optimizations on ppc64
+- enable assembly code on ia64
+- upgrade to new upstream version (no soname bump needed)
+- disable thread test - it was testing the backport of the
+  RSA blinding - no longer needed
+
 * Tue Mar  1 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7e-3
 - libcrypto shouldn't depend on libkrb5 (#135961)
 
