@@ -1,0 +1,46 @@
+
+Fix for CAN-2002-0659:
+
+*) Add various sanity checks to asn1_get_length() to reject
+   the ASN1 length bytes if they exceed sizeof(long), will appear
+   negative or the content length exceeds the length of the
+   supplied buffer.
+   [Steve Henson, Adi Stav <stav@mercury.co.il>, James Yonan <jim@ntlp.com>]
+
+--- openssl6/crypto/asn1/asn1_lib.c	Wed Jul 17 23:50:06 2002
++++ ossl6/crypto/asn1/asn1_lib.c	Thu Jul 25 01:50:24 2002
+@@ -124,15 +124,13 @@
+ 		(int)(omax+ *pp));
+ 
+ #endif
+-#if 0
+-	if ((p+ *plength) > (omax+ *pp))
++	if (*plength > (omax - (*pp - p)))
+ 		{
+ 		ASN1err(ASN1_F_ASN1_GET_OBJECT,ASN1_R_TOO_LONG);
+ 		/* Set this so that even if things are not long enough
+ 		 * the values are set correctly */
+ 		ret|=0x80;
+ 		}
+-#endif
+ 	*pp=p;
+ 	return(ret|inf);
+ err:
+@@ -159,6 +157,8 @@
+ 		i= *p&0x7f;
+ 		if (*(p++) & 0x80)
+ 			{
++			if (i > sizeof(long))
++				return 0;
+ 			if (max-- == 0) return(0);
+ 			while (i-- > 0)
+ 				{
+@@ -170,6 +170,8 @@
+ 		else
+ 			ret=i;
+ 		}
++	if (ret < 0)
++		return 0;
+ 	*pp=p;
+ 	*rl=ret;
+ 	return(1);
