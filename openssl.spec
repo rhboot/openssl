@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 5
+Release: 6
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -22,6 +22,7 @@ Patch6: openssl-engine-0.9.6b-add-aep.patch
 Patch7: openssl-engine-0.9.6b-hw_ubsec.patch
 Patch8: openssl-0.9.6-x509.patch
 Patch9: openssl-engine-0.9.6b-default-engine.patch
+Patch10: openssl-engine-0.9.6b-ubsec_failover.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -74,6 +75,7 @@ cp %{SOURCE7} crypto/engine/vendor_defns/
 %patch7 -p1 -b .hw_ubsec
 %patch8 -p1 -b .x509
 %patch9 -p1 -b .default-engine
+%patch10 -p1 -b .ubsec_failover
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt

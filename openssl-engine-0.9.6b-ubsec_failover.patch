@@ -1,0 +1,272 @@
+--- openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c	Thu Aug 23 17:59:46 2001
++++ openssl-engine-0.9.6b/crypto/engine/hw_ubsec.c	Thu Aug 23 18:37:47 2001
+@@ -495,8 +495,10 @@
+ 
+ 	if (r_len > max_key_len) 
+ 	        {
++		ENGINE *e;
+ 		ENGINEerr(ENGINE_F_UBSEC_MOD_EXP, ENGINE_R_SIZE_TOO_LARGE_OR_TOO_SMALL);
+-		ret = BN_mod_exp(r, a, p, m, ctx);
++	        e = ENGINE_openssl();
++	        ret = e->bn_mod_exp(r, a, p, m, ctx);
+ 		goto err;
+ 		} 
+ 
+@@ -509,8 +511,10 @@
+ 
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) 
+ 	        {
++		ENGINE *e;
+ 		fd = 0;
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
++	        e = ENGINE_openssl();
++	        ret = e->bn_mod_exp(r, a, p, m, ctx);
+ 		goto err;
+ 		}
+ 
+@@ -520,12 +524,14 @@
+ 				      (unsigned char *)p->d, BN_num_bits(p), 
+ 				      (unsigned char *)r->d, &r_len) != 0)
+ 	        {
++		/* Hardware's a no go, failover to software */
++		ENGINE *e;
++
+ 		ENGINEerr(ENGINE_F_UBSEC_MOD_EXP, ENGINE_R_REQUEST_FAILED);
+ 		p_UBSEC_ubsec_close(fd);
+ 
+-		/* Hardware's a no go, failover to software */
+-
+-		ret = BN_mod_exp(r, a, p, m, ctx);
++	        e = ENGINE_openssl();
++	        ret = e->bn_mod_exp(r, a, p, m, ctx);
+ 		goto err;
+ 		}
+ 	
+@@ -555,14 +561,11 @@
+ 
+ 	if (y_len > max_key_len) 
+ 	        {
+-		ENGINEerr(ENGINE_F_UBSEC_RSA_MOD_EXP_CRT, ENGINE_R_SIZE_TOO_LARGE_OR_TOO_SMALL);
+-
+-		{ 
+ 	        ENGINE *e;
+-	    
++
++		ENGINEerr(ENGINE_F_UBSEC_RSA_MOD_EXP_CRT, ENGINE_R_SIZE_TOO_LARGE_OR_TOO_SMALL);
+ 	        e = ENGINE_openssl();
+ 	        ret = e->bn_mod_exp_crt(r, a, p, q, dp, dq, qinv, ctx);
+-	        }
+ 
+ 		goto err;
+ 	        }
+@@ -575,10 +578,14 @@
+ 
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) 
+ 	        {
++	        ENGINE *e;
++	    
+ 		fd = 0;
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
++	        e = ENGINE_openssl();
++	        ret = e->bn_mod_exp_crt(r, a, p, q, dp, dq, qinv, ctx);
++
+ 		goto err;
+-	        }
++		}
+ 
+ 	if (p_UBSEC_rsa_mod_exp_crt_ioctl(fd,
+ 		(unsigned char *)a->d, BN_num_bits(a), 
+@@ -589,18 +596,12 @@
+ 		(unsigned char *)q->d, BN_num_bits(q),
+ 		(unsigned char *)r->d,  &y_len) != 0) 
+ 	        {
++	        ENGINE *e;
+ 		p_UBSEC_ubsec_close(fd);
+ 		ENGINEerr(ENGINE_F_UBSEC_RSA_MOD_EXP_CRT, ENGINE_R_UNIT_FAILURE);
+-	  
+-	        /* Hardware's a no go, failover to software */
+-
+-	        { 
+-	        ENGINE *e;
+-	    
+ 	        e = ENGINE_openssl();
+ 	        ret = e->bn_mod_exp_crt(r, a, p, q, dp, dq, qinv, ctx);
+-	        }
+-	  
++
+ 	        goto err;
+ 	        }
+ 
+@@ -701,7 +702,7 @@
+ 	if (BN_num_bits(m) > max_key_len) 
+ 	        {
+ 		const RSA_METHOD *meth = RSA_PKCS1_SSLeay();
+-		ret = (*meth->bn_mod_exp)(r, a, p, m, ctx, m_ctx);
++		ret = meth->bn_mod_exp(r, a, p, m, ctx, m_ctx);
+ 		} 
+ 	else 
+ #endif
+@@ -743,9 +744,10 @@
+ 	} 
+ 
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) {
++		const DSA_METHOD *meth = DSA_OpenSSL();
+ 		fd = 0;
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
+-		return 0;
++		ret = meth->dsa_do_sign(dgst, dlen, dsa);
++		goto err;
+ 	}
+ 
+ 	if (p_UBSEC_dsa_sign_ioctl(fd, 
+@@ -759,15 +761,14 @@
+ 				   (unsigned char *)r->d, &r_len,
+ 				   (unsigned char *)s->d, &s_len ) != 0) 
+ 	        {
++		/* Hardware's a no go, failover to software */
++		const DSA_METHOD *meth;
++
+ 		ENGINEerr(ENGINE_F_UBSEC_DSA_SIGN, ENGINE_R_REQUEST_FAILED);
+ 		p_UBSEC_ubsec_close(fd);
+ 
+-		/* Hardware's a no go, failover to software */
+-
+-		{
+-		const DSA_METHOD *meth = DSA_OpenSSL();
++		meth = DSA_OpenSSL();
+ 		ret = meth->dsa_do_sign(dgst, dlen, dsa);
+-		}
+ 
+ 		goto err;
+ 	}
+@@ -818,8 +819,9 @@
+ 
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) 
+         {
++		const DSA_METHOD *meth = DSA_OpenSSL();
+ 		fd = 0;
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
++		ret = meth->dsa_do_verify(dgst, dgst_len, sig, dsa);
+ 		goto err;
+ 	}
+ 
+@@ -834,15 +836,14 @@
+ 				     (unsigned char *)sig->s->d, BN_num_bits(sig->s),
+ 				     (unsigned char *)v.d, &v_len) != 0) 
+ 	        {
++		/* Hardware's a no go, failover to software */
++		DSA_METHOD *meth;
++		
+ 		ENGINEerr(ENGINE_F_UBSEC_DSA_VERIFY , ENGINE_R_REQUEST_FAILED);
+ 		p_UBSEC_ubsec_close(fd);
+ 
+-		/* Hardware's a no go, failover to software */
+-
+-		{
+-		const DSA_METHOD *meth = DSA_OpenSSL();
++		meth = DSA_OpenSSL();
+ 		ret = meth->dsa_do_verify(dgst, dgst_len, sig, dsa);
+-		}
+ 
+ 		goto err;
+ 		}
+@@ -882,8 +883,10 @@
+ 	  
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) 
+ 	        {
++		const DH_METHOD *meth;
+ 		fd = 0;
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
++		meth = DH_OpenSSL();
++		ret = meth->compute_key(key, pub_key, dh);
+ 		goto err;
+ 		}
+ 	  
+@@ -893,16 +896,13 @@
+ 					       (unsigned char *)dh->p->d, BN_num_bits(dh->p),
+ 					       key, &k_len) != 0)
+ 	        {
++	        /* Hardware's a no go, failover to software */
++		const DH_METHOD *meth;
+ 		ENGINEerr(ENGINE_F_UBSEC_DH_COMPUTE_KEY, ENGINE_R_REQUEST_FAILED);
+ 		p_UBSEC_ubsec_close(fd);
+ 		
+-	        /* Hardware's a no go, failover to software */
+-
+-		{
+-		const DH_METHOD *meth;
+ 		meth = DH_OpenSSL();
+ 		ret = meth->compute_key(key, pub_key, dh);
+-		}
+ 		
+ 		goto err;
+ 		}
+@@ -959,8 +959,10 @@
+ 
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) 
+ 	        {
++		const DH_METHOD *meth;
+ 	        fd = 0;
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
++      		meth = DH_OpenSSL();
++		ret = meth->generate_key(dh);
+ 		goto err;
+ 		}
+   
+@@ -971,16 +973,14 @@
+ 						  (unsigned char *)dh->p->d, BN_num_bits(dh->p),
+ 						  0, 0, random_bits) != 0) 
+ 	        {
++		/* Hardware's a no go, failover to software */
++		const DH_METHOD *meth;
++
+ 		ENGINEerr(ENGINE_F_UBSEC_DH_COMPUTE_KEY, ENGINE_R_REQUEST_FAILED);
+ 		p_UBSEC_ubsec_close(fd);
+ 
+-		/* Hardware's a no go, failover to software */
+-
+-		{
+-		const DH_METHOD *meth;
+       		meth = DH_OpenSSL();
+ 		ret = meth->generate_key(dh);
+-		}
+ 
+ 		goto err;
+ 		}
+@@ -1006,7 +1006,11 @@
+ 
+ 	if ((fd = p_UBSEC_ubsec_open(UBSEC_KEY_DEVICE_NAME)) <= 0) 
+ 	        {
+-		ENGINEerr(ENGINE_F_UBSEC_INIT, ENGINE_R_UNIT_FAILURE);
++		const RAND_METHOD *meth;
++		num = p_UBSEC_ubsec_bits_to_bytes(num);
++		meth = RAND_SSLeay();
++		meth->seed(buf, num);
++		ret = meth->bytes(buf, num);
+ 	        goto err;
+ 		}
+ 
+@@ -1017,19 +1021,16 @@
+ 			      buf,
+ 			      &num) != 0)
+ 	        {
+-		ENGINEerr(ENGINE_F_UBSEC_RNG_BYTES, ENGINE_R_REQUEST_FAILED);
+-		p_UBSEC_ubsec_close(fd);
+-
+ 		/* Hardware's a no go, failover to software */
++		const RAND_METHOD *meth;
+ 
+-		num = p_UBSEC_ubsec_bits_to_bytes(num);
++		ENGINEerr(ENGINE_F_UBSEC_RNG_BYTES, ENGINE_R_REQUEST_FAILED);
++		p_UBSEC_ubsec_close(fd);
+ 
+-		{
+-		const RAND_METHOD *meth;
+ 		meth = RAND_SSLeay();
++		num = p_UBSEC_ubsec_bits_to_bytes(num);
+ 		meth->seed(buf, num);
+ 		ret = meth->bytes(buf, num);
+-		}
+ 
+ 	        goto err;
+ 		}
