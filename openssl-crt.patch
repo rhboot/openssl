@@ -1,0 +1,43 @@
+Security fix #2:  if modular exponentiation produces an incorrect value which
+is then used to sign data which was also signed correctly at another time, the
+secret key can be exposed by comparing the signatures.  This only reduces the
+likelihood of this occurring (they could still *both* be wrong).
+
+diff -uNr openssl-0.9.6/crypto/rsa/rsa_eay.c openssl-0.9.6a/crypto/rsa/rsa_eay.c
+--- openssl-0.9.6/crypto/rsa/rsa_eay.c	Mon Sep 11 08:42:43 2000
++++ openssl-0.9.6a/crypto/rsa/rsa_eay.c	Thu Apr  5 16:13:09 2001
+@@ -409,12 +409,13 @@
+ 
+ static int RSA_eay_mod_exp(BIGNUM *r0, BIGNUM *I, RSA *rsa)
+ 	{
+-	BIGNUM r1,m1;
++	BIGNUM r1,m1,vrfy;
+ 	int ret=0;
+ 	BN_CTX *ctx;
+ 
+ 	if ((ctx=BN_CTX_new()) == NULL) goto err;
+ 	BN_init(&m1);
+ 	BN_init(&r1);
++	BN_init(&vrfy);
+ 
+ 	if (rsa->flags & RSA_FLAG_CACHE_PRIVATE)
+@@ -463,10 +464,19 @@
+ 	if (!BN_mul(&r1,r0,rsa->q,ctx)) goto err;
+ 	if (!BN_add(r0,&r1,&m1)) goto err;
+ 
++	if (rsa->e && rsa->n)
++		{
++		if (!rsa->meth->bn_mod_exp(&vrfy,r0,rsa->e,rsa->n,ctx,NULL)) goto err;
++		if (BN_cmp(I, &vrfy) != 0)
++			{
++			if (!rsa->meth->bn_mod_exp(r0,I,rsa->d,rsa->n,ctx,NULL)) goto err;
++			}
++		}
+ 	ret=1;
+ err:
+ 	BN_clear_free(&m1);
+ 	BN_clear_free(&r1);
++	BN_clear_free(&vrfy);
+ 	BN_CTX_free(ctx);
+ 	return(ret);
+ 	}

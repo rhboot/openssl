@@ -32,10 +32,10 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
 -"linux-alpha+bwx-gcc","gcc:-O3 -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_RISC1 DES_UNROLL:asm/alpha.o::",
 -"linux-alpha-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:asm/alpha.o::",
 -"linux-alpha+bwx-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:asm/alpha.o::",
-+"linux-alpha-gcc","gcc:$ENV{RPM_OPT_FLAGS} -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_RISC1 DES_UNROLL:asm/alpha.o::::::::::linux-shared:-fPIC",
-+"linux-alpha+bwx-gcc","gcc:$ENV{RPM_OPT_FLAGS} -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_RISC1 DES_UNROLL:asm/alpha.o::::::::::linux-shared:-fPIC",
-+"linux-alpha-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:::::::::asm/alpha.o::linux-shared:-fPIC",
-+"linux-alpha+bwx-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:asm/alpha.o::::::::::linux-shared:-fPIC",
++"linux-alpha-gcc","gcc:$ENV{RPM_OPT_FLAGS} -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_RISC1 DES_UNROLL:asm/alpha.o::::::::::linux-shared:-fPIC",
++"linux-alpha+bwx-gcc","gcc:$ENV{RPM_OPT_FLAGS} -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_RISC1 DES_UNROLL:asm/alpha.o::::::::::linux-shared:-fPIC",
++"linux-alpha-ccc","ccc:-fast -readonly_strings -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:::::::::asm/alpha.o::linux-shared:-fPIC",
++"linux-alpha+bwx-ccc","ccc:-fast -readonly_strings -DTERMIO::-D_REENTRANT::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:asm/alpha.o::::::::::linux-shared:-fPIC",
  
  # assembler versions -- currently defunct:
  ##"OpenBSD-alpha","gcc:-DTERMIOS -O3 -fomit-frame-pointer::(unknown):SIXTY_FOUR_BIT_LONG DES_INT DES_PTR DES_RISC2:asm/alpha.o::",
