@@ -16,12 +16,12 @@
 # Arches for which we don't build subpackages.
 %define optimize_arches i686
 
-%define libicaversion 1.3.5
+%define libicaversion 1.3.5-3
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 39
+Release: 40
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -404,6 +404,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Oct 05 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-40
+- Include latest libica version with important bugfixes
+
 * Tue Jun 15 2004 Elliot Lee <sopwith@redhat.com>
 - rebuilt
 
