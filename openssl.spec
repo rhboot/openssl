@@ -10,7 +10,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 20.1
+Release: 20.2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -43,6 +43,7 @@ Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-krb5-security.patch
 Patch22: openssl-0.9.7a-dccs.patch
+Patch23: openssl-0.9.7a-krb5.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -123,6 +124,7 @@ popd
 %patch20 -p1 -b .ccert
 %patch21 -p1 -b .krb5-security
 %patch22 -p1 -b .dccs
+%patch23 -p1 -b .krb5
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -351,6 +353,9 @@ mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar 17 2004 Joe Orton <jorton@redhat.com> 0.9.7a-20.2
+- pull in fix for libssl link line (Tim Waugh, #111154)
+
 * Mon Mar  8 2004 Joe Orton <jorton@redhat.com> 0.9.7a-20.1
 - add security fixes for CAN-2004-0079, CAN-2004-0112
 - updated ca-bundle.crt: removed expired GeoTrust roots, added
