@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 32
+Release: 33.3
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -45,6 +45,8 @@ Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
+Patch43: openssl-0.9.7a-krb5-security.patch
+Patch44: openssl-0.9.7a-dccs.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -129,6 +131,9 @@ popd
 
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
+
+%patch43 -p1 -b .krb5-security
+%patch44 -p1 -b .dccs
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -368,6 +373,12 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Mar  8 2004 Joe Orton <jorton@redhat.com> 0.9.7a-33.3
+- add security fixes for CAN-2004-0079, CAN-2004-0112
+
+* Tue Mar 02 2004 Elliot Lee <sopwith@redhat.com>
+- rebuilt
+
 * Thu Feb 26 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-32
 - Updated libica to latest upstream version 1.3.5.
 
