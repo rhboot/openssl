@@ -279,7 +279,7 @@ do_bsd-gcc-shared: do_gnu-shared
 do_linux-shared: do_gnu-shared
 do_gnu-shared:
 	libs='-L. ${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
-	if [ "${SHLIBDIRS}" = "ssl" -a -n "$(LIBKRB5)" ]; then \
+	if [ -z "${SHLIBDIRS%%*ssl*}" -a -n "$(LIBKRB5)" ]; then \
 		libs="$(LIBKRB5) $$libs"; \
 	fi; \
 	( set -x; ${CC} ${SHARED_LDFLAGS} \
