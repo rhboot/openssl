@@ -1,0 +1,68 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 0 (0x0)
+        Signature Algorithm: md5WithRSAEncryption
+        Issuer: C=US, ST=North Carolina, L=Research Triangle Park, O=Red Hat, Inc., OU=Red Hat Network Services, CN=RHNS Certificate Authority/Email=rhns@redhat.com
+        Validity
+            Not Before: Aug 23 22:45:55 2000 GMT
+            Not After : Aug 28 22:45:55 2003 GMT
+        Subject: C=US, ST=North Carolina, L=Research Triangle Park, O=Red Hat, Inc., OU=Red Hat Network Services, CN=RHNS Certificate Authority/Email=rhns@redhat.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+            RSA Public Key: (1024 bit)
+                Modulus (1024 bit):
+                    00:c0:68:2b:12:30:e2:21:2d:22:c6:72:71:5b:bf:
+                    17:a0:93:10:e9:9b:e3:c9:8d:3b:2d:ac:c4:bb:95:
+                    3b:e0:ca:55:32:dc:95:c2:10:b3:04:b2:51:fb:e8:
+                    85:61:16:34:a5:b4:1d:67:5c:a7:77:f4:f0:92:da:
+                    b4:8b:af:95:93:62:f3:66:29:ae:c0:88:b7:64:84:
+                    0e:48:90:60:f8:60:3e:00:7f:54:dd:17:a6:ac:18:
+                    e0:42:de:7c:be:90:81:f7:f4:05:85:0a:08:cc:d5:
+                    f2:9f:fc:24:8b:77:a5:3d:e9:48:a9:ef:0f:3b:63:
+                    a3:fe:a6:83:4c:e8:dc:0b:77
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier: 
+                54:15:CD:9F:2C:F7:EC:0D:1F:D2:A8:BE:4C:07:AC:88:3E:FB:9B:0A
+            X509v3 Authority Key Identifier: 
+                keyid:54:15:CD:9F:2C:F7:EC:0D:1F:D2:A8:BE:4C:07:AC:88:3E:FB:9B:0A
+                DirName:/C=US/ST=North Carolina/L=Research Triangle Park/O=Red Hat, Inc./OU=Red Hat Network Services/CN=RHNS Certificate Authority/Email=rhns@redhat.com
+                serial:00
+
+            X509v3 Basic Constraints: 
+                CA:TRUE
+    Signature Algorithm: md5WithRSAEncryption
+        93:01:88:88:67:67:91:8c:9e:d0:12:14:90:71:12:87:55:0a:
+        f2:52:1b:ad:f2:d3:07:1d:af:70:99:bb:b0:cd:80:23:c9:ed:
+        2b:73:e9:63:b1:d0:b3:8c:60:c5:42:64:a6:c1:95:56:90:c5:
+        35:06:03:58:f5:8e:2b:d9:f9:a9:a0:10:a9:99:f7:15:42:92:
+        a5:50:d7:11:07:f1:02:d5:e0:70:e4:55:6e:2a:ce:25:f8:5d:
+        cd:0b:2f:10:61:f8:f6:20:42:cc:c3:89:f8:8a:4f:82:24:12:
+        cf:39:7f:21:a8:2c:8d:52:97:52:c5:f7:5f:42:a5:87:09:66:
+        b0:cc
+-----BEGIN CERTIFICATE-----
+MIIEMDCCA5mgAwIBAgIBADANBgkqhkiG9w0BAQQFADCBxzELMAkGA1UEBhMCVVMx
+FzAVBgNVBAgTDk5vcnRoIENhcm9saW5hMR8wHQYDVQQHExZSZXNlYXJjaCBUcmlh
+bmdsZSBQYXJrMRYwFAYDVQQKEw1SZWQgSGF0LCBJbmMuMSEwHwYDVQQLExhSZWQg
+SGF0IE5ldHdvcmsgU2VydmljZXMxIzAhBgNVBAMTGlJITlMgQ2VydGlmaWNhdGUg
+QXV0aG9yaXR5MR4wHAYJKoZIhvcNAQkBFg9yaG5zQHJlZGhhdC5jb20wHhcNMDAw
+ODIzMjI0NTU1WhcNMDMwODI4MjI0NTU1WjCBxzELMAkGA1UEBhMCVVMxFzAVBgNV
+BAgTDk5vcnRoIENhcm9saW5hMR8wHQYDVQQHExZSZXNlYXJjaCBUcmlhbmdsZSBQ
+YXJrMRYwFAYDVQQKEw1SZWQgSGF0LCBJbmMuMSEwHwYDVQQLExhSZWQgSGF0IE5l
+dHdvcmsgU2VydmljZXMxIzAhBgNVBAMTGlJITlMgQ2VydGlmaWNhdGUgQXV0aG9y
+aXR5MR4wHAYJKoZIhvcNAQkBFg9yaG5zQHJlZGhhdC5jb20wgZ8wDQYJKoZIhvcN
+AQEBBQADgY0AMIGJAoGBAMBoKxIw4iEtIsZycVu/F6CTEOmb48mNOy2sxLuVO+DK
+VTLclcIQswSyUfvohWEWNKW0HWdcp3f08JLatIuvlZNi82YprsCIt2SEDkiQYPhg
+PgB/VN0XpqwY4ELefL6Qgff0BYUKCMzV8p/8JIt3pT3pSKnvDztjo/6mg0zo3At3
+AgMBAAGjggEoMIIBJDAdBgNVHQ4EFgQUVBXNnyz37A0f0qi+TAesiD77mwowgfQG
+A1UdIwSB7DCB6YAUVBXNnyz37A0f0qi+TAesiD77mwqhgc2kgcowgccxCzAJBgNV
+BAYTAlVTMRcwFQYDVQQIEw5Ob3J0aCBDYXJvbGluYTEfMB0GA1UEBxMWUmVzZWFy
+Y2ggVHJpYW5nbGUgUGFyazEWMBQGA1UEChMNUmVkIEhhdCwgSW5jLjEhMB8GA1UE
+CxMYUmVkIEhhdCBOZXR3b3JrIFNlcnZpY2VzMSMwIQYDVQQDExpSSE5TIENlcnRp
+ZmljYXRlIEF1dGhvcml0eTEeMBwGCSqGSIb3DQEJARYPcmhuc0ByZWRoYXQuY29t
+ggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAkwGIiGdnkYye0BIU
+kHESh1UK8lIbrfLTBx2vcJm7sM2AI8ntK3PpY7HQs4xgxUJkpsGVVpDFNQYDWPWO
+K9n5qaAQqZn3FUKSpVDXEQfxAtXgcORVbirOJfhdzQsvEGH49iBCzMOJ+IpPgiQS
+zzl/IagsjVKXUsX3X0KlhwlmsMw=
+-----END CERTIFICATE-----

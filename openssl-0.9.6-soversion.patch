@@ -1,0 +1,60 @@
+--- openssl-0.9.6/Makefile.org.soversion	Thu Sep 21 05:23:13 2000
++++ openssl-0.9.6/Makefile.org	Fri Mar  2 17:23:01 2001
+@@ -9,6 +9,7 @@
+ SHLIB_VERSION_HISTORY=
+ SHLIB_MAJOR=
+ SHLIB_MINOR=
++SHLIB_SOVER=1
+ PLATFORM=dist
+ OPTIONS=
+ CONFIGURE_ARGS=
+@@ -250,24 +251,24 @@
+ clean-shared:
+ 	for i in ${SHLIBDIRS}; do \
+ 	rm -f lib$$i.so \
+-		lib$$i.so.${SHLIB_MAJOR} \
++		lib$$i.so.${SHLIB_SOVER} \
+ 		lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR}; \
+ 	done
+ 
+ linux-shared:
+ 	libs='${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
+ 	rm -f lib$$i.so \
+-		lib$$i.so.${SHLIB_MAJOR} \
++		lib$$i.so.${SHLIB_SOVER} \
+ 		lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR}; \
+ 	( set -x; ${CC}  -shared -o lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+-		-Wl,-S,-soname=lib$$i.so.${SHLIB_MAJOR} \
++		-Wl,-S,-soname=lib$$i.so.${SHLIB_SOVER} \
+ 		-Wl,--whole-archive lib$$i.a \
+ 		-Wl,--no-whole-archive $$libs ${EX_LIBS} -lc ) || exit 1; \
+ 	libs="$$libs -L. -l$$i"; \
+ 	( set -x; \
+ 		ln -s lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+-			lib$$i.so.${SHLIB_MAJOR}; \
+-		ln -s lib$$i.so.${SHLIB_MAJOR} lib$$i.so ); \
++			lib$$i.so.${SHLIB_SOVER}; \
++		ln -s lib$$i.so.${SHLIB_SOVER} lib$$i.so ); \
+ 	done
+ 
+ # This assumes that GNU utilities are *not* used
+@@ -283,15 +284,15 @@
+ solaris-shared:
+ 	libs='${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
+ 	rm -f lib$$i.so \
+-		lib$$i.so.${SHLIB_MAJOR} \
++		lib$$i.so.${SHLIB_SOVER} \
+ 		lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR}; \
+ 	( set -x; ${CC}  -G -o lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+-		-h lib$$i.so.${SHLIB_MAJOR} \
++		-h lib$$i.so.${SHLIB_SOVER} \
+ 		-z allextract lib$$i.a $$libs ${EX_LIBS} -lc ) || exit 1; \
+ 	libs="$$libs -L. -l$$i"; \
+ 	ln -s lib$$i.so.${SHLIB_MAJOR}.${SHLIB_MINOR} \
+-		lib$$i.so.${SHLIB_MAJOR}; \
+-	ln -s lib$$i.so.${SHLIB_MAJOR} lib$$i.so; \
++		lib$$i.so.${SHLIB_SOVER}; \
++	ln -s lib$$i.so.${SHLIB_SOVER} lib$$i.so; \
+ 	done
+ 
+ Makefile.ssl: Makefile.org

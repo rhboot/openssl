@@ -1,25 +1,31 @@
-%define m2crypto_version 0.05-snap3
+%define m2crypto_version 0.05-snap4
 %define swig_version 1.1p5
+%define soversion 1
 
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
-Version: 0.9.5a
-Release: 17
+Version: 0.9.6
+Release: 3
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
 Source3: http://download.sourceforge.net/swig/swig%{swig_version}.tar.gz
 Source4: http://mars.post1.com/home/ngps/m2/m2crypto-%{m2crypto_version}.zip
-Patch0: openssl-0.9.5-redhat.patch
+Source5: ca-bundle.crt
+Source6: RHNS-CA-CERT
+Patch0: openssl-0.9.6-redhat.patch
 Patch1: openssl-0.9.5-rsanull.patch
 Patch2: openssl-0.9.5a-64.patch
 Patch3: openssl-0.9.5a-defaults.patch
 Patch4: openssl-0.9.5a-ia64.patch
-Copyright: BSDish
+Patch5: openssl-0.9.5a-glibc.patch
+Patch6: openssl-0.9.6-soversion.patch
+Patch7: m2crypto-0.05-snap4-include.patch
+License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildPreReq: perl, python-devel
+BuildPreReq: perl, python-devel, unzip
 
 %description
 The OpenSSL certificate management tool and the shared libraries that
@@ -55,22 +61,22 @@ This package allows you to call OpenSSL functions from python scripts.
 
 %prep
 %setup -q
-#%{SOURCE1}
+%{SOURCE1}
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .rsanull
-%ifarch alpha
-%patch2 -p1
+%ifarch alpha ia64
+%patch2 -p1 -b .64
 %endif
-%ifarch ia64
-%patch2 -p1
-%endif
-%patch3 -p1
-%patch4 -p1
+%patch3 -p1 -b .defaults
+%patch4 -p1 -b .ia64
+%patch5 -p1 -b .glibc
+%patch6 -p1 -b .soversion
 
 # Extract what we need for building extensions.
 gzip -dc %{SOURCE3} | tar xf -
 unzip -q %{SOURCE4}
 pushd m2crypto-%{m2crypto_version}
+%patch7 -p1 -b .include
     for file in demo/evp_ciph_test.py demo/bio_ciph_test.py swig/_evp.i ; do
 	grep -v idea_ ${file} > ${file}.tmp
 	grep -v rc5_  ${file}.tmp > ${file}
@@ -82,18 +88,24 @@ chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
 chmod 644 doc/openssl_button.html doc/openssl_button.gif
 chmod 644 doc/ssleay.txt
 
+# Link the configuration header to the one we're going to make.
+ln -sf ../../crypto/opensslconf.h include/openssl/
+
 %build 
 PATH=${PATH}:${PWD}/bin
 TOPDIR=${PWD}
+LD_LIBRARY_PATH=${TOPDIR}:${PATH} ; export LD_LIBRARY_PATH
 
 # Figure out which flags we want to use.  Assembly is broken on some platforms,
 # required on others.
 perl util/perlpath.pl `dirname %{__perl}`
 %ifarch %ix86
 sslarch=linux-elf
+sslflags=no-asm
 %endif
 %ifarch sparc
 sslarch=linux-sparcv9
+sslflags=no-asm
 %endif
 %ifarch ia64
 sslarch=linux-ia64
@@ -103,12 +115,14 @@ sslflags=no-asm
 sslarch=alpha-gcc
 sslflags=no-asm
 %endif
+%ifarch s390
+sslarch=linux-s390
+%endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
-# usable on all platforms.
-CFLAGS="-fPIC -ggdb"; export CFLAGS
-#./Configure --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslarch}
-./config --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} $CFLAGS no-idea no-mdc2 no-rc5 no-md2
-make all
+# usable on all platforms.  The Configure script already knows to use -fPIC and
+# RPM_OPT_FLAGS, so we can skip specifiying them here.
+./config --prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} no-idea no-mdc2 no-rc5
+make all libcrypto.so libssl.so
 
 # Build the Perl bindings.
 #pushd perl
@@ -119,23 +133,9 @@ make all
 # Verify that what was compiled actually works.
 make -C test apps tests
 
-# Build shared libraries.
-majorver=`echo %{version} | cut -f1 -d.`
-for shlib in crypto ssl ; do
-	pushd $shlib
-		objs=`ar t ../lib${shlib}.a | xargs -n 1 find . -name`
-		%{__cc} -shared -o ../lib${shlib}.so.%{version} \
-			-Wl,-soname=lib${shlib}.so.${majorver} $objs && \
-		ln -sf lib${shlib}.so.%{version} ../lib${shlib}.so
-	popd
-done
-
 # Build a copy of swig with which to build the extensions.
 pushd SWIG%{swig_version}
 autoconf
-CFLAGS="%{optflags}" \
-CCFLAGS="%{optflags}" \
-FFLAGS="%{optflags}" \
 ./configure --prefix=${TOPDIR}
 make all install
 popd
@@ -151,6 +151,10 @@ make \
 cd ../doc
 sh -x go
 popd
+
+# Relink the main binary to get it dynamically linked.
+rm apps/openssl
+make all
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -187,6 +191,16 @@ mv CA.sh CA
 mv der_chop der_chop.pl
 popd
 
+# Install root CA stuffs.
+cat << EOF > RHNS-blurb.txt
+#
+#  RHNS CA certificate.  Appended to the ca-bundle at package build-time.
+#
+EOF
+cat %{SOURCE5} RHNS-blurb.txt %{SOURCE6} > ca-bundle.crt
+install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/certs/
+ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
+
 # Install the python extensions.
 pushd m2crypto-%{m2crypto_version}/M2Crypto
 mkdir -p $RPM_BUILD_ROOT/usr/lib/python1.5/site-packages/M2Crypto/{PGP,SSL}
@@ -206,15 +220,17 @@ popd
 %doc doc/ssleay.txt
 %dir %{_datadir}/ssl
 %{_datadir}/ssl/certs
+%{_datadir}/ssl/cert.pem
 %{_datadir}/ssl/lib
+%{_datadir}/ssl/misc/CA
 %{_datadir}/ssl/misc/c_*
 %{_datadir}/ssl/private
 
 %config %{_datadir}/ssl/openssl.cnf
 
-%attr(0755,root,root) %{_bindir}/*
-%attr(0755,root,root) %{_libdir}/*.so.*
-%attr(0644,root,root) %{_mandir}/man1/*
+%attr(0755,root,root) %{_bindir}/openssl
+%attr(0755,root,root) %{_libdir}/*.so.%{version}
+%attr(0644,root,root) %{_mandir}/man1/[a-z]*
 %attr(0644,root,root) %{_mandir}/man5/*
 %attr(0644,root,root) %{_mandir}/man7/*
 
@@ -227,6 +243,8 @@ popd
 
 %files perl
 %defattr(-,root,root)
+%attr(0755,root,root) %{_bindir}/c_rehash
+%attr(0644,root,root) %{_mandir}/man1/*.pl*
 %{_datadir}/ssl/misc/*.pl
 
 %files python
@@ -240,6 +258,60 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Mar 13 2001 Nalin Dahyabhai <nalin@redhat.com>
+- use BN_LLONG on s390
+
+* Mon Mar 12 2001 Nalin Dahyabhai <nalin@redhat.com>
+- fix the s390 changes for 0.9.6 (isn't supposed to be marked as 64-bit)
+
+* Sat Mar  3 2001 Nalin Dahyabhai <nalin@redhat.com>
+- move c_rehash to the perl subpackage, because it's a perl script now
+
+* Fri Mar  2 2001 Nalin Dahyabhai <nalin@redhat.com>
+- update to 0.9.6
+- enable MD2
+- use the libcrypto.so and libssl.so targets to build shared libs with
+- bump the soversion to 1 because we're no longer compatible with any of
+  the various 0.9.5a packages circulating around, which provide lib*.so.0
+
+* Wed Feb 28 2001 Florian La Roche <Florian.LaRoche@redhat.de>
+- change hobble-openssl for disabling MD2 again
+
+* Tue Feb 27 2001 Nalin Dahyabhai <nalin@redhat.com>
+- re-disable MD2 -- the EVP_MD_CTX structure would grow from 100 to 152
+  bytes or so, causing EVP_DigestInit() to zero out stack variables in
+  apps built against a version of the library without it
+
+* Mon Feb 26 2001 Nalin Dahyabhai <nalin@redhat.com>
+- disable some inline assembly, which on x86 is Pentium-specific
+- re-enable MD2 (see http://www.ietf.org/ietf/IPR/RSA-MD-all)
+
+* Thu Feb 08 2001 Florian La Roche <Florian.LaRoche@redhat.de>
+- fix s390 patch
+
+* Fri Dec 8 2000 Than Ngo <than@redhat.com>
+- added support s390
+
+* Mon Nov 20 2000 Nalin Dahyabhai <nalin@redhat.com>
+- remove -Wa,* and -m* compiler flags from the default Configure file (#20656)
+- add the CA.pl man page to the perl subpackage
+
+* Thu Nov  2 2000 Nalin Dahyabhai <nalin@redhat.com>
+- always build with -mcpu=ev5 on alpha
+
+* Tue Oct 31 2000 Nalin Dahyabhai <nalin@redhat.com>
+- add a symlink from cert.pem to ca-bundle.crt
+
+* Wed Oct 25 2000 Nalin Dahyabhai <nalin@redhat.com>
+- add a ca-bundle file for packages like Samba to reference for CA certificates
+
+* Tue Oct 24 2000 Nalin Dahyabhai <nalin@redhat.com>
+- remove libcrypto's crypt(), which doesn't handle md5crypt (#19295)
+
+* Mon Oct  2 2000 Nalin Dahyabhai <nalin@redhat.com>
+- add unzip as a buildprereq (#17662)
+- update m2crypto to 0.05-snap4
+
 * Tue Sep 26 2000 Bill Nottingham <notting@redhat.com>
 - fix some issues in building when it's not installed
 
@@ -303,13 +375,13 @@ popd
 - run ldconfig directly in post/postun
 - add FAQ
 
-* Sat Dec 18 1999 Bernhard Rosenkränzer <bero@redhat.de>
+* Sat Dec 18 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - Fix build on non-x86 platforms
 
-* Fri Nov 12 1999 Bernhard Rosenkränzer <bero@redhat.de>
+* Fri Nov 12 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - move /usr/share/ssl/* from -devel to main package
 
-* Tue Oct 26 1999 Bernhard Rosenkränzer <bero@redhat.de>
+* Tue Oct 26 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - inital packaging
 - changes from base:
   - Move /usr/local/ssl to /usr/share/ssl for FHS compliance
