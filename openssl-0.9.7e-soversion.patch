@@ -3,13 +3,13 @@ compatibility, we have to increment the soname in order to allow
 this version to co-exist with another versions and have everything
 work right.
 
---- openssl-0.9.7a/Makefile.org	2003-02-14 08:11:44.000000000 -0500
-+++ openssl-0.9.7a/Makefile.org	2003-02-19 16:10:30.000000000 -0500
+--- openssl-0.9.7e/Makefile.org	2003-02-14 08:11:44.000000000 -0500
++++ openssl-0.9.7e/Makefile.org	2003-02-19 16:10:30.000000000 -0500
 @@ -10,6 +10,7 @@
  SHLIB_MAJOR=
  SHLIB_MINOR=
  SHLIB_EXT=
-+SHLIB_SOVERSION=4
++SHLIB_SOVERSION=5
  PLATFORM=dist
  OPTIONS=
  CONFIGURE_ARGS=

@@ -4,7 +4,8 @@
 # 0.9.6a soversion = 2
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
-%define soversion 4
+# 0.9.7e soversion = 5
+%define soversion 5
 
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
@@ -20,8 +21,8 @@
 
 Summary: The OpenSSL toolkit.
 Name: openssl
-Version: 0.9.7a
-Release: 46
+Version: 0.9.7e
+Release: 2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -33,33 +34,23 @@ Source7: libica-%{libicaversion}.tar.gz
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
-Patch0: openssl-0.9.7a-redhat.patch
+Patch0: openssl-0.9.7e-redhat.patch
 Patch1: openssl-0.9.7-beta5-defaults.patch
 Patch2: openssl-0.9.7-beta6-ia64.patch
-Patch3: openssl-0.9.7a-soversion.patch
+Patch3: openssl-0.9.7e-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7c-ICA_engine_apr292004.patch
+Patch6: openssl-0.9.7e-ICA_engine_apr292004.patch
 Patch7: openssl-0.9.7-ppc64.patch
-Patch8: openssl-sec3-blinding-0.9.7.patch
-Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
 Patch10: libica-1.2-struct.patch
 Patch11: libica-1.2-cleanup.patch
 Patch12: openssl-0.9.7a-libica-autoconf.patch
-Patch13: openssl-0.9.7a-blinding-threads.patch
-Patch14: openssl-0.9.7a-specific-engine.patch
-Patch15: openssl-0.9.7a-blinding-rng.patch
-Patch16: openssl-0.9.7a-ubsec-stomp.patch
-Patch17: openssl-0.9.7a-krb5-leak.patch
 Patch18: openssl-0.9.7a-krb5-1.3.patch
-Patch19: niscc-097.txt
-Patch20: openssl-0.9.6c-ccert.patch
-Patch21: openssl-0.9.7a-utf8fix.patch
-Patch22: openssl-0.9.7a-no-der_chop.patch
+Patch22: openssl-0.9.7e-no-der_chop.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
-Patch43: openssl-0.9.7a-krb5-security.patch
-Patch44: openssl-0.9.7a-dccs.patch
+Patch50: openssl-0.9.7e-no-fips.patch
+Patch51: openssl-0.9.7e-abi-compat.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -109,10 +100,6 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch5 -p1 -b .version-add-engines
 %patch6 -p1 -b .ibmca
 %patch7 -p1 -b .ppc64
-%patch8 -p0 -b .sec3-blinding
-pushd ssl
-%patch9 -p0 -b .klima-pokorny-rosa
-popd
 
 %ifarch s390 s390x
 pushd libica-%{libicaversion}
@@ -129,15 +116,7 @@ popd
 %endif
 
 %patch12 -p1 -b .libica-autoconf
-%patch13 -p1 -b .blinding-threads
-%patch14 -p1 -b .specific-engine
-%patch15 -p1 -b .blinding-rng
-%patch16 -p1 -b .ubsec-stomp
-%patch17 -p1 -b .krb5-leak
 %patch18 -p1 -b .krb5-1.3
-%patch19 -p1 -b .niscc
-%patch20 -p1 -b .ccert
-%patch21 -p1 -b .utf8fix
 %patch22 -p1 -b .no-der_chop
 
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
@@ -148,13 +127,16 @@ popd
 %patch42 -p1 -b .krb5
 
 # Security fixes
-%patch43 -p1 -b .krb5-security
-%patch44 -p1 -b .dccs
+
+# Additional fixes
+%patch50 -p1 -b .no-fips
+%patch51 -p1 -b .abi-compat
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
 
 # Generate a table with the compile settings for my perusal.
+touch Makefile
 make TABLE PERL=%{__perl}
 
 %build 
@@ -362,7 +344,6 @@ popd
 %dir %{_datadir}/ssl
 %{_datadir}/ssl/certs
 %{_datadir}/ssl/cert.pem
-%{_datadir}/ssl/lib
 %dir %{_datadir}/ssl/misc
 %{_datadir}/ssl/misc/CA
 %dir %{_datadir}/ssl/CA
@@ -406,6 +387,14 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Feb 28 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7e-2
+- rebuild
+
+* Mon Feb 28 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7e-1
+- new upstream source, updated patches
+- added patch so we are hopefully ABI compatible with upcoming
+  0.9.7f
+
 * Thu Feb 10 2005 Tomas Mraz <tmraz@redhat.com>
 - Support UTF-8 charset in the Makefile.certificate (#134944)
 - Added cmp to BuildPrereq
