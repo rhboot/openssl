@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 36
+Release: 37
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -183,7 +183,7 @@ sslarch=linux-ia64
 sslflags=no-asm
 %endif
 %ifarch alpha
-sslarch=alpha-gcc
+sslarch=linux-alpha-gcc
 %endif
 %ifarch s390
 sslarch=linux-s390
@@ -404,6 +404,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Jun  7 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-37
+- build for linux-alpha-gcc instead of alpha-gcc on alpha (Jeff Garzik)
+
 * Tue May 25 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-36
 - handle %%{_arch}=i486/i586/i686/athlon cases in the intermediate
   header (#124303)
