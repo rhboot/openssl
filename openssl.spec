@@ -5,7 +5,7 @@
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
 Version: 0.9.6
-Release: 10
+Release: 13
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -29,6 +29,7 @@ Patch12: openssl-0.9.6-memmove.patch
 Patch13: openssl096a-prng.patch
 Patch14: openssl096a-prng-2.patch
 Patch15: openssl-0.9.6b-sec.patch
+Patch16: openssl-0.9.6c-asn.patch.3
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -105,6 +106,7 @@ pushd doc/crypto
 %patch14 -p0 -b .rand-2
 popd
 %patch15 -p0 -b .sec
+%patch16 -p1 -b .asn
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -284,6 +286,16 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Aug  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-13
+- update asn patch to fix accidental reversal of a logic check
+
+* Wed Jul 31 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-12
+- update asn patch to reduce chance that compiler optimization will remove
+  one of the added tests
+
+* Mon Jul 29 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-11
+- add patch to fix ASN.1 vulnerabilities
+
 * Thu Jul 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-10
 - add backport of Ben Laurie's patches for OpenSSL 0.9.6d
 
