@@ -6,11 +6,12 @@
 # 0.9.7a soversion = 4
 %define soversion 4
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:100}
+%define libicaversion 1.3.5
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 31
+Release: 32
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -18,7 +19,7 @@ Source3: ca-bundle.crt
 Source4: https://rhn.redhat.com/help/RHNS-CA-CERT
 Source5: https://rhn.redhat.com/help/RHNS-CA-CERT.asc
 Source6: make-dummy-cert
-Source7: libica-1.3.4.tar.gz
+Source7: libica-%{libicaversion}.tar.gz
 Source8: openssl-thread-test.c
 Patch0: openssl-0.9.7a-redhat.patch
 Patch1: openssl-0.9.7-beta5-defaults.patch
@@ -43,7 +44,6 @@ Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
 Patch40: libica-1.3.4-urandom.patch
-Patch41: libica-1.3.4-urandom2.patch
 Patch42: openssl-0.9.7a-krb5.patch
 License: BSDish
 Group: System Environment/Libraries
@@ -100,7 +100,7 @@ pushd ssl
 popd
 
 %ifarch s390 s390x
-pushd libica-1.3.4
+pushd libica-%{libicaversion}
 %patch11 -p1 -b .cleanup
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
@@ -127,9 +127,6 @@ popd
 # generator.
 %patch40 -p1 -b .urandom
 
-# Backported patch from libica-1.3.5 to use /dev/urandom in icalinux.c, too.
-%patch41 -p1 -b .urandom2
-
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
 
@@ -141,7 +138,7 @@ make TABLE PERL=%{__perl}
 
 %build 
 %ifarch s390 s390x
-pushd libica-1.3.4
+pushd libica-%{libicaversion}
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
 fi
@@ -302,7 +299,7 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %endif
 
 %ifarch s390 s390x
-pushd libica-1.3.4
+pushd libica-%{libicaversion}
 if [[ $RPM_BUILD_ROOT  ]] ;
 then
         export INSROOT=$RPM_BUILD_ROOT
@@ -312,6 +309,7 @@ mkdir -p $RPM_BUILD_ROOT/%{_libdir}
 mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so.1
 ln -sf libica.so.1 $RPM_BUILD_ROOT/%{_libdir}/libica.so
 cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
+popd
 %endif
 
 %clean
@@ -370,6 +368,9 @@ cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Feb 26 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-32
+- Updated libica to latest upstream version 1.3.5.
+
 * Tue Feb 17 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-31
 - Update ICA crypto engine patch from IBM to latest version.
 
