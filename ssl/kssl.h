@@ -81,6 +81,8 @@ extern "C" {
 */
 #ifdef KRB5_HEIMDAL
 typedef unsigned char krb5_octet;
+#endif
+#ifndef FAR
 #define FAR
 #endif
 
