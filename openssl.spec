@@ -6,12 +6,12 @@
 # 0.9.7a soversion = 4
 %define soversion 4
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:100}
-%define libicaversion 1.3.5
+%define libicaversion 1.3.5-3
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.11
+Release: 33.12
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -27,7 +27,7 @@ Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7a-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7c-ICA_engine_apr292004.patch
+Patch6: openssl-0.9.7d-ICA_engine-jun142004_nocleanse.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
@@ -127,7 +127,11 @@ popd
 
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
+%ifarch s390 s390x
+pushd libica-%{libicaversion}
 %patch40 -p1 -b .urandom
+popd
+%endif
 
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
@@ -372,6 +376,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Jun 22 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-33.12
+- Updated ICA engine patch from IBM to latest upstream version.
+- Updated libica to latest upstream version.
+
 * Mon Jun 14 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-33.11
 - Updated ICA engine patch from IBM to latest upstream version.
 
