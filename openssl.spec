@@ -5,7 +5,7 @@
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
 Version: 0.9.6
-Release: 13
+Release: 13.0p
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -35,6 +35,13 @@ Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildPreReq: perl, python-devel, unzip
+
+# the gcc-2.96 compiler on ppc has some optimization problems.
+# gcc296ppc is true in this case.
+%define gcc296ppc 0
+%ifarch ppc ppc64
+%define gcc296ppc %(gcc -v 2>&1 1>/dev/null|grep -qF 2.96 && echo 1 || echo 0)
+%endif
 
 %description
 The OpenSSL certificate management tool and the shared libraries that
@@ -119,6 +126,11 @@ ln -sf ../../crypto/opensslconf.h include/openssl/
 ln -sf ../../ssl/ssl.h include/openssl/
 
 %build 
+
+%if %{gcc296ppc}
+RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O1"
+%endif
+
 PATH=${PATH}:${PWD}/bin
 TOPDIR=${PWD}
 LD_LIBRARY_PATH=${TOPDIR}:${PATH} ; export LD_LIBRARY_PATH
@@ -440,13 +452,13 @@ popd
 - run ldconfig directly in post/postun
 - add FAQ
 
-* Sat Dec 18 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
+* Sat Dec 18 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
 - Fix build on non-x86 platforms
 
-* Fri Nov 12 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
+* Fri Nov 12 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
 - move /usr/share/ssl/* from -devel to main package
 
-* Tue Oct 26 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
+* Tue Oct 26 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
 - inital packaging
 - changes from base:
   - Move /usr/local/ssl to /usr/share/ssl for FHS compliance
