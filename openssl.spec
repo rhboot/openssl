@@ -10,7 +10,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 29
+Release: 31
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -26,7 +26,7 @@ Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7a-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7c-ICA_engine-oct202003.patch
+Patch6: openssl-0.9.7c-ICA_engine-nov072003.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
@@ -370,6 +370,12 @@ cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Feb 17 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-31
+- Update ICA crypto engine patch from IBM to latest version.
+
+* Fri Feb 13 2004 Elliot Lee <sopwith@redhat.com>
+- rebuilt
+
 * Fri Feb 13 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-29
 - rebuilt
 

@@ -1,6 +1,6 @@
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/Makefile openssl-0.9.7c-key/crypto/engine/Makefile
+diff -urN openssl-0.9.7c/crypto/engine/Makefile openssl-0.9.7c-key-1107/crypto/engine/Makefile
 --- openssl-0.9.7c/crypto/engine/Makefile	Thu Jan 16 11:21:13 2003
-+++ openssl-0.9.7c-key/crypto/engine/Makefile	Tue Oct 14 15:41:59 2003
++++ openssl-0.9.7c-key-1107/crypto/engine/Makefile	Wed Nov  5 10:48:02 2003
 @@ -28,13 +28,15 @@
  	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
  	eng_openssl.c eng_dyn.c eng_cnf.c \
@@ -19,9 +19,9 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/Makefile openssl-0.9.7c-key/crypt
  
  SRC= $(LIBSRC)
  
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/Makefile.ssl openssl-0.9.7c-key/crypto/engine/Makefile.ssl
+diff -urN openssl-0.9.7c/crypto/engine/Makefile.ssl openssl-0.9.7c-key-1107/crypto/engine/Makefile.ssl
 --- openssl-0.9.7c/crypto/engine/Makefile.ssl	Thu Jan 16 11:21:13 2003
-+++ openssl-0.9.7c-key/crypto/engine/Makefile.ssl	Tue Oct 14 15:41:59 2003
++++ openssl-0.9.7c-key-1107/crypto/engine/Makefile.ssl	Wed Nov  5 10:48:02 2003
 @@ -28,13 +28,15 @@
  	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
  	eng_openssl.c eng_dyn.c eng_cnf.c \
@@ -40,9 +40,9 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/Makefile.ssl openssl-0.9.7c-key/c
  
  SRC= $(LIBSRC)
  
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_all.c openssl-0.9.7c-key/crypto/engine/eng_all.c
+diff -urN openssl-0.9.7c/crypto/engine/eng_all.c openssl-0.9.7c-key-1107/crypto/engine/eng_all.c
 --- openssl-0.9.7c/crypto/engine/eng_all.c	Thu Jan 16 12:29:33 2003
-+++ openssl-0.9.7c-key/crypto/engine/eng_all.c	Tue Oct 14 15:41:59 2003
++++ openssl-0.9.7c-key-1107/crypto/engine/eng_all.c	Wed Nov  5 10:48:02 2003
 @@ -89,6 +89,9 @@
  #ifndef OPENSSL_NO_HW_AEP
  	ENGINE_load_aep();
@@ -53,10 +53,10 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_all.c openssl-0.9.7c-key/cryp
  #ifndef OPENSSL_NO_HW_SUREWARE
  	ENGINE_load_sureware();
  #endif
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key/crypto/engine/eng_err.c
+diff -urN openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key-1107/crypto/engine/eng_err.c
 --- openssl-0.9.7c/crypto/engine/eng_err.c	Tue Oct 15 20:32:35 2002
-+++ openssl-0.9.7c-key/crypto/engine/eng_err.c	Tue Oct 14 15:41:59 2003
-@@ -97,6 +97,12 @@
++++ openssl-0.9.7c-key-1107/crypto/engine/eng_err.c	Wed Nov  5 10:48:02 2003
+@@ -97,6 +97,16 @@
  {ERR_PACK(0,ENGINE_F_ENGINE_TABLE_REGISTER,0),	"ENGINE_TABLE_REGISTER"},
  {ERR_PACK(0,ENGINE_F_ENGINE_UNLOAD_KEY,0),	"ENGINE_UNLOAD_KEY"},
  {ERR_PACK(0,ENGINE_F_ENGINE_UP_REF,0),	"ENGINE_up_ref"},
@@ -66,10 +66,14 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key/cryp
 +{ERR_PACK(0,ENGINE_F_IBMCA_MOD_EXP_CRT,0),     "IBMCA_MOD_EXP_CRT"},
 +{ERR_PACK(0,ENGINE_F_IBMCA_RAND_BYTES,0),      "IBMCA_RAND_BYTES"},
 +{ERR_PACK(0,ENGINE_F_IBMCA_RSA_MOD_EXP,0),     "IBMCA_RSA_MOD_EXP"},
++{ERR_PACK(0,ENGINE_F_IBMCA_DES_CIPHER,0),     "IBMCA_DES_CIPHER"},
++{ERR_PACK(0,ENGINE_F_IBMCA_TDES_CIPHER,0),     "IBMCA_TDES_CIPHER"},
++{ERR_PACK(0,ENGINE_F_IBMCA_SHA1_UPDATE,0),     "IBMCA_SHA1_UPDATE"},
++{ERR_PACK(0,ENGINE_F_IBMCA_SHA1_FINAL,0),     "IBMCA_SHA1_FINAL"},
  {ERR_PACK(0,ENGINE_F_INT_CTRL_HELPER,0),	"INT_CTRL_HELPER"},
  {ERR_PACK(0,ENGINE_F_INT_ENGINE_CONFIGURE,0),	"INT_ENGINE_CONFIGURE"},
  {ERR_PACK(0,ENGINE_F_LOG_MESSAGE,0),	"LOG_MESSAGE"},
-@@ -108,6 +114,8 @@
+@@ -108,6 +118,8 @@
  	{
  {ENGINE_R_ALREADY_LOADED                 ,"already loaded"},
  {ENGINE_R_ARGUMENT_IS_NOT_A_NUMBER       ,"argument is not a number"},
@@ -78,7 +82,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key/cryp
  {ENGINE_R_CMD_NOT_EXECUTABLE             ,"cmd not executable"},
  {ENGINE_R_COMMAND_TAKES_INPUT            ,"command takes input"},
  {ENGINE_R_COMMAND_TAKES_NO_INPUT         ,"command takes no input"},
-@@ -132,6 +140,7 @@
+@@ -132,6 +144,7 @@
  {ENGINE_R_INVALID_CMD_NUMBER             ,"invalid cmd number"},
  {ENGINE_R_INVALID_INIT_VALUE             ,"invalid init value"},
  {ENGINE_R_INVALID_STRING                 ,"invalid string"},
@@ -86,7 +90,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key/cryp
  {ENGINE_R_NOT_INITIALISED                ,"not initialised"},
  {ENGINE_R_NOT_LOADED                     ,"not loaded"},
  {ENGINE_R_NO_CONTROL_FUNCTION            ,"no control function"},
-@@ -141,9 +150,11 @@
+@@ -141,9 +154,11 @@
  {ENGINE_R_NO_SUCH_ENGINE                 ,"no such engine"},
  {ENGINE_R_NO_UNLOAD_FUNCTION             ,"no unload function"},
  {ENGINE_R_PROVIDE_PARAMETERS             ,"provide parameters"},
@@ -98,10 +102,10 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/eng_err.c openssl-0.9.7c-key/cryp
  {ENGINE_R_VERSION_INCOMPATIBILITY        ,"version incompatibility"},
  {0,NULL}
  	};
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key/crypto/engine/engine.h
+diff -urN openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key-1107/crypto/engine/engine.h
 --- openssl-0.9.7c/crypto/engine/engine.h	Sat Sep 27 15:29:10 2003
-+++ openssl-0.9.7c-key/crypto/engine/engine.h	Tue Oct 14 15:41:59 2003
-@@ -674,6 +674,12 @@
++++ openssl-0.9.7c-key-1107/crypto/engine/engine.h	Wed Nov  5 10:48:02 2003
+@@ -674,6 +674,16 @@
  #define ENGINE_F_ENGINE_TABLE_REGISTER			 184
  #define ENGINE_F_ENGINE_UNLOAD_KEY			 152
  #define ENGINE_F_ENGINE_UP_REF				 190
@@ -111,10 +115,14 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key/crypt
 +#define ENGINE_F_IBMCA_MOD_EXP_CRT                       194
 +#define ENGINE_F_IBMCA_RAND_BYTES                        195
 +#define ENGINE_F_IBMCA_RSA_MOD_EXP                       196
++#define ENGINE_F_IBMCA_DES_CIPHER			 197
++#define ENGINE_F_IBMCA_TDES_CIPHER			 198
++#define ENGINE_F_IBMCA_SHA1_UPDATE			 199
++#define ENGINE_F_IBMCA_SHA1_FINAL			 200
  #define ENGINE_F_INT_CTRL_HELPER			 172
  #define ENGINE_F_INT_ENGINE_CONFIGURE			 188
  #define ENGINE_F_LOG_MESSAGE				 141
-@@ -682,6 +688,8 @@
+@@ -682,6 +692,8 @@
  /* Reason codes. */
  #define ENGINE_R_ALREADY_LOADED				 100
  #define ENGINE_R_ARGUMENT_IS_NOT_A_NUMBER		 133
@@ -123,7 +131,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key/crypt
  #define ENGINE_R_CMD_NOT_EXECUTABLE			 134
  #define ENGINE_R_COMMAND_TAKES_INPUT			 135
  #define ENGINE_R_COMMAND_TAKES_NO_INPUT			 136
-@@ -706,6 +714,7 @@
+@@ -706,6 +718,7 @@
  #define ENGINE_R_INVALID_CMD_NUMBER			 138
  #define ENGINE_R_INVALID_INIT_VALUE			 151
  #define ENGINE_R_INVALID_STRING				 150
@@ -131,7 +139,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key/crypt
  #define ENGINE_R_NOT_INITIALISED			 117
  #define ENGINE_R_NOT_LOADED				 112
  #define ENGINE_R_NO_CONTROL_FUNCTION			 120
-@@ -715,9 +724,11 @@
+@@ -715,9 +728,11 @@
  #define ENGINE_R_NO_SUCH_ENGINE				 116
  #define ENGINE_R_NO_UNLOAD_FUNCTION			 126
  #define ENGINE_R_PROVIDE_PARAMETERS			 113
@@ -143,18 +151,18 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/engine.h openssl-0.9.7c-key/crypt
  #define ENGINE_R_VERSION_INCOMPATIBILITY		 145
  
  #ifdef  __cplusplus
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw.ec openssl-0.9.7c-key/crypto/engine/hw.ec
+diff -urN openssl-0.9.7c/crypto/engine/hw.ec openssl-0.9.7c-key-1107/crypto/engine/hw.ec
 --- openssl-0.9.7c/crypto/engine/hw.ec	Wed Feb 27 16:44:43 2002
-+++ openssl-0.9.7c-key/crypto/engine/hw.ec	Tue Oct 14 15:41:59 2003
++++ openssl-0.9.7c-key-1107/crypto/engine/hw.ec	Wed Nov  5 10:48:02 2003
 @@ -6,3 +6,4 @@
  L SUREWARE	hw_sureware_err.h		hw_sureware_err.c
  L UBSEC		hw_ubsec_err.h			hw_ubsec_err.c
  L CCA4758	hw_4758_cca_err.h		hw_4758_cca_err.c
 +L IBMCA		hw_ibmca_err.h			hw_ibmca_err.c
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/crypto/engine/hw_ibmca.c
+diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca.c
 --- openssl-0.9.7c/crypto/engine/hw_ibmca.c	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key/crypto/engine/hw_ibmca.c	Mon Oct 20 11:06:25 2003
-@@ -0,0 +1,1418 @@
++++ openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca.c	Fri Nov  7 14:00:52 2003
+@@ -0,0 +1,1521 @@
 +/* crypto/engine/hw_ibmca.c */
 +/* Written by Geoff Thorpe (geoff@geoffthorpe.net) for the OpenSSL
 + * project 2000.
@@ -244,19 +252,23 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	unsigned char key[sizeof(ICA_KEY_DES_TRIPLE)];
 +} ICA_DES_CTX;
 +
-+typedef struct ibmca_sha1_context {
-+	long long running_sum;
-+	unsigned char shaHash[LENGTH_SHA_HASH];
-+	unsigned char interim[LENGTH_SHA_HASH];
-+	unsigned char residue[SHA_BLOCK_SIZE];
-+	unsigned int residue_count;
-+} ICA_SHA_CTX;
++#ifndef OPENSSL_NO_SHA1
++typedef struct ibmca_sha1_ctx {
++	ICA_SHA_CONTEXT c;
++	unsigned char tail[SHA_BLOCK_SIZE];
++	unsigned int tail_len;
++} IBMCA_SHA_CTX;
++#endif
 +
 +static int cipher_nids[] = { NID_des_ecb,
 +	NID_des_cbc, NID_des_ede3_ecb, NID_des_ede3_cbc
 +};
 +
-+static int digest_nids[] = { NID_sha1 };
++static int digest_nids[] = { 
++#ifndef OPENSSL_NO_SHA1
++	NID_sha1 
++#endif
++};
 +
 +static int ibmca_destroy(ENGINE * e);
 +static int ibmca_init(ENGINE * e);
@@ -288,6 +300,8 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +#ifndef OPENSSL_NO_RSA
 +/* RSA stuff */
 +static int ibmca_rsa_mod_exp(BIGNUM * r0, const BIGNUM * I, RSA * rsa);
++
++static int ibmca_rsa_init(RSA *rsa);
 +#endif
 +
 +/* This function is aliased to mod_exp (with the mont stuff dropped). */
@@ -342,6 +356,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +static int ibmca_engine_digests(ENGINE * e, const EVP_MD ** digest,
 +				const int **nids, int nid);
 +
++#ifndef OPENSSL_NO_SHA1
 +static int ibmca_sha1_init(EVP_MD_CTX * ctx);
 +
 +static int ibmca_sha1_update(EVP_MD_CTX * ctx, const void *data,
@@ -350,6 +365,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +static int ibmca_sha1_final(EVP_MD_CTX * ctx, unsigned char *md);
 +
 +static int ibmca_sha1_cleanup(EVP_MD_CTX * ctx);
++#endif
 +
 +/* WJH - check for more commands, like in nuron */
 +
@@ -373,7 +389,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	NULL,
 +	ibmca_rsa_mod_exp,
 +	ibmca_mod_exp_mont,
-+	NULL,
++	ibmca_rsa_init,
 +	NULL,
 +	0,
 +	NULL,
@@ -490,6 +506,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	NULL
 +};
 +
++#ifndef OPENSSL_NO_SHA1
 +static const EVP_MD ibmca_sha1 = {
 +	NID_sha1,
 +	NID_sha1WithRSAEncryption,
@@ -502,8 +519,9 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	ibmca_sha1_cleanup,
 +	EVP_PKEY_RSA_method,
 +	SHA_BLOCK_SIZE,
-+	sizeof(EVP_MD *) + sizeof(struct ibmca_sha1_context)
++	sizeof(EVP_MD *) + sizeof(struct ibmca_sha1_ctx)
 +};
++#endif
 +
 +/* Constants used when creating the ENGINE */
 +static const char *engine_ibmca_id = "ibmca";
@@ -833,11 +851,17 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	int outlen = inlen;
 +	int rv;
 +	ICA_DES_CTX *pCtx = ctx->cipher_data;
++	ICA_DES_VECTOR pre_iv;
 +
-+	if (ctx->cipher->flags == EVP_CIPH_ECB_MODE)
++	if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_ECB_MODE) {
 +		mode = MODE_DES_ECB;
-+	else
++	} else if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_CBC_MODE) {
 +		mode = MODE_DES_CBC;
++	} else {
++		IBMCAerr(IBMCA_F_IBMCA_DES_CIPHER, 
++				IBMCA_R_CIPHER_MODE_NOT_SUPPORTED);
++		return 0;
++	}
 +
 +	if (ctx->encrypt) {
 +		rv = p_icaDesEncrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
@@ -849,14 +873,18 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +				     &outlen, out);
 +
 +		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_DES_CIPHER, 
++					IBMCA_R_REQUEST_FAILED);
 +			return 0;
 +		} else {
 +			memcpy(ctx->iv,
-+			       out + inlen - ctx->cipher->iv_len,
-+			       ctx->cipher->iv_len);
++			       out + inlen - EVP_CIPHER_CTX_iv_length(ctx),
++			       EVP_CIPHER_CTX_iv_length(ctx));
 +			return 1;
 +		}
 +	} else {
++		/* Protect against decrypt in place */
++		memcpy(pre_iv, in + inlen - sizeof(pre_iv), sizeof(pre_iv));
 +		rv = p_icaDesDecrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
 +				     mode,
 +				     inlen,
@@ -866,11 +894,16 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +				     &outlen, out);
 +
 +		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_DES_CIPHER, 
++					IBMCA_R_REQUEST_FAILED);
 +			return 0;
 +		} else {
++			memcpy(ctx->iv, pre_iv, EVP_CIPHER_CTX_iv_length(ctx));
++#if 0
 +			memcpy(ctx->iv,
 +			       in + inlen - ctx->cipher->iv_len,
 +			       ctx->cipher->iv_len);
++#endif
 +			return 1;
 +		}
 +	}
@@ -883,11 +916,17 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	int outlen = inlen;
 +	int rv;
 +	ICA_DES_CTX *pCtx = ctx->cipher_data;
++	ICA_DES_VECTOR pre_iv;
 +
-+	if (ctx->cipher->flags == EVP_CIPH_ECB_MODE)
++	if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_ECB_MODE) {
 +		mode = MODE_DES_ECB;
-+	else
++	} else if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_CBC_MODE) {
 +		mode = MODE_DES_CBC;
++	} else {
++		IBMCAerr(IBMCA_F_IBMCA_TDES_CIPHER, 
++				IBMCA_R_CIPHER_MODE_NOT_SUPPORTED);
++		return 0;
++	}
 +
 +	if (ctx->encrypt) {
 +		rv = p_icaTDesEncrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
@@ -899,14 +938,18 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +				      &outlen, out);
 +
 +		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_TDES_CIPHER, 
++					IBMCA_R_REQUEST_FAILED);
 +			return 0;
 +		} else {
 +			memcpy(ctx->iv,
-+			       out + inlen - ctx->cipher->iv_len,
-+			       ctx->cipher->iv_len);
++			       out + inlen - EVP_CIPHER_CTX_iv_length(ctx),
++			       EVP_CIPHER_CTX_iv_length(ctx));
 +			return 1;
 +		}
 +	} else {
++		/* Protect against decrypt in place */
++		memcpy(pre_iv, in + inlen - sizeof(pre_iv), sizeof(pre_iv));
 +		rv = p_icaTDesDecrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
 +				      mode,
 +				      inlen,
@@ -916,11 +959,16 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +				      &outlen, out);
 +
 +		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_TDES_CIPHER, 
++					IBMCA_R_REQUEST_FAILED);
 +			return 0;
 +		} else {
++			memcpy(ctx->iv, pre_iv, EVP_CIPHER_CTX_iv_length(ctx));
++#if 0
 +			memcpy(ctx->iv,
 +			       in + inlen - ctx->cipher->iv_len,
 +			       ctx->cipher->iv_len);
++#endif
 +			return 1;
 +		}
 +	}
@@ -938,9 +986,11 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +		return (ibmca_usable_digests(nids));
 +
 +	switch (nid) {
++#ifndef OPENSSL_NO_SHA1
 +	case NID_sha1:
 +		*digest = &ibmca_sha1;
 +		break;
++#endif
 +	default:
 +		*digest = NULL;
 +		break;
@@ -954,125 +1004,177 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +	return (sizeof(digest_nids) / sizeof(int));
 +}
 +
++#ifndef OPENSSL_NO_SHA1
 +static int ibmca_sha1_init(EVP_MD_CTX * ctx)
 +{
-+	ICA_SHA_CTX *pCtx = ctx->md_data;
-+	memset((unsigned char *) pCtx, 0, sizeof(*pCtx));
-+
++	IBMCA_SHA_CTX *ibmca_sha_ctx = ctx->md_data;
++	memset((unsigned char *)ibmca_sha_ctx, 0, sizeof(*ibmca_sha_ctx));
 +	return 1;
 +}				// end ibmca_sha1_init                                                
 +
-+static int ibmca_sha1_update(EVP_MD_CTX * ctx, const void *data,
-+			     unsigned long count)
++static int ibmca_sha1_update(EVP_MD_CTX * ctx, const void *in_data,
++			     unsigned long inlen)
 +{
-+	ICA_SHA_CTX *pCtx = ctx->md_data;
-+	unsigned int update_flag = 0;
-+	int remainder, amt_to_copy, rv;
-+	void *data_cursor = (void *) data;
-+	unsigned int data_count = (unsigned int) count;
-+	int outlen = sizeof(pCtx->interim);
++	IBMCA_SHA_CTX *ibmca_sha_ctx = ctx->md_data;
++	unsigned int message_part, fill_size=0, tmp_len=LENGTH_SHA_HASH;
++	unsigned long in_data_len=inlen;
++	unsigned char tmp_hash[LENGTH_SHA_HASH];
 +
-+	if (pCtx->running_sum)
-+		update_flag = SHA_MSG_PART_MIDDLE;
-+	else
-+		update_flag = SHA_MSG_PART_FIRST;
++	if (in_data_len == 0)
++		return 1;
 +
-+	/* Because libICA rejects any sha1 call with 0 bytes of input,
-+	 * the residue buffer has to have some bytes in it so we won't
-+	 * try to call ibmca_sha1_final with zero input.  
-+	 * As a consequence, there may be an entire 64-byte block
-+	 * block in the residue buffer that was left behind by the last 
-+	 * update call.  If that's the case, the first thing to do is
-+	 * hash that residue buffer (provided, of course, that a non-zero
-+	 * input to THIS call).  
-+	 */
-+	if ((pCtx->residue_count == 64) && (data_count)) {
-+		rv = p_icaSha1(ibmca_handle,
-+			       update_flag,
-+			       SHA_BLOCK_SIZE,
-+			       pCtx->residue,
-+			       LENGTH_SHA_CONTEXT,
-+			       pCtx, &outlen, pCtx->interim);
-+		if (rv) {
-+			return 0;
++	if( ibmca_sha_ctx->c.runningLength == 0 && ibmca_sha_ctx->tail_len == 0) {
++		message_part = SHA_MSG_PART_FIRST;
++
++		ibmca_sha_ctx->tail_len = in_data_len & 0x3f;
++		if(ibmca_sha_ctx->tail_len) {
++			in_data_len &= ~0x3f;
++			memcpy(ibmca_sha_ctx->tail, in_data + in_data_len, ibmca_sha_ctx->tail_len);
++		} else {
++#if 0
++			memcpy(ibmca_sha_ctx->tail, 
++				in_data + in_data_len - SHA_BLOCK_SIZE, 
++				SHA_BLOCK_SIZE);
++			in_data_len -= SHA_BLOCK_SIZE;
++			ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
++#endif
++			// SHA it now, down below
 +		}
-+
-+		update_flag = SHA_MSG_PART_MIDDLE;
-+		pCtx->residue_count = 0;
 +	}
++	else if( ibmca_sha_ctx->c.runningLength == 0 && ibmca_sha_ctx->tail_len > 0 ) {
 +
-+	/*  If there's a partial block in the residue buffer, and
-+	 *  if there's more than enough input data to fill up the 
-+	 *  buffer (more than enough because, remember, there has 
-+	 *  to be something left in the buffer when this call is
-+	 *  finished), fill up the residue buffer and SHA it.
-+	 */
-+	amt_to_copy = SHA_BLOCK_SIZE - pCtx->residue_count;
-+
-+	if ((pCtx->residue_count) && (data_count >= amt_to_copy)) {
-+		memcpy(pCtx->residue + pCtx->residue_count,
-+		       data_cursor, amt_to_copy);
-+		data_cursor += amt_to_copy;
-+		data_count -= amt_to_copy;
-+		pCtx->residue_count = SHA_BLOCK_SIZE;
-+
-+		/* Because we can never leave the residue
-+		 * buffer empty after an update, the buffer
-+		 * gets hashed only if there's something left
-+		 * over to put in it.  Otherwise we just return
++		/* Here we need to fill out the temporary tail buffer until
++		 * it has 64 bytes in it, then call icaSha1 on that buffer.
++		 * If there weren't enough bytes passed in to fill it out,
++		 * just copy in what we can and return success without calling
++		 * icaSha1. - KEY
 +		 */
-+		if (data_count) {
-+			rv = p_icaSha1(ibmca_handle,
-+				       update_flag,
-+				       SHA_BLOCK_SIZE,
-+				       pCtx->residue,
-+				       LENGTH_SHA_CONTEXT,
-+				       pCtx, &outlen, pCtx->interim);
-+			if (rv) {
++
++		fill_size = SHA_BLOCK_SIZE - ibmca_sha_ctx->tail_len;
++		if(fill_size < in_data_len) {
++			memcpy(ibmca_sha_ctx->tail + ibmca_sha_ctx->tail_len, in_data, fill_size);
++
++			/* Submit the filled out tail buffer */
++			if( p_icaSha1(  ibmca_handle, (unsigned int)SHA_MSG_PART_FIRST,
++					(unsigned int)SHA_BLOCK_SIZE, ibmca_sha_ctx->tail,
++					(unsigned int)LENGTH_SHA_CONTEXT, &ibmca_sha_ctx->c,
++					&tmp_len, tmp_hash)) {
++
++				IBMCAerr(IBMCA_F_IBMCA_SHA1_UPDATE, 
++						IBMCA_R_REQUEST_FAILED);
 +				return 0;
 +			}
-+
-+			update_flag = SHA_MSG_PART_MIDDLE;
-+			pCtx->residue_count = 0;
 +		} else {
++			memcpy(ibmca_sha_ctx->tail + ibmca_sha_ctx->tail_len,
++					in_data, in_data_len);
++			ibmca_sha_ctx->tail_len += in_data_len;
++
 +			return 1;
 +		}
-+	}
 +
-+	/* Break the input data (or what's left of it if we had to use part
-+	 * of it to fill the residue buffer) into a big multiple-of-64-bytes
-+	 * block and a small less-than-64-byte block.
-+	 */
-+	remainder = data_count % SHA_BLOCK_SIZE;
++		/* We had to use 'fill_size' bytes from in_data to fill out the
++		 * empty part of save data, so adjust in_data_len
++		 */
++		in_data_len -= fill_size;
 +
-+	/* SHA the big block.  Again, we must keep the residue buffer
-+	 * primed, so if there's no remainder, we'll leave the last
-+	 * 64-byte block behind.
-+	 */
-+	if ((!remainder) && (data_count >= SHA_BLOCK_SIZE)) {
-+		remainder = SHA_BLOCK_SIZE;
-+	}
-+
-+	if (data_count > SHA_BLOCK_SIZE) {
-+		rv = p_icaSha1(ibmca_handle,
-+			       update_flag,
-+			       data_count - remainder,
-+			       data_cursor,
-+			       LENGTH_SHA_CONTEXT,
-+			       pCtx, &outlen, pCtx->interim);
-+		if (rv) {
-+			return 0;
++		ibmca_sha_ctx->tail_len = in_data_len & 0x3f;
++		if(ibmca_sha_ctx->tail_len) {
++			in_data_len &= ~0x3f;
++			memcpy(ibmca_sha_ctx->tail,
++				in_data + fill_size + in_data_len,
++				ibmca_sha_ctx->tail_len);
++			// fill_size is added to in_data down below
++		} else {
++#if 0
++			memcpy(ibmca_sha_ctx->tail, 
++				in_data + fill_size + in_data_len - SHA_BLOCK_SIZE, 
++				SHA_BLOCK_SIZE);
++			in_data_len -= SHA_BLOCK_SIZE;
++			ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
++#endif
++			// SHA it now, down below
 +		}
++	}
++	else if( ibmca_sha_ctx->c.runningLength > 0 ) {
++		message_part = SHA_MSG_PART_MIDDLE;
 +
-+		data_cursor += (data_count - remainder);
++		if(ibmca_sha_ctx->tail_len) {
++			fill_size = SHA_BLOCK_SIZE - ibmca_sha_ctx->tail_len;
++			if(fill_size < in_data_len) {
++				memcpy(ibmca_sha_ctx->tail + ibmca_sha_ctx->tail_len,
++						in_data, fill_size);
++
++				/* Submit the filled out save buffer */
++				if( p_icaSha1(  ibmca_handle, message_part,
++						(unsigned int)SHA_BLOCK_SIZE, ibmca_sha_ctx->tail,
++						(unsigned int)LENGTH_SHA_CONTEXT, &ibmca_sha_ctx->c,
++						&tmp_len, tmp_hash)) {
++
++					IBMCAerr(IBMCA_F_IBMCA_SHA1_UPDATE, 
++							IBMCA_R_REQUEST_FAILED);
++					return 0;
++				}
++			} else {
++				memcpy(ibmca_sha_ctx->tail + ibmca_sha_ctx->tail_len,
++						in_data, in_data_len);
++				ibmca_sha_ctx->tail_len += in_data_len;
++
++				return 1;
++			}
++
++			/* We had to use some of the data from in_data to fill out the
++			 * empty part of save data, so adjust in_data_len
++			 */
++			in_data_len -= fill_size;
++
++			ibmca_sha_ctx->tail_len = in_data_len & 0x3f;
++			if(ibmca_sha_ctx->tail_len) {
++				in_data_len &= ~0x3f;
++				memcpy(ibmca_sha_ctx->tail, 
++					in_data + fill_size +in_data_len,
++					ibmca_sha_ctx->tail_len);
++			} else {
++#if 0
++				memcpy(ibmca_sha_ctx->tail, 
++					in_data + fill_size + in_data_len - SHA_BLOCK_SIZE, 
++					SHA_BLOCK_SIZE);
++				in_data_len -= SHA_BLOCK_SIZE;
++				ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
++#endif
++				// SHA it now, down below
++			}
++		} else {
++			/* This is the odd case, where we need to go ahead and
++			 * send the first X * 64 byte chunks in to be processed
++			 * and copy the last <64 byte area into the tail. -KEY
++			 */
++			ibmca_sha_ctx->tail_len = in_data_len & 0x3f;
++			if( ibmca_sha_ctx->tail_len) {
++				in_data_len &= ~0x3f;
++				memcpy(ibmca_sha_ctx->tail, in_data + in_data_len,
++						ibmca_sha_ctx->tail_len);
++			} else {
++#if 0
++				memcpy(ibmca_sha_ctx->tail, 
++					in_data + in_data_len - SHA_BLOCK_SIZE, 
++					SHA_BLOCK_SIZE);
++				in_data_len -= SHA_BLOCK_SIZE;
++				ibmca_sha_ctx->tail_len = SHA_BLOCK_SIZE;
++#endif
++				// SHA it now, down below
++			}
++		}
 +	}
 +
-+	/* Store the small block in the residue buffer 
-+	 */
-+	if (remainder) {
-+		memcpy(pCtx->residue + pCtx->residue_count,
-+		       data_cursor, remainder);
-+		pCtx->residue_count += remainder;
++	/* If the data passed in was <64 bytes, in_data_len will be 0 */
++        if( in_data_len && 
++		p_icaSha1(ibmca_handle, message_part,
++			(unsigned int)in_data_len, in_data + fill_size,
++			(unsigned int)LENGTH_SHA_CONTEXT, &ibmca_sha_ctx->c,
++			&tmp_len, tmp_hash)) {
++
++		IBMCAerr(IBMCA_F_IBMCA_SHA1_UPDATE, IBMCA_R_REQUEST_FAILED);
++		return 0;
 +	}
 +
 +	return 1;
@@ -1080,32 +1182,34 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +
 +static int ibmca_sha1_final(EVP_MD_CTX * ctx, unsigned char *md)
 +{
-+	ICA_SHA_CTX *pCtx = ctx->md_data;
-+	unsigned int final_flag = 0;
-+	int rv = 1;
-+	int outlen = sizeof(pCtx->interim);
++	IBMCA_SHA_CTX *ibmca_sha_ctx = ctx->md_data;
++	unsigned int message_part = 0;
++	int outlen = LENGTH_SHA_HASH;
 +
-+	if (pCtx->running_sum)
-+		final_flag = SHA_MSG_PART_FINAL;
++	if (ibmca_sha_ctx->c.runningLength)
++		message_part = SHA_MSG_PART_FINAL;
 +	else
-+		final_flag = SHA_MSG_PART_ONLY;
++		message_part = SHA_MSG_PART_ONLY;
 +
-+	rv = p_icaSha1(ibmca_handle,
-+		       final_flag,
-+		       pCtx->residue_count,
-+		       pCtx->residue,
-+		       LENGTH_SHA_CONTEXT, pCtx, &outlen, md);
-+
-+	if (rv)
++	if( p_icaSha1(ibmca_handle,
++		       message_part,
++		       ibmca_sha_ctx->tail_len,
++		       ibmca_sha_ctx->tail,
++		       LENGTH_SHA_CONTEXT, &ibmca_sha_ctx->c, &outlen, md)) {
++		
++		IBMCAerr(IBMCA_F_IBMCA_SHA1_FINAL, IBMCA_R_REQUEST_FAILED);
 +		return 0;
-+	else
-+		return 1;
++	}
++
++	return 1;
 +}				// end ibmca_sha1_final
 +
 +static int ibmca_sha1_cleanup(EVP_MD_CTX * ctx)
 +{
 +	return 1;
 +}				// end ibmca_sha1_cleanup
++
++#endif // OPENSSL_NO_SHA1
 +
 +static int ibmca_mod_exp(BIGNUM * r, const BIGNUM * a, const BIGNUM * p,
 +			 const BIGNUM * m, BN_CTX * ctx)
@@ -1238,6 +1342,13 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +}
 +
 +#ifndef OPENSSL_NO_RSA
++static int ibmca_rsa_init(RSA *rsa)
++{
++	RSA_blinding_off(rsa);
++
++	return 1;
++}
++
 +static int ibmca_rsa_mod_exp(BIGNUM * r0, const BIGNUM * I, RSA * rsa)
 +{
 +	BN_CTX *ctx;
@@ -1573,10 +1684,10 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca.c openssl-0.9.7c-key/cry
 +#endif				/* ENGINE_DYNAMIC_SUPPORT */
 +#endif				/* !OPENSSL_NO_HW_IBMCA */
 +#endif				/* !OPENSSL_NO_HW */
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key/crypto/engine/hw_ibmca_err.c
+diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.c
 --- openssl-0.9.7c/crypto/engine/hw_ibmca_err.c	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key/crypto/engine/hw_ibmca_err.c	Mon Oct 20 10:58:28 2003
-@@ -0,0 +1,152 @@
++++ openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.c	Wed Nov  5 10:48:02 2003
+@@ -0,0 +1,157 @@
 +/* hw_ibmca_err.c */
 +/* ====================================================================
 + * Copyright (c) 1999-2002 The OpenSSL Project.  All rights reserved.
@@ -1651,6 +1762,10 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key
 +	{ERR_PACK(0, IBMCA_F_IBMCA_MOD_EXP_CRT, 0), "IBMCA_MOD_EXP_CRT"},
 +	{ERR_PACK(0, IBMCA_F_IBMCA_RAND_BYTES, 0), "IBMCA_RAND_BYTES"},
 +	{ERR_PACK(0, IBMCA_F_IBMCA_RSA_MOD_EXP, 0), "IBMCA_RSA_MOD_EXP"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_DES_CIPHER, 0), "IBMCA_DES_CIPHER"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_TDES_CIPHER, 0), "IBMCA_TDES_CIPHER"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_SHA1_UPDATE, 0), "IBMCA_SHA1_UPDATE"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_SHA1_FINAL, 0), "IBMCA_SHA1_FINAL"},
 +	{0, NULL}
 +};
 +
@@ -1671,6 +1786,7 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key
 +	{IBMCA_R_UNDERFLOW_CONDITION, "underflow condition"},
 +	{IBMCA_R_UNDERFLOW_KEYRECORD, "underflow keyrecord"},
 +	{IBMCA_R_UNIT_FAILURE, "unit failure"},
++	{IBMCA_R_CIPHER_MODE_NOT_SUPPORTED, "cipher mode not supported"},
 +	{0, NULL}
 +};
 +
@@ -1729,10 +1845,10 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.c openssl-0.9.7c-key
 +		IBMCA_lib_error_code = ERR_get_next_error_library();
 +	ERR_PUT_error(IBMCA_lib_error_code, function, reason, file, line);
 +}
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-key/crypto/engine/hw_ibmca_err.h
+diff -urN openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.h
 --- openssl-0.9.7c/crypto/engine/hw_ibmca_err.h	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key/crypto/engine/hw_ibmca_err.h	Mon Oct 20 10:58:28 2003
-@@ -0,0 +1,43 @@
++++ openssl-0.9.7c-key-1107/crypto/engine/hw_ibmca_err.h	Wed Nov  5 10:48:02 2003
+@@ -0,0 +1,48 @@
 +
 +#ifndef HEADER_IBMCA_ERR_H
 +#define HEADER_IBMCA_ERR_H
@@ -1757,6 +1873,10 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-key
 +#define IBMCA_F_IBMCA_MOD_EXP_CRT			 104
 +#define IBMCA_F_IBMCA_RAND_BYTES			 105
 +#define IBMCA_F_IBMCA_RSA_MOD_EXP			 106
++#define IBMCA_F_IBMCA_DES_CIPHER			 107
++#define IBMCA_F_IBMCA_TDES_CIPHER			 108
++#define IBMCA_F_IBMCA_SHA1_UPDATE			 109
++#define IBMCA_F_IBMCA_SHA1_FINAL			 110
 +
 +/* Reason codes. */
 +#define IBMCA_R_ALREADY_LOADED				 100
@@ -1774,11 +1894,12 @@ diff -urN -x '*~' openssl-0.9.7c/crypto/engine/hw_ibmca_err.h openssl-0.9.7c-key
 +#define IBMCA_R_UNDERFLOW_CONDITION			 113
 +#define IBMCA_R_UNDERFLOW_KEYRECORD			 114
 +#define IBMCA_R_UNIT_FAILURE				 109
++#define IBMCA_R_CIPHER_MODE_NOT_SUPPORTED		 115
 +
 +#endif
-diff -urN -x '*~' openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7c-key/crypto/engine/vendor_defns/ica_openssl_api.h
+diff -urN openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7c-key-1107/crypto/engine/vendor_defns/ica_openssl_api.h
 --- openssl-0.9.7c/crypto/engine/vendor_defns/ica_openssl_api.h	Wed Dec 31 18:00:00 1969
-+++ openssl-0.9.7c-key/crypto/engine/vendor_defns/ica_openssl_api.h	Mon Oct 20 10:56:16 2003
++++ openssl-0.9.7c-key-1107/crypto/engine/vendor_defns/ica_openssl_api.h	Wed Nov  5 10:48:02 2003
 @@ -0,0 +1,225 @@
 +
 +#ifndef __ICA_OPENSSL_API_H__
