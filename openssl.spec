@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 18
+Release: 24
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -32,6 +32,7 @@ Patch15: openssl-0.9.6a-add-ia64-asm.patch
 Patch16: openssl-0.9.6a-add-baltimore.patch
 Patch17: openssl-0.9.6c-aep.patch
 Patch18: openssl-0.9.6c-add-luna.patch
+Patch19: openssl-0.9.6b-sec.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -94,6 +95,7 @@ cp %{SOURCE8} crypto/bn/asm/
 %patch16 -p1 -b .baltimore
 %patch17 -p1 -b .aep
 %patch18 -p1 -b .luna
+%patch19 -p1 -b .sec
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -102,6 +104,8 @@ chmod 644 doc/ssleay.txt
 
 # Link the configuration header to the one we're going to make.
 ln -sf ../../crypto/opensslconf.h include/openssl/
+# Link the ssl.h header to the one we're going to make.
+ln -sf ../../ssl/ssl.h include/openssl/
 
 %build 
 PATH=${PATH}:${PWD}/bin
@@ -214,6 +218,7 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %{_datadir}/ssl/certs
 %{_datadir}/ssl/cert.pem
 %{_datadir}/ssl/lib
+%dir %{_datadir}/ssl/misc
 %{_datadir}/ssl/misc/CA
 %dir %{_datadir}/ssl/CA
 %dir %{_datadir}/ssl/CA/private
@@ -240,6 +245,7 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %defattr(-,root,root)
 %attr(0755,root,root) %{_bindir}/c_rehash
 %attr(0644,root,root) %{_mandir}/man1*/*.pl*
+%dir %{_datadir}/ssl/misc
 %{_datadir}/ssl/misc/*.pl
 %endif
 
@@ -248,6 +254,24 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Jul 25 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-24
+- add backport of Ben Laurie's patches for OpenSSL 0.9.6d
+
+* Wed Jul 17 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-23
+- own %{_datadir}/ssl/misc
+
+* Fri Jun 21 2002 Tim Powers <timp@redhat.com>
+- automated rebuild
+
+* Sun May 26 2002 Tim Powers <timp@redhat.com>
+- automated rebuild
+
+* Fri May 17 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-20
+- free ride through the build system (whee!)
+
+* Thu May 16 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-19
+- rebuild in new environment
+
 * Thu Apr  4 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-17, 0.9.6b-18
 - merge RHL-specific bits into stronghold package, rename
 
