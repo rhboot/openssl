@@ -245,6 +245,15 @@ struct bignum_ctx
 		: "a"(a),"g"(b)		\
 		: "cc");
 #  endif
+# elif defined(__ia64) && defined(SIXTY_FOUR_BIT_LONG)
+#  if defined(__GNUC__)
+#   define BN_UMULT_HIGH(a,b) ({      \
+      register BN_ULONG ret;          \
+      asm ("xmpy.hu %0 = %1, %2"      \
+           : "=f"(ret)                \
+           : "f"(a), "f"(b));         \
+      ret;                    })
+#  endif      /* compiler */
 # endif		/* cpu */
 #endif		/* OPENSSL_NO_ASM */
 
