@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.3
+Release: 33.4
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -311,8 +311,7 @@ then
 fi
 %makeinstall
 mkdir -p $RPM_BUILD_ROOT/%{_libdir}
-mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so.1
-ln -sf libica.so.1 $RPM_BUILD_ROOT/%{_libdir}/libica.so
+mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so
 cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
 popd
 %endif
@@ -345,7 +344,7 @@ popd
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 %ifarch s390 s390x
-%attr(0755,root,root) %{_libdir}/libica.so.1
+%attr(0755,root,root) %{_libdir}/libica.so
 %endif
 
 %ifnarch i686
@@ -373,6 +372,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Mar 16 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-33.4
+- Fixed libica filespec.
+
 * Mon Mar  8 2004 Joe Orton <jorton@redhat.com> 0.9.7a-33.3
 - add security fixes for CAN-2004-0079, CAN-2004-0112
 
