@@ -5,7 +5,7 @@
 Summary: Secure Sockets Layer Toolkit
 Name: openssl
 Version: 0.9.6
-Release: 13.0p
+Release: 16
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -30,18 +30,15 @@ Patch13: openssl096a-prng.patch
 Patch14: openssl096a-prng-2.patch
 Patch15: openssl-0.9.6b-sec.patch
 Patch16: openssl-0.9.6c-asn.patch.3
+Patch17: openssl-0.9.6-malloc-negative.patch
+Patch18: openssl-0.9.6-vaudenay.patch
+Patch19: openssl-sec3-blinding-0.9.6b.patch
+Patch20: openssl-0.9.6-klima-pokorny-rosa.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildPreReq: perl, python-devel, unzip
-
-# the gcc-2.96 compiler on ppc has some optimization problems.
-# gcc296ppc is true in this case.
-%define gcc296ppc 0
-%ifarch ppc ppc64
-%define gcc296ppc %(gcc -v 2>&1 1>/dev/null|grep -qF 2.96 && echo 1 || echo 0)
-%endif
 
 %description
 The OpenSSL certificate management tool and the shared libraries that
@@ -107,13 +104,19 @@ popd
 %patch11 -p1 -b .zero-premaster
 %patch12 -p1 -b .memmove
 pushd crypto/rand
-%patch13 -p0 -b .rand
+%patch13 -p0 -b .prng
 popd
 pushd doc/crypto
-%patch14 -p0 -b .rand-2
+%patch14 -p0 -b .prng-2
 popd
 %patch15 -p0 -b .sec
 %patch16 -p1 -b .asn
+%patch17 -p1 -b .malloc-negative
+%patch18 -p1 -b .vaudenay
+%patch19 -p0 -b .sec3-blinding
+pushd ssl
+%patch20 -p0 -b .klima-pokorny-rosa
+popd
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -126,11 +129,6 @@ ln -sf ../../crypto/opensslconf.h include/openssl/
 ln -sf ../../ssl/ssl.h include/openssl/
 
 %build 
-
-%if %{gcc296ppc}
-RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O1"
-%endif
-
 PATH=${PATH}:${PWD}/bin
 TOPDIR=${PWD}
 LD_LIBRARY_PATH=${TOPDIR}:${PATH} ; export LD_LIBRARY_PATH
@@ -298,6 +296,18 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-16
+- add backported patch to harden against Klima-Pokorny-Rosa extension
+  of Bleichenbacher's attack (CAN-2003-0131)
+
+* Mon Mar 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-15
+- add patch to enable RSA blinding by default, closing a timing attack
+  (CAN-2003-0147)
+
+* Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-14
+- add fix to guard against attempts to allocate negative amounts of memory
+- add patch for CAN-2003-0078, fixing a timing attack
+
 * Thu Aug  1 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6-13
 - update asn patch to fix accidental reversal of a logic check
 
@@ -452,13 +462,13 @@ popd
 - run ldconfig directly in post/postun
 - add FAQ
 
-* Sat Dec 18 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
+* Sat Dec 18 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - Fix build on non-x86 platforms
 
-* Fri Nov 12 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
+* Fri Nov 12 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - move /usr/share/ssl/* from -devel to main package
 
-* Tue Oct 26 1999 Bernhard Rosenkrdnzer <bero@redhat.de>
+* Tue Oct 26 1999 Bernhard Rosenkr)Bänzer <bero@redhat.de>
 - inital packaging
 - changes from base:
   - Move /usr/local/ssl to /usr/share/ssl for FHS compliance
