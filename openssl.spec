@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 31
+Release: 33
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -37,6 +37,8 @@ Patch20: openssl-0.9.6c-asn.patch.3
 Patch21: openssl-engine-0.9.6b-4096.patch
 Patch22: openssl-0.9.6-malloc-negative.patch
 Patch23: openssl-0.9.6-vaudenay.patch
+Patch24: openssl-sec3-blinding-0.9.6b.patch
+Patch25: openssl-0.9.7a-klima-pokorny-rosa.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -104,6 +106,10 @@ cp %{SOURCE8} crypto/bn/asm/
 %patch21 -p1 -b .4096
 %patch22 -p1 -b .malloc-negative
 %patch23 -p1 -b .vaudenay
+%patch24 -p0 -b .sec3-blinding
+pushd ssl
+%patch25 -p0 -b .klima-pokorny-rosa
+popd
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -286,6 +292,14 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-33
+- add backported patch to harden against Klima-Pokorny-Rosa extension
+  of Bleichenbacher's attack (CAN-2003-0131)
+
+* Mon Mar 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-32
+- add patch to enable RSA blinding by default, closing a timing attack
+  (CAN-2003-0147)
+
 * Wed Feb 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-31
 - add fix to guard against attempts to allocate negative amounts of memory
 - add patch for CAN-2003-0078, fixing a timing attack
