@@ -1,0 +1,31 @@
+Backport from 0.9.7b -- seed the RNG with the key's exponent if it doesn't
+have enough entropy.
+diff -uNr openssl-0.9.7a/crypto/rsa/rsa_lib.c openssl-0.9.7b/crypto/rsa/rsa_lib.c
+--- openssl-0.9.7a/crypto/rsa/rsa_lib.c	2003-01-30 12:37:46.000000000 -0500
++++ openssl-0.9.7b/crypto/rsa/rsa_lib.c	2003-04-08 07:07:13.000000000 -0400
+@@ -62,6 +62,7 @@
+ #include <openssl/lhash.h>
+ #include <openssl/bn.h>
+ #include <openssl/rsa.h>
++#include <openssl/rand.h>
+ #ifndef OPENSSL_NO_ENGINE
+ #include <openssl/engine.h>
+ #endif
+@@ -328,6 +329,15 @@
+ 
+ 	BN_CTX_start(ctx);
+ 	A = BN_CTX_get(ctx);
+-	if (!BN_rand_range(A,rsa->n)) goto err;
++	if ((RAND_status() == 0) && rsa->d != NULL && rsa->d->d != NULL)
++		{
++		/* if PRNG is not properly seeded, resort to secret exponent as unpredictable seed */
++		RAND_add(rsa->d->d, rsa->d->dmax * sizeof rsa->d->d[0], 0);
++		if (!BN_pseudo_rand_range(A,rsa->n)) goto err;
++		}
++	else
++		{
++		if (!BN_rand_range(A,rsa->n)) goto err;
++		}
+ 	if ((Ai=BN_mod_inverse(NULL,A,rsa->n,ctx)) == NULL) goto err;
+ 
+ 	if (!rsa->meth->bn_mod_exp(A,A,rsa->e,rsa->n,ctx,rsa->_method_mod_n))

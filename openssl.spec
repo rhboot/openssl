@@ -5,17 +5,21 @@
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
 %define soversion 4
+%define thread_test_threads %{?threads:%{threads}}%{!?threads:100}
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 5
+Release: 20
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
 Source3: ca-bundle.crt
-Source4: RHNS-CA-CERT
-Source5: make-dummy-cert
+Source4: https://rhn.redhat.com/help/RHNS-CA-CERT
+Source5: https://rhn.redhat.com/help/RHNS-CA-CERT.asc
+Source6: make-dummy-cert
+Source7: libica-1.3.4.tar.gz
+Source8: openssl-thread-test.c
 Patch0: openssl-0.9.7a-redhat.patch
 Patch1: openssl-0.9.7-beta5-defaults.patch
 Patch2: openssl-0.9.7-beta6-ia64.patch
@@ -26,11 +30,23 @@ Patch6: openssl-0.9.7-ibmca.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
+Patch10: libica-1.2-struct.patch
+Patch11: libica-1.2-cleanup.patch
+Patch12: openssl-0.9.7a-libica-autoconf.patch
+Patch13: openssl-0.9.7a-blinding-threads.patch
+Patch14: openssl-0.9.7a-specific-engine.patch
+Patch15: openssl-0.9.7a-blinding-rng.patch
+Patch16: openssl-0.9.7a-ubsec-stomp.patch
+Patch17: openssl-0.9.7a-krb5-leak.patch
+Patch18: openssl-0.9.7a-krb5-1.3.patch
+Patch19: niscc-097.txt
+Patch20: openssl-0.9.6c-ccert.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel
+ExclusiveArch: %{ix86}
 Requires: mktemp
 
 %define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
@@ -64,7 +80,8 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q
+%setup -q -a 7
+
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .defaults
@@ -79,6 +96,30 @@ pushd ssl
 %patch9 -p0 -b .klima-pokorny-rosa
 popd
 
+%ifarch s390 s390x
+pushd libica-1.3.4
+#%patch10 -p1 -b .struct
+%patch11 -p1 -b .cleanup
+if [[ $RPM_BUILD_ROOT  ]] ; then
+        export INSROOT=$RPM_BUILD_ROOT
+fi
+aclocal
+touch Makefile.macros
+automake --gnu -acf
+autoconf
+popd
+%endif
+
+%patch12 -p1 -b .libica-autoconf
+%patch13 -p1 -b .blinding-threads
+%patch14 -p1 -b .specific-engine
+%patch15 -p1 -b .blinding-rng
+%patch16 -p1 -b .ubsec-stomp
+%patch17 -p1 -b .krb5-leak
+%patch18 -p1 -b .krb5-1.3
+%patch19 -p1 -b .niscc
+%patch20 -p1 -b .ccert
+
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
 
@@ -86,7 +127,19 @@ perl util/perlpath.pl `dirname %{__perl}`
 make TABLE PERL=%{__perl}
 
 %build 
-# Figure out which flags we want to use.
+%ifarch s390 s390x
+pushd libica-1.3.4
+if [[ $RPM_BUILD_ROOT  ]] ; then
+        export INSROOT=$RPM_BUILD_ROOT
+fi
+%configure
+make
+popd
+%endif
+
+# Figure out which flags we want to use.  Set the number of threads to use to
+# the maximum we've managed to run without running afoul of the OOM killer.
+sslarch=%{_os}-%{_arch}
 %ifarch %ix86
 sslarch=linux-elf
 if ! echo %{_target} | grep -q i686 ; then
@@ -99,6 +152,7 @@ sslflags=no-asm
 %endif
 %ifarch ia64
 sslarch=linux-ia64
+sslflags=no-asm
 %endif
 %ifarch alpha
 sslarch=alpha-gcc
@@ -117,17 +171,17 @@ sslarch=linux-ppc
 %endif
 %ifarch ppc64
 sslarch=linux-ppc64
+RPM_OPT_FLAGS="$RPM_OPT_FLAGS -O0"
 %endif
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
-./config \
+./Configure \
 	--prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} \
 	zlib no-idea no-mdc2 no-rc5 no-ec shared \
-	--with-krb5-include=`%{_prefix}/kerberos/bin/krb5-config --cflags` \
-	--with-krb5-lib=`%{_prefix}/kerberos/bin/krb5-config --libs gssapi` \
 	--with-krb5-flavor=MIT \
-	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib}
+	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib} \
+	${sslarch}
 make depend
 make all build-shared
 
@@ -135,7 +189,17 @@ make all build-shared
 make rehash build-shared
 
 # Verify that what was compiled actually works.
+LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export LD_LIBRARY_PATH
 make -C test apps tests
+%{__cc} -o openssl-thread-test \
+	`krb5-config --cflags` \
+	-I./include \
+	$RPM_SOURCE_DIR/openssl-thread-test.c \
+	libssl.a libcrypto.a \
+	`krb5-config --libs` \
+	-lpthread -lz -ldl
+./openssl-thread-test --threads %{thread_test_threads}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -219,6 +283,17 @@ rm -rf $RPM_BUILD_ROOT/%{_mandir}/man1*/*.pl*
 rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %endif
 
+%ifarch s390 s390x
+pushd libica-1.3.4
+if [[ $RPM_BUILD_ROOT  ]] ;
+then
+        export INSROOT=$RPM_BUILD_ROOT
+fi
+%makeinstall
+mkdir -p $RPM_BUILD_ROOT/%{_libdir}
+mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}
+%endif
+
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
@@ -246,6 +321,9 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
+%ifarch s390 s390x
+%attr(0755,root,root) %{_libdir}/libica.so
+%endif
 
 %ifnarch i686
 %files devel
@@ -269,6 +347,73 @@ rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Sep 24 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-20
+- only parse a client cert if one was requested
+- temporarily exclusivearch for %%{ix86}
+
+* Tue Sep 23 2003 Nalin Dahyabhai <nalin@redhat.com>
+- add security fixes for protocol parsing bugs (CAN-2003-0543, CAN-2003-0544)
+  and heap corruption (CAN-2003-0545)
+- update RHNS-CA-CERT files
+- ease back on the number of threads used in the threading test
+
+* Wed Sep 17 2003 Matt Wilson <msw@redhat.com> 0.9.7a-19
+- rebuild to fix gzipped file md5sums (#91211)
+
+* Mon Aug 25 2003 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-18
+- Updated libica to version 1.3.4.
+
+* Thu Jul 17 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-17
+- rebuild
+
+* Tue Jul 15 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-10.9
+- free the kssl_ctx structure when we free an SSL structure (#99066)
+
+* Fri Jul 10 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-16
+- rebuild
+
+* Thu Jul 10 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-15
+- lower thread test count on s390x
+
+* Tue Jul  8 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-14
+- rebuild
+
+* Thu Jun 26 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-13
+- disable assembly on arches where it seems to conflict with threading
+
+* Thu Jun 26 2003 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-12
+- Updated libica to latest upstream version 1.3.0
+
+* Wed Jun 11 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-9.9
+- rebuild
+
+* Wed Jun 11 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-11
+- rebuild
+
+* Tue Jun 10 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-10
+- ubsec: don't stomp on output data which might also be input data
+
+* Tue Jun 10 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-9
+- temporarily disable optimizations on ppc64
+
+* Mon Jun  9 2003 Nalin Dahyabhai <nalin@redhat.com>
+- backport fix for engine-used-for-everything from 0.9.7b
+- backport fix for prng not being seeded causing problems, also from 0.9.7b
+- add a check at build-time to ensure that RSA is thread-safe
+- keep perlpath from stomping on the libica configure scripts
+
+* Fri Jun  6 2003 Nalin Dahyabhai <nalin@redhat.com>
+- thread-safety fix for RSA blinding
+
+* Wed Jun 04 2003 Elliot Lee <sopwith@redhat.com> 0.9.7a-8
+- rebuilt
+
+* Fri May 30 2003 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-7
+- Added libica-1.2 to openssl (featurerequest).
+
+* Wed Apr 16 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-6
+- fix building with incorrect flags on ppc64
+
 * Wed Mar 19 2003 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-5
 - add patch to harden against Klima-Pokorny-Rosa extension of Bleichenbacher's
   attack (CAN-2003-0131)
