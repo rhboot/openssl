@@ -345,6 +345,7 @@ popd
 %{_datadir}/ssl/private
 
 %config(noreplace) %{_datadir}/ssl/openssl.cnf
+%config %{_datadir}/ssl/certs/ca-bundle.crt
 
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
@@ -381,11 +382,13 @@ popd
 
 %changelog
 * Wed Mar 30 2005 Tomas Mraz <trmaz@redhat.com> 0.9.7f-1
-- reenable optimizations on ppc64
-- enable assembly code on ia64
+- reenable optimizations on ppc64 and assembly code on ia64
 - upgrade to new upstream version (no soname bump needed)
 - disable thread test - it was testing the backport of the
   RSA blinding - no longer needed
+- added support for changing serial number to 
+  Makefile.certificate (#151188)
+- make ca-bundle.crt a config file (#118903)
 
 * Tue Mar  1 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7e-3
 - libcrypto shouldn't depend on libkrb5 (#135961)
