@@ -273,7 +273,6 @@ done
 # Pick a CA script.
 pushd  $RPM_BUILD_ROOT%{_datadir}/ssl/misc
 mv CA.sh CA
-mv der_chop der_chop.pl
 popd
 
 mkdir -m700 $RPM_BUILD_ROOT%{_datadir}/ssl/CA
