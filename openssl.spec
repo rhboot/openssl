@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.13
+Release: 33.14
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -377,6 +377,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar  2 2005 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-33.14
+- rebuild
+
 * Fri Nov 19 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-33.13
 - remove der_chop, as upstream cvs has done (CAN-2004-0975, #136302)
 
