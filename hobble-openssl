@@ -17,7 +17,7 @@ for c in `find crypto/evp -name "*_r5.c" -o -name "*_i.c" -o -name "*_mdc2.c" `;
 	echo Destroying $c
 	> $c
 done
-for h in `find include crypto ssl apps test -name "*.h"` ; do
+for h in `find crypto ssl apps test -name "*.h"` ; do
 	echo Removing IDEA, MDC2, and RC5 references from $h
 	cat $h | \
 	awk    'BEGIN {ech=1;} \

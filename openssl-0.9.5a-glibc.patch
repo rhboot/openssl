@@ -1,3 +1,5 @@
+Link in glibc's libcrypt, and use it instead of libcrypto's default.
+
 --- openssl-0.9.5a/crypto/des/fcrypt.c.glibc	Thu Nov  2 15:51:29 2000
 +++ openssl-0.9.5a/crypto/des/fcrypt.c	Thu Nov  2 15:51:38 2000
 @@ -61,7 +61,7 @@
