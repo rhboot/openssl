@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 2
+Release: 3
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -47,6 +47,7 @@ Patch12: openssl-0.9.7a-libica-autoconf.patch
 Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7e-krb5.patch
+Patch43: openssl-0.9.7f-bn-asm-uninitialized.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -123,6 +124,7 @@ popd
 # Security fixes
 
 # Additional fixes
+%patch43 -p1 -b .uninitialized
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -381,6 +383,11 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Apr  1 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-3
+- uninitialized variable mustn't be used as input in inline
+  assembly
+- reenable the x86_64 assembly again
+
 * Thu Mar 31 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-2
 - add back RC4_CHAR on ia64 and x86_64 so the ABI isn't broken
 - disable broken bignum assembly on x86_64
