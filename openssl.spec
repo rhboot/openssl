@@ -3,7 +3,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 7
+Release: 8
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -23,6 +23,7 @@ Patch7: openssl-engine-0.9.6b-hw_ubsec.patch
 Patch8: openssl-0.9.6-x509.patch
 Patch9: openssl-engine-0.9.6b-default-engine.patch
 Patch10: openssl-engine-0.9.6b-ubsec_failover.patch
+Patch11: openssl-engine-0.9.6b-ubsec_rand.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -76,6 +77,7 @@ cp %{SOURCE7} crypto/engine/vendor_defns/
 %patch8 -p1 -b .x509
 %patch9 -p1 -b .default-engine
 %patch10 -p1 -b .ubsec_failover
+%patch11 -p1 -b .rand
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -222,6 +224,9 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Sep  7 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-8
+- disable the RNG in the ubsec engine driver
+
 * Tue Aug 28 2001 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-7
 - tweaks to the ubsec engine driver
 
