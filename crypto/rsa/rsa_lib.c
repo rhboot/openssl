@@ -393,3 +393,69 @@ int RSA_memory_lock(RSA *r)
 	r->bignum_data=p;
 	return(1);
 	}
+
+/* Allocate a thread ID ex_data item. */
+static int new_thread_id(void *parent, void *ptr, CRYPTO_EX_DATA *ad,
+			 int idx, long argl, void *argp)
+	{
+	long *thread_id = OPENSSL_malloc(sizeof(long));
+	*thread_id = -1;
+	return CRYPTO_set_ex_data(ad, idx, thread_id);
+	}
+/* Free a thread ID ex_data item. */
+static void free_thread_id(void *parent, void *ptr, CRYPTO_EX_DATA *ad,
+			   int idx, long argl, void *argp)
+	{
+	long *thread_id = (long*) ptr;
+	if (ptr)
+		{
+		*thread_id = -1;
+		OPENSSL_free(ptr);
+		}
+	}
+/* "Copy" a thread ID ex_data item. */
+static int copy_thread_id(CRYPTO_EX_DATA *to, CRYPTO_EX_DATA *from,
+			  void *from_d, int idx, long argl, void *argp)
+	{
+	long *thread_id = OPENSSL_malloc(sizeof(long));
+	*thread_id = -1;
+	return CRYPTO_set_ex_data(to, idx, thread_id);
+	}
+/* Get the index in the RSA ex_data structure where we can store the ID of
+ * the thread which gets to use the RSA structure's blinding member. */
+static int rsa_blinding_thread_id_index(void)
+	{
+	static int ind = -1;
+	if (ind == -1)
+		{
+		ind = RSA_get_ex_new_index(0, NULL, new_thread_id, copy_thread_id, free_thread_id);
+		}
+	return ind;
+	}
+/* Check if it's "safe" to use the blinding structure in the RSA structure.  If
+ * no thread has claimed it yet, take it for our own. */
+int OPENSSL_private_rsa_blinding_check_thread_id(RSA *rsa)
+	{
+	long *thread_id;
+	int ret;
+	CRYPTO_w_lock(CRYPTO_LOCK_RSA_BLINDING);
+	thread_id = RSA_get_ex_data(rsa, rsa_blinding_thread_id_index());
+	if (thread_id == NULL)
+		{
+		/* Allocate a new thread ID storage area and set it. */
+		thread_id = OPENSSL_malloc(sizeof(long));
+		*thread_id = -1;
+		RSA_set_ex_data(rsa,
+				rsa_blinding_thread_id_index(),
+				thread_id);
+		}
+	if (*thread_id == -1)
+		{
+		/* Stake our claim on this RSA structure's blinding struct. */
+		*thread_id = CRYPTO_thread_id();
+		}
+	/* Compare the value to the current thread ID. */
+	ret = (*thread_id == CRYPTO_thread_id());
+	CRYPTO_w_unlock(CRYPTO_LOCK_RSA_BLINDING);
+	return ret;
+	}
