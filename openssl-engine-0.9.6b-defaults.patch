@@ -1,0 +1,24 @@
+--- openssl-engine-0.9.6b/apps/openssl.cnf	Wed Jan  5 20:26:41 2000
++++ openssl-engine-0.9.6b/apps/openssl.cnf	Fri Aug 10 19:42:41 2001
+@@ -128,7 +128,7 @@
+ organizationalUnitName		= Organizational Unit Name (eg, section)
+ #organizationalUnitName_default	=
+ 
+-commonName			= Common Name (eg, YOUR name)
++commonName			= Common Name (eg, your name or your server\'s hostname)
+ commonName_max			= 64
+ 
+ emailAddress			= Email Address
+@@ -242,3 +242,12 @@
+ 
+ # issuerAltName=issuer:copy
+ authorityKeyIdentifier=keyid:always,issuer:always
++
++[ engine ]
++default = openssl
++# rsa = openssl
++# dsa = openssl
++# dh = openssl
++# rand = openssl
++# bn_mod_exp = openssl
++# bn_mod_exp_crt = openssl

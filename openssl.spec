@@ -1,9 +1,9 @@
 %define soversion 2
 
-Summary: Secure Sockets Layer Toolkit
+Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.6b
-Release: 3
+Release: 4
 Source: openssl-engine-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -14,13 +14,14 @@ Source6: hw_ubsec.c
 Source7: hw_ubsec.h
 Patch0: openssl-0.9.6a-redhat.patch
 Patch1: openssl-0.9.5a-64.patch
-Patch2: openssl-0.9.5a-defaults.patch
+Patch2: openssl-engine-0.9.6b-defaults.patch
 Patch3: openssl-0.9.5a-ia64.patch
 Patch4: openssl-0.9.5a-glibc.patch
 Patch5: openssl-0.9.6a-soversion.patch
 Patch6: openssl-engine-0.9.6b-hw_ubsec.patch
 Patch7: openssl-engine-0.9.6b-add-aep.patch
 Patch8: openssl-0.9.6-x509.patch
+Patch9: openssl-engine-0.9.6b-default-engine.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -31,31 +32,32 @@ Requires: mktemp
 %define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
 
 %description
-The OpenSSL certificate management tool and the shared libraries that
-provide various cryptographic algorithms and protocols.
+The OpenSSL toolkit provides support for secure communications between
+machines. OpenSSL includes a certificate management tool and shared
+libraries which provide various cryptographic algorithms and
+protocols.
 
 %package devel
-Summary: OpenSSL libraries and development headers.
+Summary: Files for development of applications which will use OpenSSL.
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description devel
-The static libraries and include files needed to compile apps
-with support for various the cryptographic algorithms and protocols
-supported by OpenSSL.
-
-Patches for many networking apps can be found at:
-ftp://ftp.psy.uq.oz.au/pub/Crypto/SSLapps/
+OpenSSL is a toolkit for supporting cryptography. The openssl-devel
+package contains static libraries and include files needed to develop
+applications which support various cryptographic algorithms and
+protocols.
 
 %package perl
-Summary: OpenSSL scripts which require Perl.
+Summary: Perl scripts provided with OpenSSL.
 Group: Applications/Internet
 Requires: perl
 Requires: %{name} = %{version}-%{release}
 
 %description perl
-Perl scripts provided with OpenSSL for converting certificates and keys
-from other formats to those used by OpenSSL.
+OpenSSL is a toolkit for supporting cryptography. The openssl-perl
+package provides Perl scripts for converting certificates and keys
+from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
 %setup -q -n openssl-engine-%{version}
@@ -71,6 +73,7 @@ cp %{SOURCE7} crypto/engine/vendor_defns/
 %patch6 -p1 -b .hw_ubsec
 %patch7 -p1 -b .add-aep
 %patch8 -p1 -b .x509
+%patch9 -p1 -b .default-engine
 
 chmod 644 FAQ LICENSE CHANGES NEWS INSTALL README
 chmod 644 doc/README doc/c-indentation.el doc/openssl.txt
@@ -154,15 +157,12 @@ for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
 	fi
 done
 
-# Rename man pages so that they don't conflict with system man pages.  We used
-# to change the file extensions, but that only prevents file conflicts.  The
-# man viewer still can't select either of the two unless we physically change
-# the directory.
-for section in 1 2 3 4 5 6 7 8 ; do
-	if test -d $RPM_BUILD_ROOT%{_mandir}/man${section} ; then
-		mv $RPM_BUILD_ROOT%{_mandir}/man${section} \
-		   $RPM_BUILD_ROOT%{_mandir}/man${section}ssl
-	fi
+# Rename man pages so that they don't conflict with other system man pages.
+for manpage in $RPM_BUILD_ROOT%{_mandir}/man*/* ; do
+	mv ${manpage} ${manpage}ssl
+done
+for conflict in passwd rand ; do
+	rename ${conflict} ssl${conflict} $RPM_BUILD_ROOT%{_mandir}/man*/${conflict}*
 done
 
 # Pick a CA script.
@@ -202,11 +202,8 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /lib/*.so.%{version}
-%attr(0755,root,root) %dir %{_mandir}/man1*
 %attr(0644,root,root) %{_mandir}/man1*/*
-%attr(0755,root,root) %dir %{_mandir}/man5*
 %attr(0644,root,root) %{_mandir}/man5*/*
-%attr(0755,root,root) %dir %{_mandir}/man7*
 %attr(0644,root,root) %{_mandir}/man7*/*
 
 %files devel
@@ -214,13 +211,11 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %{_prefix}/include/openssl
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
-%attr(0755,root,root) %dir %{_mandir}/man3*
 %attr(0644,root,root) %{_mandir}/man3*/*
 
 %files perl
 %defattr(-,root,root)
 %attr(0755,root,root) %{_bindir}/c_rehash
-%attr(0755,root,root) %dir %{_mandir}/man1*
 %attr(0644,root,root) %{_mandir}/man1*/*.pl*
 %{_datadir}/ssl/misc/*.pl
 
@@ -229,6 +224,13 @@ ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Aug 10 2001 Nalin Dahyabhai <nalin@redhat.com>
+- move man pages back to %%{_mandir}/man?/foo.?ssl from %%{_mandir}/man?ssl/foo.?
+- add an [ engine ] section to the default configuration file
+
+* Thu Aug  9 2001 Nalin Dahyabhai <nalin@redhat.com>
+- add a patch for selecting a default engine in SSL_library_init()
+
 * Mon Jul 23 2001 Nalin Dahyabhai <nalin@redhat.com>
 - add patches for AEP hardware support
 - add patch to keep trying when we fail to load a cert from a file and
