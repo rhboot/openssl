@@ -1,0 +1,11 @@
+--- m2crypto-0.05-snap4/swig/Makefile.include	Sun Oct  1 21:32:51 2000
++++ m2crypto-0.05-snap4/swig/Makefile	Sun Oct  1 21:33:21 2000
+@@ -11,7 +11,7 @@
+ all:	_m2crypto
+ 
+ _m2crypto: 	_m2crypto.i
+-	swig -shadow -python _m2crypto.i
++	swig -shadow -python $(INCLUDE) $(PYINCLUDE) _m2crypto.i
+ 	cc -c -fpic $(CFLAGS) $(INCLUDE) $(PYINCLUDE) _m2crypto_wrap.c
+ 	ld -Bshareable -o _m2cryptoc.so _m2crypto_wrap.o $(LIBS) 
+ 	cp _m2crypto.py _m2cryptoc.so _m2crypto_wrap.doc ../M2Crypto
