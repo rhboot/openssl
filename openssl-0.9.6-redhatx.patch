@@ -24,7 +24,7 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
  
  # Sunos configs, assuming sparc for the gcc one.
  ##"sunos-cc", "cc:-O4 -DNOPROTO -DNOCONST::(unknown)::DES_UNROLL:::",
-@@ -280,24 +280,25 @@
+@@ -280,24 +280,26 @@
  #
  #					<appro@fy.chalmers.se>
  #
@@ -59,6 +59,7 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
 +"linux-m68k",   "gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::::::::::linux-shared:-fPIC",
 +"linux-ia64",   "gcc:-DL_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::(unknown)::SIXTY_FOUR_BIT_LONG:::::::::::linux-shared:-fPIC",
 +"linux-s390",   "gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::BN_LLONG:::::::::::linux-shared:-fPIC",
++"linux-s390x",  "gcc:-DB_ENDIAN -DTERMIO $ENV{RPM_OPT_FLAGS} -Wall::-D_REENTRANT::SIXTY_FOUR_BIT_LONG:::::::::::linux-shared:-fPIC",
  "NetBSD-sparc",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -mv8 -Wall -DB_ENDIAN::(unknown)::BN_LLONG MD2_CHAR RC4_INDEX DES_UNROLL:::",
  "NetBSD-m68",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -Wall -DB_ENDIAN::(unknown)::BN_LLONG MD2_CHAR RC4_INDEX DES_UNROLL:::",
  "NetBSD-x86",	"gcc:-DTERMIOS -O3 -fomit-frame-pointer -m486 -Wall::(unknown)::BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}:",
@@ -73,7 +74,7 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
  "unixware-2.0","cc:-O -DFILIO_H::(unknown):-lsocket -lnsl:${x86_gcc_des} ${x86_gcc_opts}:::",
 --- openssl-0.9.6/config.redhat	Fri Mar  2 21:40:42 2001
 +++ openssl-0.9.6/config	Fri Mar  2 21:39:19 2001
-@@ -406,17 +406,14 @@
+@@ -406,17 +406,15 @@
  	*)	OUT="linux-alpha-$CC" ;;
  	esac
  	if [ "$CC" = "gcc" ]; then
@@ -90,6 +91,7 @@ built on a i686/ev6/sparcv9 to not run on a i386/ev5/sparcv7 and so on.
    m68k-*-linux*) OUT="linux-m68k" ;;
    ia64-*-linux?) OUT="linux-ia64" ;;
 +  s390-*-linux?) OUT="linux-s390" ;;
++  s390x-*-linux?) OUT="linux-s390x" ;;
    ppc-apple-rhapsody) OUT="rhapsody-ppc-cc" ;;
    sparc64-*-linux2)
  	#Before we can uncomment following lines we have to wait at least
