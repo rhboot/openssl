@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 40
+Release: 43
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -55,6 +55,7 @@ Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
+Patch22: openssl-0.9.7a-no-der_chop.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
 Patch43: openssl-0.9.7a-krb5-security.patch
@@ -137,6 +138,7 @@ popd
 %patch19 -p1 -b .niscc
 %patch20 -p1 -b .ccert
 %patch21 -p1 -b .utf8fix
+%patch22 -p1 -b .no-der_chop
 
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
@@ -281,7 +283,6 @@ done
 # Pick a CA script.
 pushd  $RPM_BUILD_ROOT%{_datadir}/ssl/misc
 mv CA.sh CA
-mv der_chop der_chop.pl
 popd
 
 mkdir -m700 $RPM_BUILD_ROOT%{_datadir}/ssl/CA
@@ -405,6 +406,15 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov 19 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-43
+- rebuild
+
+* Fri Nov 19 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-42
+- rebuild
+
+* Fri Nov 19 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-41
+- remove der_chop, as upstream cvs has done (CAN-2004-0975, #140040)
+
 * Tue Oct 05 2004 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-40
 - Include latest libica version with important bugfixes
 
