@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 35
+Release: 36
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -304,14 +304,20 @@ cat $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp > \
 	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc && \
 rm -f $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp
 
+# Determine which arch opensslconf.h is going to try to #include.
+basearch=%{_arch}
+%ifarch %{ix86}
+basearch=i386
+%endif
+
 %ifarch %{multilib_arches}
 # Do an opensslconf.h switcheroo to avoid file conflicts on systems where you
 # can have both a 32- and 64-bit version of the library, and they each need
 # their own correct-but-different versions of opensslconf.h to be usable.
 install -m644 $RPM_SOURCE_DIR/opensslconf-new-warning.h \
-   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-%{_arch}.h
+   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 cat $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h >> \
-   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-%{_arch}.h
+   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 install -m644 $RPM_SOURCE_DIR/opensslconf-new.h \
    $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
 %endif
@@ -398,6 +404,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue May 25 2004 Nalin Dahyabhai <nalin@redhat.com> 0.9.7a-36
+- handle %%{_arch}=i486/i586/i686/athlon cases in the intermediate
+  header (#124303)
+
 * Thu Mar 25 2004 Joe Orton <jorton@redhat.com> 0.9.7a-35
 - add security fixes for CAN-2004-0079, CAN-2004-0112
 
