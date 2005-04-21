@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 3
+Release: 4
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -48,6 +48,7 @@ Patch18: openssl-0.9.7a-krb5-1.3.patch
 Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7e-krb5.patch
 Patch43: openssl-0.9.7f-bn-asm-uninitialized.patch
+Patch44: openssl-0.9.7f-ca-dir.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -126,6 +127,8 @@ popd
 # Additional fixes
 %patch43 -p1 -b .uninitialized
 
+#patch44 is patched after make test
+
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
 
@@ -182,7 +185,7 @@ sslarch=linux-ppc64
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
 ./Configure \
-	--prefix=%{_prefix} --openssldir=%{_datadir}/ssl ${sslflags} \
+	--prefix=%{_prefix} --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
 	zlib no-idea no-mdc2 no-rc5 no-ec shared \
 	--with-krb5-flavor=MIT \
 	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib} \
@@ -211,14 +214,17 @@ make -C test apps tests
 	-lpthread -lz -ldl
 #./openssl-thread-test --threads %{thread_test_threads}
 
+# Patch44 must be patched after tests otherwise they will fail
+patch -p1 -b -z .ca-dir < %{PATCH44}
+
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 # Install OpenSSL.
 install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir}}
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
 mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{solibbase} $RPM_BUILD_ROOT/%{_lib}/
-mv $RPM_BUILD_ROOT%{_datadir}/ssl/man/* $RPM_BUILD_ROOT%{_mandir}/
-rmdir $RPM_BUILD_ROOT%{_datadir}/ssl/man
+mv $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man/* $RPM_BUILD_ROOT%{_mandir}/
+rmdir $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man
 mv $RPM_BUILD_ROOT/usr/lib/* $RPM_BUILD_ROOT%{_libdir}/ || :
 rename so.%{solibbase} so.%{version} $RPM_BUILD_ROOT/%{_lib}/*.so.%{solibbase}
 for lib in $RPM_BUILD_ROOT/%{_lib}/*.so.%{version} ; do
@@ -229,9 +235,9 @@ done
 
 # Install a makefile for generating keys and self-signed certs, and a script
 # for generating them on the fly.
-mkdir -p $RPM_BUILD_ROOT%{_datadir}/ssl/certs
-install -m644 $RPM_SOURCE_DIR/Makefile.certificate $RPM_BUILD_ROOT%{_datadir}/ssl/certs/Makefile
-install -m644 $RPM_SOURCE_DIR/make-dummy-cert      $RPM_BUILD_ROOT%{_datadir}/ssl/certs/make-dummy-cert
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs
+install -m644 $RPM_SOURCE_DIR/Makefile.certificate $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/Makefile
+install -m644 $RPM_SOURCE_DIR/make-dummy-cert      $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/make-dummy-cert
 
 # Make sure we actually include the headers we built against.
 for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
@@ -255,12 +261,12 @@ for conflict in passwd rand ; do
 done
 
 # Pick a CA script.
-pushd  $RPM_BUILD_ROOT%{_datadir}/ssl/misc
+pushd  $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/misc
 mv CA.sh CA
 popd
 
-mkdir -m700 $RPM_BUILD_ROOT%{_datadir}/ssl/CA
-mkdir -m700 $RPM_BUILD_ROOT%{_datadir}/ssl/CA/private
+mkdir -m700 $RPM_BUILD_ROOT%{_sysconfdir}/pki/CA
+mkdir -m700 $RPM_BUILD_ROOT%{_sysconfdir}/pki/CA/private
 
 # Install root CA stuffs.
 cat << EOF > RHNS-blurb.txt
@@ -269,8 +275,8 @@ cat << EOF > RHNS-blurb.txt
 #
 EOF
 cat %{SOURCE3} RHNS-blurb.txt %{SOURCE4} > ca-bundle.crt
-install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/certs/
-ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_datadir}/ssl/cert.pem
+install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/
+ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/cert.pem
 
 # Fix libdir.
 sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
@@ -308,7 +314,7 @@ rm -rf $RPM_BUILD_ROOT/%{_mandir}/man3/*
 
 rm -rf $RPM_BUILD_ROOT/%{_bindir}/c_rehash
 rm -rf $RPM_BUILD_ROOT/%{_mandir}/man1*/*.pl*
-rm -rf $RPM_BUILD_ROOT/%{_datadir}/ssl/misc/*.pl
+rm -rf $RPM_BUILD_ROOT/%{_sysconfdir}/pki/tls/misc/*.pl
 %endif
 
 # Remove fips fingerprint script 
@@ -336,18 +342,18 @@ popd
 %doc doc/README doc/c-indentation.el doc/openssl.txt
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
-%dir %{_datadir}/ssl
-%{_datadir}/ssl/certs
-%{_datadir}/ssl/cert.pem
-%dir %{_datadir}/ssl/misc
-%{_datadir}/ssl/misc/CA
-%dir %{_datadir}/ssl/CA
-%dir %{_datadir}/ssl/CA/private
-%{_datadir}/ssl/misc/c_*
-%{_datadir}/ssl/private
+%dir %{_sysconfdir}/pki/tls
+%{_sysconfdir}/pki/tls/certs
+%{_sysconfdir}/pki/tls/cert.pem
+%dir %{_sysconfdir}/pki/tls/misc
+%{_sysconfdir}/pki/tls/misc/CA
+%dir %{_sysconfdir}/pki/CA
+%dir %{_sysconfdir}/pki/CA/private
+%{_sysconfdir}/pki/tls/misc/c_*
+%{_sysconfdir}/pki/tls/private
 
-%config(noreplace) %{_datadir}/ssl/openssl.cnf
-%config %{_datadir}/ssl/certs/ca-bundle.crt
+%config(noreplace) %{_sysconfdir}/pki/tls/openssl.cnf
+%config %{_sysconfdir}/pki/tls/certs/ca-bundle.crt
 
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
@@ -374,8 +380,8 @@ popd
 %defattr(-,root,root)
 %attr(0755,root,root) %{_bindir}/c_rehash
 %attr(0644,root,root) %{_mandir}/man1*/*.pl*
-%dir %{_datadir}/ssl/misc
-%{_datadir}/ssl/misc/*.pl
+%dir %{_sysconfdir}/pki/tls/misc
+%{_sysconfdir}/pki/tls/misc/*.pl
 %endif
 
 %post -p /sbin/ldconfig
@@ -383,6 +389,12 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Apr 21 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-4
+- move certificates to _sysconfdir/pki/tls (#143392)
+- move CA directories to _sysconfdir/pki/CA
+- patch the CA script and the default config so it points to the
+  CA directories
+
 * Fri Apr  1 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-3
 - uninitialized variable mustn't be used as input in inline
   assembly
