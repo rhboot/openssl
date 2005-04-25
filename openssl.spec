@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 4
+Release: 5
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -389,6 +389,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Apr 25 2005 Joe Orton <jorton@redhat.com> 0.9.7f-5
+- update to revision 1.37 of Mozilla CA bundle
+
 * Thu Apr 21 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-4
 - move certificates to _sysconfdir/pki/tls (#143392)
 - move CA directories to _sysconfdir/pki/CA
