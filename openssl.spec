@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 5
+Release: 6
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -35,7 +35,7 @@ Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 Patch0: openssl-0.9.7f-redhat.patch
-Patch1: openssl-0.9.7-beta5-defaults.patch
+Patch1: openssl-0.9.7f-defaults.patch
 Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7e-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
@@ -49,6 +49,7 @@ Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7e-krb5.patch
 Patch43: openssl-0.9.7f-bn-asm-uninitialized.patch
 Patch44: openssl-0.9.7f-ca-dir.patch
+Patch45: openssl-0.9.7f-use-poll.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -126,8 +127,9 @@ popd
 
 # Additional fixes
 %patch43 -p1 -b .uninitialized
+#patch44 is applied after make test
+%patch45 -p1 -b .use-poll
 
-#patch44 is patched after make test
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -389,6 +391,11 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Apr 27 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-6
+- use poll instead of select in rand (#128285)
+- fix Makefile.certificate to point to /etc/pki/tls
+- change the default string mask in ASN1 to PrintableString+UTF8String
+
 * Mon Apr 25 2005 Joe Orton <jorton@redhat.com> 0.9.7f-5
 - update to revision 1.37 of Mozilla CA bundle
 
