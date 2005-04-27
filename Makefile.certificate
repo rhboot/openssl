@@ -56,9 +56,10 @@ usage:
 	umask 77 ; \
 	/usr/bin/openssl req $(UTF8) -new -key $^ -x509 -days 365 -out $@ -set_serial $(SERIAL)
 
-KEY=/etc/httpd/conf/ssl.key/server.key
-CSR=/etc/httpd/conf/ssl.csr/server.csr
-CRT=/etc/httpd/conf/ssl.crt/server.crt
+TLSROOT=/etc/pki/tls
+KEY=$(TLSROOT)/private/localhost.key
+CSR=$(TLSROOT)/certs/localhost.csr
+CRT=$(TLSROOT)/certs/localhost.crt
 
 genkey: $(KEY)
 certreq: $(CSR)

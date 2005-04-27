@@ -1,6 +1,15 @@
---- openssl-0.9.7-beta5/apps/openssl.cnf	2001-04-11 09:04:20.000000000 -0400
-+++ openssl-0.9.7-beta5/apps/openssl.cnf	2002-12-11 19:21:57.000000000 -0500
-@@ -117,17 +117,18 @@
+--- openssl-0.9.7f/apps/openssl.cnf.defaults	2004-05-13 23:38:37.000000000 +0200
++++ openssl-0.9.7f/apps/openssl.cnf	2005-04-27 11:40:02.651321967 +0200
+@@ -116,23 +116,26 @@
+ # MASK:XXXX a literal mask value.
+ # WARNING: current versions of Netscape crash on BMPStrings or UTF8Strings
+ # so use this option with caution!
+-string_mask = nombstr
++# we use PrintableString+UTF8String mask so if pure ASCII texts are used
++# the resulting certificates are compatible with Netscape
++string_mask = MASK:0x2002
+ 
+ # req_extensions = v3_req # The extensions to add to a certificate request
  
  [ req_distinguished_name ]
  countryName			= Country Name (2 letter code)
@@ -22,7 +31,7 @@
  
  # we can do this but it is not needed normally :-)
  #1.organizationName		= Second Organization Name (eg, company)
-@@ -136,7 +137,7 @@
+@@ -141,7 +144,7 @@
  organizationalUnitName		= Organizational Unit Name (eg, section)
  #organizationalUnitName_default	=
  
