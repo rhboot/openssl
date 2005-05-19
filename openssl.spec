@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.1
+Release: 43.2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -60,6 +60,7 @@ Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
 Patch43: openssl-0.9.7a-krb5-security.patch
 Patch44: openssl-0.9.7a-dccs.patch
+Patch45: openssl-0.9.7a-can-2005-0109.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -150,6 +151,7 @@ popd
 # Security fixes
 %patch43 -p1 -b .krb5-security
 %patch44 -p1 -b .dccs
+%patch45 -p1 -b .modexp-consttime
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -406,6 +408,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu May 19 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.2
+- fix CAN-2005-0109 - use constant time/memory access mod_exp
+  so bits of private key aren't leaked by cache eviction (#157631)
+
 * Fri Dec  3 2004 Jeremy Katz <katzj@redhat.com> - 0.9.7a-43.1
 - rebuild for s390 gcc changes (#136978)
 
