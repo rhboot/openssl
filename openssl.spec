@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 6
+Release: 7
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -50,6 +50,10 @@ Patch42: openssl-0.9.7e-krb5.patch
 Patch43: openssl-0.9.7f-bn-asm-uninitialized.patch
 Patch44: openssl-0.9.7f-ca-dir.patch
 Patch45: openssl-0.9.7f-use-poll.patch
+Patch46: openssl-0.9.7f-backport-097g.patch
+Patch47: openssl-0.9.7f-can-2005-0109.patch
+
+
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -123,13 +127,14 @@ popd
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
 
-# Security fixes
-
 # Additional fixes
 %patch43 -p1 -b .uninitialized
 #patch44 is applied after make test
 %patch45 -p1 -b .use-poll
 
+%patch46 -p1 -b .backport-097g
+# CAN-2005-0109
+%patch47 -p1 -b .modexp-consttime
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -391,6 +396,11 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu May 19 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-7
+- fix CAN-2005-0109 - use constant time/memory access mod_exp
+  so bits of private key aren't leaked by cache eviction (#157631)
+- a few more fixes from upstream 0.9.7g
+
 * Wed Apr 27 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-6
 - use poll instead of select in rand (#128285)
 - fix Makefile.certificate to point to /etc/pki/tls
