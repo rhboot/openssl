@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.15
+Release: 33.16
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -379,6 +379,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Jun 21 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.16
+- rebuild
+
 * Thu May 19 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.15
 - fix CAN-2005-0109 - use constant time/memory access mod_exp
   so bits of private key aren't leaked by cache eviction (#157631)
