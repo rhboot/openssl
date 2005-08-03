@@ -338,6 +338,8 @@ mkdir -p $RPM_BUILD_ROOT/%{_libdir}
 mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so
 cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
 popd
+rm -f $RPM_BUILD_ROOT/%{_libdir}/libcrypto.so.%{soversion}
+rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %endif
 
 %clean
