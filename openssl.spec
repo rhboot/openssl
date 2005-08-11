@@ -39,7 +39,7 @@ Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7a-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7c-ICA_engine_apr292004.patch
+Patch6: openssl-0.9.7d-ICA_engine-jun142004.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
@@ -408,6 +408,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Aug 11 2005 Phil Knirsch <pknirsch@redhat.com> 0.9.7a-43.2
+- Updated ICA engine patch for IBM CAPP/eal4 certification
+
 * Thu May 19 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.2
 - fix CAN-2005-0109 - use constant time/memory access mod_exp
   so bits of private key aren't leaked by cache eviction (#157631)
