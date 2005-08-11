@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 7
+Release: 8
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -40,7 +40,7 @@ Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7e-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7e-ICA_engine_apr292004.patch
+Patch6: openssl-0.9.7d-ICA_engine-jun142004.patch
 Patch10: libica-1.2-struct.patch
 Patch11: libica-1.2-cleanup.patch
 Patch12: openssl-0.9.7a-libica-autoconf.patch
@@ -398,6 +398,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Aug 11 2005 Phil Knirsch <pknirsch@redhat.com> 0.9.7f-8
+- Updated ICA engine IBM patch to latest upstream version.
+
 * Thu May 19 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-7
 - fix CAN-2005-0109 - use constant time/memory access mod_exp
   so bits of private key aren't leaked by cache eviction (#157631)
