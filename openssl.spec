@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 8
+Release: 9
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -52,7 +52,9 @@ Patch44: openssl-0.9.7f-ca-dir.patch
 Patch45: openssl-0.9.7f-use-poll.patch
 Patch46: openssl-0.9.7f-backport-097g.patch
 Patch47: openssl-0.9.7f-can-2005-0109.patch
-
+Patch48: openssl-0.9.7f-dsa-consttime.patch
+Patch49: openssl-0.9.7f-bn-ppc-div.patch
+Patch50: openssl-0.9.7f-apps-initialize.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -135,6 +137,9 @@ popd
 %patch46 -p1 -b .backport-097g
 # CAN-2005-0109
 %patch47 -p1 -b .modexp-consttime
+%patch48 -p1 -b .dsa-consttime
+%patch49 -p1 -b .ppc-div
+%patch50 -p1 -b .apps-initialize
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -237,7 +242,8 @@ rename so.%{solibbase} so.%{version} $RPM_BUILD_ROOT/%{_lib}/*.so.%{solibbase}
 for lib in $RPM_BUILD_ROOT/%{_lib}/*.so.%{version} ; do
 	chmod 755 ${lib}
 	ln -s -f ../../%{_lib}/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
-	ln -s -f ../../%{_lib}/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
+	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT/%{_lib}/`basename ${lib} .%{version}`.%{soversion}
+	rm -f $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
 done
 
 # Install a makefile for generating keys and self-signed certs, and a script
@@ -352,7 +358,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
 %dir %{_sysconfdir}/pki/tls
-%{_sysconfdir}/pki/tls/certs
+%dir %{_sysconfdir}/pki/tls/certs
+%{_sysconfdir}/pki/tls/certs/make-dummy-cert
+%{_sysconfdir}/pki/tls/certs/Makefile
 %{_sysconfdir}/pki/tls/cert.pem
 %dir %{_sysconfdir}/pki/tls/misc
 %{_sysconfdir}/pki/tls/misc/CA
@@ -362,10 +370,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %{_sysconfdir}/pki/tls/private
 
 %config(noreplace) %{_sysconfdir}/pki/tls/openssl.cnf
-%config %{_sysconfdir}/pki/tls/certs/ca-bundle.crt
+%config(noreplace) %{_sysconfdir}/pki/tls/certs/ca-bundle.crt
 
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
+%attr(0755,root,root) /%{_lib}/*.so.%{soversion}
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
@@ -398,6 +407,12 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Aug 23 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-9
+- add *.so.soversion as symlinks in /lib (#165264)
+- remove unpackaged symlinks (#159595)
+- fixes from upstream (constant time fixes for DSA,
+  bn assembler div on ppc arch, initialize memory on realloc)
+
 * Thu Aug 11 2005 Phil Knirsch <pknirsch@redhat.com> 0.9.7f-8
 - Updated ICA engine IBM patch to latest upstream version.
 
