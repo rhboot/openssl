@@ -86,7 +86,7 @@ doing a re-connect, always takes the first cipher in the cipher list.
 
 =item SSL_OP_MSIE_SSLV2_RSA_PADDING
 
-...
+This option has no effect now.
 
 =item SSL_OP_SSLEAY_080_CLIENT_DH_BUG
 
