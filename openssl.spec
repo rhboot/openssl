@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.16
+Release: 33.17
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -49,6 +49,8 @@ Patch42: openssl-0.9.7a-krb5.patch
 Patch43: openssl-0.9.7a-krb5-security.patch
 Patch44: openssl-0.9.7a-dccs.patch
 Patch45: openssl-0.9.7a-can-2005-0109.patch
+Patch46: openssl-0.9.7a-dsa-consttime.patch
+Patch47: openssl-0.9.7a-can-2005-2969.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -139,9 +141,12 @@ popd
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
 
+# Security fixes
 %patch43 -p1 -b .krb5-security
 %patch44 -p1 -b .dccs
 %patch45 -p1 -b .modexp-consttime
+%patch46 -p1 -b .dsa-consttime
+%patch47 -p0 -b .ssl2-rollback
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -379,6 +384,12 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Oct  6 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.17
+- fix CAN-2005-2969 - remove SSL_OP_MSIE_SSLV2_RSA_PADDING which
+  disables the countermeasure against man in the middle attack in SSLv2
+  (#169863)
+- more fixes for constant time/memory access for DSA signature algorithm
+
 * Tue Jun 21 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.16
 - rebuild
 
