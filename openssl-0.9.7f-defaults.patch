@@ -1,6 +1,23 @@
---- openssl-0.9.7f/apps/openssl.cnf.defaults	2004-05-13 23:38:37.000000000 +0200
-+++ openssl-0.9.7f/apps/openssl.cnf	2005-04-27 11:40:02.651321967 +0200
-@@ -116,23 +116,26 @@
+--- openssl-0.9.7f/apps/openssl.cnf.defaults	2005-10-12 11:43:43.000000000 +0200
++++ openssl-0.9.7f/apps/openssl.cnf	2005-10-12 13:39:11.000000000 +0200
+@@ -67,7 +67,7 @@
+ 
+ default_days	= 365			# how long to certify for
+ default_crl_days= 30			# how long before next CRL
+-default_md	= md5			# which md to use.
++default_md	= sha1			# which md to use.
+ preserve	= no			# keep passed DN ordering
+ 
+ # A few difference way of specifying how similar the request should look
+@@ -99,6 +99,7 @@
+ ####################################################################
+ [ req ]
+ default_bits		= 1024
++default_md		= sha1
+ default_keyfile 	= privkey.pem
+ distinguished_name	= req_distinguished_name
+ attributes		= req_attributes
+@@ -116,23 +117,26 @@
  # MASK:XXXX a literal mask value.
  # WARNING: current versions of Netscape crash on BMPStrings or UTF8Strings
  # so use this option with caution!
@@ -31,7 +48,7 @@
  
  # we can do this but it is not needed normally :-)
  #1.organizationName		= Second Organization Name (eg, company)
-@@ -141,7 +144,7 @@
+@@ -141,7 +145,7 @@
  organizationalUnitName		= Organizational Unit Name (eg, section)
  #organizationalUnitName_default	=
  
