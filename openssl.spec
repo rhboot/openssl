@@ -8,7 +8,7 @@
 %define soversion 5
 
 # Number of threads to spawn when testing some threading fixes.
-#%define thread_test_threads %{?threads:%{threads}}%{!?threads:100}
+#%define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
 
 # Arches on which we need to prevent arch conflicts on opensslconf.h, must
 # also be handled in opensslconf-new.h.
@@ -22,7 +22,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7f
-Release: 9
+Release: 10
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -55,6 +55,7 @@ Patch47: openssl-0.9.7f-can-2005-0109.patch
 Patch48: openssl-0.9.7f-dsa-consttime.patch
 Patch49: openssl-0.9.7f-bn-ppc-div.patch
 Patch50: openssl-0.9.7f-apps-initialize.patch
+Patch51: openssl-0.9.7a-can-2005-2969.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -140,6 +141,8 @@ popd
 %patch48 -p1 -b .dsa-consttime
 %patch49 -p1 -b .ppc-div
 %patch50 -p1 -b .apps-initialize
+# CAN-2005-2969
+%patch51 -p0 -b .ssl2-rollback
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -407,6 +410,12 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Oct 12 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-10
+- fix CAN-2005-2969 - remove SSL_OP_MSIE_SSLV2_RSA_PADDING which
+  disables the countermeasure against man in the middle attack in SSLv2
+  (#169863)
+- use sha1 as default for CA and cert requests - CAN-2005-2946 (#169803)
+
 * Tue Aug 23 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-9
 - add *.so.soversion as symlinks in /lib (#165264)
 - remove unpackaged symlinks (#159595)
