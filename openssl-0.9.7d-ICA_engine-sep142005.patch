@@ -1,4 +1,4 @@
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/Makefile openssl-0.9.7d_icanocleanse/crypto/engine/Makefile
+diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/Makefile.ssl openssl-0.9.7d_icanocleanse/crypto/engine/Makefile.ssl
 --- openssl-0.9.7d/crypto/engine/Makefile	2003-12-27 07:00:00.000000000 -0800
 +++ openssl-0.9.7d_icanocleanse/crypto/engine/Makefile	2004-06-14 15:53:52.638458336 -0700
 @@ -28,13 +28,15 @@
@@ -19,9 +19,9 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/Makefile openssl-0.9.7
  
  SRC= $(LIBSRC)
  
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/eng_all.c openssl-0.9.7d_icanocleanse/crypto/engine/eng_all.c
---- openssl-0.9.7d/crypto/engine/eng_all.c	2003-01-16 10:29:33.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/eng_all.c	2004-06-14 15:53:52.639458184 -0700
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/eng_all.c openssl-0.9.7d-libica-aes/crypto/engine/eng_all.c
+--- openssl-0.9.7d/crypto/engine/eng_all.c	2003-01-16 12:29:33.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/eng_all.c	2005-08-30 13:59:36.000000000 -0500
 @@ -89,6 +89,9 @@
  #ifndef OPENSSL_NO_HW_AEP
  	ENGINE_load_aep();
@@ -32,9 +32,9 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/eng_all.c openssl-0.9.
  #ifndef OPENSSL_NO_HW_SUREWARE
  	ENGINE_load_sureware();
  #endif
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/eng_err.c openssl-0.9.7d_icanocleanse/crypto/engine/eng_err.c
---- openssl-0.9.7d/crypto/engine/eng_err.c	2002-10-15 18:32:35.000000000 -0700
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/eng_err.c	2004-06-14 15:53:52.640458032 -0700
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/eng_err.c openssl-0.9.7d-libica-aes/crypto/engine/eng_err.c
+--- openssl-0.9.7d/crypto/engine/eng_err.c	2002-10-15 20:32:35.000000000 -0500
++++ openssl-0.9.7d-libica-aes/crypto/engine/eng_err.c	2005-08-30 13:59:36.000000000 -0500
 @@ -97,6 +97,16 @@
  {ERR_PACK(0,ENGINE_F_ENGINE_TABLE_REGISTER,0),	"ENGINE_TABLE_REGISTER"},
  {ERR_PACK(0,ENGINE_F_ENGINE_UNLOAD_KEY,0),	"ENGINE_UNLOAD_KEY"},
@@ -81,9 +81,9 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/eng_err.c openssl-0.9.
  {ENGINE_R_VERSION_INCOMPATIBILITY        ,"version incompatibility"},
  {0,NULL}
  	};
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/engine.h openssl-0.9.7d_icanocleanse/crypto/engine/engine.h
---- openssl-0.9.7d/crypto/engine/engine.h	2003-11-29 02:25:41.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/engine.h	2004-06-14 15:53:52.644457424 -0700
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/engine.h openssl-0.9.7d-libica-aes/crypto/engine/engine.h
+--- openssl-0.9.7d/crypto/engine/engine.h	2003-11-29 04:25:41.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/engine.h	2005-08-30 13:59:36.000000000 -0500
 @@ -677,6 +677,16 @@
  #define ENGINE_F_ENGINE_TABLE_REGISTER			 184
  #define ENGINE_F_ENGINE_UNLOAD_KEY			 152
@@ -130,18 +130,18 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/engine.h openssl-0.9.7
  #define ENGINE_R_VERSION_INCOMPATIBILITY		 145
  
  #ifdef  __cplusplus
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw.ec openssl-0.9.7d_icanocleanse/crypto/engine/hw.ec
---- openssl-0.9.7d/crypto/engine/hw.ec	2002-02-27 14:44:43.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/hw.ec	2004-06-14 15:53:52.645457272 -0700
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/hw.ec openssl-0.9.7d-libica-aes/crypto/engine/hw.ec
+--- openssl-0.9.7d/crypto/engine/hw.ec	2002-02-27 16:44:43.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/hw.ec	2005-08-30 13:59:36.000000000 -0500
 @@ -6,3 +6,4 @@
  L SUREWARE	hw_sureware_err.h		hw_sureware_err.c
  L UBSEC		hw_ubsec_err.h			hw_ubsec_err.c
  L CCA4758	hw_4758_cca_err.h		hw_4758_cca_err.c
 +L IBMCA		hw_ibmca_err.h			hw_ibmca_err.c
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9.7d_icanocleanse/crypto/engine/hw_ibmca.c
---- openssl-0.9.7d/crypto/engine/hw_ibmca.c	1969-12-31 16:00:00.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/hw_ibmca.c	2004-06-14 15:53:52.650456512 -0700
-@@ -0,0 +1,1489 @@
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca.c
+--- openssl-0.9.7d/crypto/engine/hw_ibmca.c	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca.c	2005-08-30 16:06:47.000000000 -0500
+@@ -0,0 +1,1834 @@
 +/* crypto/engine/hw_ibmca.c */
 +/* Written by Geoff Thorpe (geoff@geoffthorpe.net) for the OpenSSL
 + * project 2000.
@@ -231,6 +231,18 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +	unsigned char key[sizeof(ICA_KEY_DES_TRIPLE)];
 +} ICA_DES_CTX;
 +
++typedef struct ibmca_aes_128_context {
++	unsigned char key[AES_KEY_LEN128];
++} ICA_AES_128_CTX;
++
++typedef struct ibmca_aes_192_context {
++	unsigned char key[AES_KEY_LEN192];
++} ICA_AES_192_CTX;
++
++typedef struct ibmca_aes_256_context {
++	unsigned char key[AES_KEY_LEN256];
++} ICA_AES_256_CTX;
++
 +#ifndef OPENSSL_NO_SHA1
 +typedef struct ibmca_sha1_ctx {
 +	ICA_SHA_CONTEXT c;
@@ -239,13 +251,22 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +} IBMCA_SHA_CTX;
 +#endif
 +
-+static int cipher_nids[] = { NID_des_ecb,
-+	NID_des_cbc, NID_des_ede3_ecb, NID_des_ede3_cbc
++static int cipher_nids[] = { 
++	NID_des_ecb,
++	NID_des_cbc,
++	NID_des_ede3_ecb,
++	NID_des_ede3_cbc,
++	NID_aes_128_ecb,
++	NID_aes_128_cbc,
++	NID_aes_192_ecb,
++	NID_aes_192_cbc,
++	NID_aes_256_ecb,
++	NID_aes_256_cbc,
 +};
 +
 +static int digest_nids[] = { 
 +#ifndef OPENSSL_NO_SHA1
-+	NID_sha1 
++	NID_sha1,
 +#endif
 +};
 +
@@ -264,6 +285,8 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +static const char *IBMCA_F8 = "icaDesDecrypt";
 +static const char *IBMCA_F9 = "icaTDesEncrypt";
 +static const char *IBMCA_F10 = "icaTDesDecrypt";
++static const char *IBMCA_F11 = "icaAesEncrypt";
++static const char *IBMCA_F12 = "icaAesDecrypt";
 +
 +static ICA_ADAPTER_HANDLE ibmca_handle = 0;
 +
@@ -312,7 +335,7 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +static int ibmca_rand_bytes(unsigned char *buf, int num);
 +static int ibmca_rand_status(void);
 +
-+/* DES, TDES stuff */
++/* DES, TDES, AES declarations */
 +static int ibmca_usable_ciphers(const int **nids);
 +
 +static int ibmca_engine_ciphers(ENGINE * e, const EVP_CIPHER ** cipher,
@@ -326,6 +349,15 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +
 +static int ibmca_tdes_cipher(EVP_CIPHER_CTX * ctx, unsigned char *out,
 +			     const unsigned char *in, unsigned int inlen);
++
++static int ibmca_aes_128_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++				const unsigned char *in, unsigned int inlen);
++
++static int ibmca_aes_192_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++				const unsigned char *in, unsigned int inlen);
++
++static int ibmca_aes_256_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
++				const unsigned char *in, unsigned int inlen);
 +
 +static int ibmca_cipher_cleanup(EVP_CIPHER_CTX * ctx);
 +
@@ -485,6 +517,108 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +	NULL
 +};
 +
++/* AES-128 ECB EVP */
++const EVP_CIPHER ibmca_aes_128_ecb = {
++	NID_aes_128_ecb,
++	sizeof(ICA_AES_VECTOR),
++	sizeof(ICA_KEY_AES_LEN128),
++	sizeof(ICA_AES_VECTOR),
++	EVP_CIPH_ECB_MODE,
++	ibmca_init_key,
++	ibmca_aes_128_cipher,
++	ibmca_cipher_cleanup,
++	sizeof(struct ibmca_aes_128_context),
++	EVP_CIPHER_set_asn1_iv,
++	EVP_CIPHER_get_asn1_iv,
++	NULL,
++	NULL
++};
++
++/* AES-128 CBC EVP */
++const EVP_CIPHER ibmca_aes_128_cbc = {
++	NID_aes_128_cbc,
++	sizeof(ICA_AES_VECTOR),
++	sizeof(ICA_KEY_AES_LEN128),
++	sizeof(ICA_AES_VECTOR),
++	EVP_CIPH_CBC_MODE,
++	ibmca_init_key,
++	ibmca_aes_128_cipher,
++	ibmca_cipher_cleanup,
++	sizeof(struct ibmca_aes_128_context),
++	EVP_CIPHER_set_asn1_iv,
++	EVP_CIPHER_get_asn1_iv,
++	NULL,
++	NULL
++};
++
++/* AES-192 ECB EVP */
++const EVP_CIPHER ibmca_aes_192_ecb = {
++	NID_aes_192_ecb,
++	sizeof(ICA_AES_VECTOR),
++	sizeof(ICA_KEY_AES_LEN192),
++	sizeof(ICA_AES_VECTOR),
++	EVP_CIPH_ECB_MODE,
++	ibmca_init_key,
++	ibmca_aes_192_cipher,
++	ibmca_cipher_cleanup,
++	sizeof(struct ibmca_aes_192_context),
++	EVP_CIPHER_set_asn1_iv,
++	EVP_CIPHER_get_asn1_iv,
++	NULL,
++	NULL
++};
++
++/* AES-192 CBC EVP */
++const EVP_CIPHER ibmca_aes_192_cbc = {
++	NID_aes_192_cbc,
++	sizeof(ICA_AES_VECTOR),
++	sizeof(ICA_KEY_AES_LEN192),
++	sizeof(ICA_AES_VECTOR),
++	EVP_CIPH_CBC_MODE,
++	ibmca_init_key,
++	ibmca_aes_192_cipher,
++	ibmca_cipher_cleanup,
++	sizeof(struct ibmca_aes_192_context),
++	EVP_CIPHER_set_asn1_iv,
++	EVP_CIPHER_get_asn1_iv,
++	NULL,
++	NULL
++};
++
++/* AES-256 ECB EVP */
++const EVP_CIPHER ibmca_aes_256_ecb = {
++	NID_aes_256_ecb,
++	sizeof(ICA_AES_VECTOR),
++	sizeof(ICA_KEY_AES_LEN256),
++	sizeof(ICA_AES_VECTOR),
++	EVP_CIPH_ECB_MODE,
++	ibmca_init_key,
++	ibmca_aes_256_cipher,
++	ibmca_cipher_cleanup,
++	sizeof(struct ibmca_aes_256_context),
++	EVP_CIPHER_set_asn1_iv,
++	EVP_CIPHER_get_asn1_iv,
++	NULL,
++	NULL
++};
++
++/* AES-256 CBC EVP */
++const EVP_CIPHER ibmca_aes_256_cbc = {
++	NID_aes_256_cbc,
++	sizeof(ICA_AES_VECTOR),
++	sizeof(ICA_KEY_AES_LEN256),
++	sizeof(ICA_AES_VECTOR),
++	EVP_CIPH_CBC_MODE,
++	ibmca_init_key,
++	ibmca_aes_256_cipher,
++	ibmca_cipher_cleanup,
++	sizeof(struct ibmca_aes_256_context),
++	EVP_CIPHER_set_asn1_iv,
++	EVP_CIPHER_get_asn1_iv,
++	NULL,
++	NULL
++};
++
 +#ifndef OPENSSL_NO_SHA1
 +static const EVP_MD ibmca_sha1 = {
 +	NID_sha1,
@@ -631,6 +765,8 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +static unsigned int (ICA_CALL * p_icaDesDecrypt) ();
 +static unsigned int (ICA_CALL * p_icaTDesEncrypt) ();
 +static unsigned int (ICA_CALL * p_icaTDesDecrypt) ();
++static unsigned int (ICA_CALL * p_icaAesEncrypt) ();
++static unsigned int (ICA_CALL * p_icaAesDecrypt) ();
 +
 +/* utility function to obtain a context */
 +static int get_context(ICA_ADAPTER_HANDLE * p_handle)
@@ -663,6 +799,8 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +	void (*p8) ();
 +	void (*p9) ();
 +	void (*p10) ();
++	void (*p11) ();
++	void (*p12) ();
 +
 +	if (ibmca_dso != NULL) {
 +		IBMCAerr(IBMCA_F_IBMCA_INIT, IBMCA_R_ALREADY_LOADED);
@@ -685,16 +823,18 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +		goto err;
 +	}
 +
-+	if (!(p1 = DSO_bind_func(ibmca_dso, IBMCA_F1)) ||
-+	    !(p2 = DSO_bind_func(ibmca_dso, IBMCA_F2)) ||
-+	    !(p3 = DSO_bind_func(ibmca_dso, IBMCA_F3)) ||
-+	    !(p4 = DSO_bind_func(ibmca_dso, IBMCA_F4)) ||
-+	    !(p5 = DSO_bind_func(ibmca_dso, IBMCA_F5)) ||
-+	    !(p6 = DSO_bind_func(ibmca_dso, IBMCA_F6)) ||
-+	    !(p7 = DSO_bind_func(ibmca_dso, IBMCA_F7)) ||
-+	    !(p8 = DSO_bind_func(ibmca_dso, IBMCA_F8)) ||
-+	    !(p9 = DSO_bind_func(ibmca_dso, IBMCA_F9)) ||
-+	    !(p10 = DSO_bind_func(ibmca_dso, IBMCA_F10))) {
++	if (!(p1 = DSO_bind_func(ibmca_dso, IBMCA_F1))
++	    || !(p2 = DSO_bind_func(ibmca_dso, IBMCA_F2))
++	    || !(p3 = DSO_bind_func(ibmca_dso, IBMCA_F3))
++	    || !(p4 = DSO_bind_func(ibmca_dso, IBMCA_F4))
++	    || !(p5 = DSO_bind_func(ibmca_dso, IBMCA_F5))
++	    || !(p6 = DSO_bind_func(ibmca_dso, IBMCA_F6))
++	    || !(p7 = DSO_bind_func(ibmca_dso, IBMCA_F7))
++	    || !(p8 = DSO_bind_func(ibmca_dso, IBMCA_F8))
++	    || !(p9 = DSO_bind_func(ibmca_dso, IBMCA_F9))
++	    || !(p10 = DSO_bind_func(ibmca_dso, IBMCA_F10))
++	    || !(p11 = DSO_bind_func(ibmca_dso, IBMCA_F11))
++	    || !(p12 = DSO_bind_func(ibmca_dso, IBMCA_F12))) {
 +		IBMCAerr(IBMCA_F_IBMCA_INIT, IBMCA_R_DSO_FAILURE);
 +		goto err;
 +	}
@@ -711,6 +851,8 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +	p_icaDesDecrypt = (unsigned int (ICA_CALL *) ()) p8;
 +	p_icaTDesEncrypt = (unsigned int (ICA_CALL *) ()) p9;
 +	p_icaTDesDecrypt = (unsigned int (ICA_CALL *) ()) p10;
++	p_icaAesEncrypt = (unsigned int (ICA_CALL *) ()) p11;
++	p_icaAesDecrypt = (unsigned int (ICA_CALL *) ()) p12;
 +
 +	if (!get_context(&ibmca_handle)) {
 +		IBMCAerr(IBMCA_F_IBMCA_INIT, IBMCA_R_UNIT_FAILURE);
@@ -734,6 +876,8 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +	p_icaDesDecrypt = NULL;
 +	p_icaTDesEncrypt = NULL;
 +	p_icaTDesDecrypt = NULL;
++	p_icaAesEncrypt = NULL;
++	p_icaAesDecrypt = NULL;
 +
 +	return 0;
 +}
@@ -800,6 +944,24 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +		break;
 +	case NID_des_ede3_cbc:
 +		*cipher = &ibmca_tdes_cbc;
++		break;
++	case NID_aes_128_ecb:
++		*cipher = &ibmca_aes_128_ecb;
++		break;
++	case NID_aes_128_cbc:
++		*cipher = &ibmca_aes_128_cbc;
++		break;
++	case NID_aes_192_ecb:
++		*cipher = &ibmca_aes_192_ecb;
++		break;
++	case NID_aes_192_cbc:
++		*cipher = &ibmca_aes_192_cbc;
++		break;
++	case NID_aes_256_ecb:
++		*cipher = &ibmca_aes_256_ecb;
++		break;
++	case NID_aes_256_cbc:
++		*cipher = &ibmca_aes_256_cbc;
 +		break;
 +	default:
 +		*cipher = NULL;
@@ -953,7 +1115,190 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +			return 1;
 +		}
 +	}
-+}				// end ibmca_des_cipher
++}				// end ibmca_tdes_cipher
++
++static int ibmca_aes_128_cipher(EVP_CIPHER_CTX * ctx, unsigned char *out,
++				const unsigned char *in, unsigned int inlen)
++{
++	int mode;
++	int outlen = inlen;
++	int rv;
++	ICA_AES_128_CTX *pCtx = ctx->cipher_data;
++	ICA_AES_VECTOR pre_iv;
++
++	if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_ECB_MODE) {
++		mode = MODE_AES_ECB;
++	} else if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_CBC_MODE) {
++		mode = MODE_AES_CBC;
++	} else {
++		IBMCAerr(IBMCA_F_IBMCA_AES_128_CIPHER, 
++			 IBMCA_R_CIPHER_MODE_NOT_SUPPORTED);
++		return 0;
++	}
++
++	if (ctx->encrypt) {
++		rv = p_icaAesEncrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
++				     mode,
++				     inlen,
++				     in,
++				     (ICA_AES_VECTOR *)ctx->iv,
++				     AES_KEY_LEN128,
++				     (ICA_KEY_AES_LEN128 *)pCtx->key,
++				     &outlen, out);
++		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_AES_128_CIPHER, 
++				 IBMCA_R_REQUEST_FAILED);
++			return 0;
++		} else {
++			memcpy(ctx->iv,
++			       out + inlen - EVP_CIPHER_CTX_iv_length(ctx),
++			       EVP_CIPHER_CTX_iv_length(ctx));
++			return 1;
++		}
++	} else {
++		/* Protect against decrypt in place */
++		memcpy(pre_iv, in + inlen - sizeof(pre_iv), sizeof(pre_iv));
++		rv = p_icaAesDecrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
++				     mode,
++				     inlen,
++				     in,
++				     (ICA_AES_VECTOR *)ctx->iv,
++				     AES_KEY_LEN128,
++				     (ICA_KEY_AES_LEN128 *)pCtx->key,
++				     &outlen, out);
++
++		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_AES_128_CIPHER, 
++				 IBMCA_R_REQUEST_FAILED);
++			return 0;
++		} else {
++			memcpy(ctx->iv, pre_iv, EVP_CIPHER_CTX_iv_length(ctx));
++			return 1;
++		}
++	}
++}
++
++static int ibmca_aes_192_cipher(EVP_CIPHER_CTX * ctx, unsigned char *out,
++				const unsigned char *in, unsigned int inlen)
++{
++	int mode;
++	int outlen = inlen;
++	int rv;
++	ICA_AES_192_CTX *pCtx = ctx->cipher_data;
++	ICA_AES_VECTOR pre_iv;
++
++	if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_ECB_MODE) {
++		mode = MODE_AES_ECB;
++	} else if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_CBC_MODE) {
++		mode = MODE_AES_CBC;
++	} else {
++		IBMCAerr(IBMCA_F_IBMCA_AES_192_CIPHER, 
++			 IBMCA_R_CIPHER_MODE_NOT_SUPPORTED);
++		return 0;
++	}
++
++	if (ctx->encrypt) {
++		rv = p_icaAesEncrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
++				     mode,
++				     inlen,
++				     in,
++				     (ICA_AES_VECTOR *)ctx->iv,
++				     AES_KEY_LEN192,
++				     (ICA_KEY_AES_LEN192 *)pCtx->key,
++				     &outlen, out);
++		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_AES_192_CIPHER, 
++				 IBMCA_R_REQUEST_FAILED);
++			return 0;
++		} else {
++			memcpy(ctx->iv,
++			       out + inlen - EVP_CIPHER_CTX_iv_length(ctx),
++			       EVP_CIPHER_CTX_iv_length(ctx));
++			return 1;
++		}
++	} else {
++		/* Protect against decrypt in place */
++		memcpy(pre_iv, in + inlen - sizeof(pre_iv), sizeof(pre_iv));
++		rv = p_icaAesDecrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
++				     mode,
++				     inlen,
++				     in,
++				     (ICA_AES_VECTOR *)ctx->iv,
++				     AES_KEY_LEN192,
++				     (ICA_KEY_AES_LEN192 *)pCtx->key,
++				     &outlen, out);
++
++		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_AES_192_CIPHER, 
++				 IBMCA_R_REQUEST_FAILED);
++			return 0;
++		} else {
++			memcpy(ctx->iv, pre_iv, EVP_CIPHER_CTX_iv_length(ctx));
++			return 1;
++		}
++	}
++}
++
++static int ibmca_aes_256_cipher(EVP_CIPHER_CTX * ctx, unsigned char *out,
++				const unsigned char *in, unsigned int inlen)
++{
++	int mode;
++	int outlen = inlen;
++	int rv;
++	ICA_AES_256_CTX *pCtx = ctx->cipher_data;
++	ICA_AES_VECTOR pre_iv;
++
++	if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_ECB_MODE) {
++		mode = MODE_AES_ECB;
++	} else if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_CBC_MODE) {
++		mode = MODE_AES_CBC;
++	} else {
++		IBMCAerr(IBMCA_F_IBMCA_AES_256_CIPHER, 
++			 IBMCA_R_CIPHER_MODE_NOT_SUPPORTED);
++		return 0;
++	}
++
++	if (ctx->encrypt) {
++		rv = p_icaAesEncrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
++				     mode,
++				     inlen,
++				     in,
++				     (ICA_AES_VECTOR *)ctx->iv,
++				     AES_KEY_LEN256,
++				     (ICA_KEY_AES_LEN256 *)pCtx->key,
++				     &outlen, out);
++		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_AES_256_CIPHER, 
++				 IBMCA_R_REQUEST_FAILED);
++			return 0;
++		} else {
++			memcpy(ctx->iv,
++			       out + inlen - EVP_CIPHER_CTX_iv_length(ctx),
++			       EVP_CIPHER_CTX_iv_length(ctx));
++			return 1;
++		}
++	} else {
++		/* Protect against decrypt in place */
++		memcpy(pre_iv, in + inlen - sizeof(pre_iv), sizeof(pre_iv));
++		rv = p_icaAesDecrypt((ICA_ADAPTER_HANDLE) ibmca_handle,
++				     mode,
++				     inlen,
++				     in,
++				     (ICA_AES_VECTOR *)ctx->iv,
++				     AES_KEY_LEN256,
++				     (ICA_KEY_AES_LEN256 *)pCtx->key,
++				     &outlen, out);
++
++		if (rv) {
++			IBMCAerr(IBMCA_F_IBMCA_AES_256_CIPHER, 
++				 IBMCA_R_REQUEST_FAILED);
++			return 0;
++		} else {
++			memcpy(ctx->iv, pre_iv, EVP_CIPHER_CTX_iv_length(ctx));
++			return 1;
++		}
++	}
++}
 +
 +static int ibmca_cipher_cleanup(EVP_CIPHER_CTX * ctx)
 +{
@@ -1631,10 +1976,10 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9
 +#endif				/* ENGINE_DYNAMIC_SUPPORT */
 +#endif				/* !OPENSSL_NO_HW_IBMCA */
 +#endif				/* !OPENSSL_NO_HW */
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca_err.c openssl-0.9.7d_icanocleanse/crypto/engine/hw_ibmca_err.c
---- openssl-0.9.7d/crypto/engine/hw_ibmca_err.c	1969-12-31 16:00:00.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/hw_ibmca_err.c	2004-06-14 15:53:52.652456208 -0700
-@@ -0,0 +1,157 @@
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/hw_ibmca_err.c openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca_err.c
+--- openssl-0.9.7d/crypto/engine/hw_ibmca_err.c	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca_err.c	2005-08-30 15:19:22.000000000 -0500
+@@ -0,0 +1,160 @@
 +/* hw_ibmca_err.c */
 +/* ====================================================================
 + * Copyright (c) 1999-2002 The OpenSSL Project.  All rights reserved.
@@ -1713,6 +2058,9 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca_err.c openssl
 +	{ERR_PACK(0, IBMCA_F_IBMCA_TDES_CIPHER, 0), "IBMCA_TDES_CIPHER"},
 +	{ERR_PACK(0, IBMCA_F_IBMCA_SHA1_UPDATE, 0), "IBMCA_SHA1_UPDATE"},
 +	{ERR_PACK(0, IBMCA_F_IBMCA_SHA1_FINAL, 0), "IBMCA_SHA1_FINAL"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_AES_128_CIPHER, 0), "IBMCA_AES_128_CIPHER"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_AES_192_CIPHER, 0), "IBMCA_AES_192_CIPHER"},
++	{ERR_PACK(0, IBMCA_F_IBMCA_AES_256_CIPHER, 0), "IBMCA_AES_256_CIPHER"},
 +	{0, NULL}
 +};
 +
@@ -1792,10 +2140,10 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca_err.c openssl
 +		IBMCA_lib_error_code = ERR_get_next_error_library();
 +	ERR_PUT_error(IBMCA_lib_error_code, function, reason, file, line);
 +}
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca_err.h openssl-0.9.7d_icanocleanse/crypto/engine/hw_ibmca_err.h
---- openssl-0.9.7d/crypto/engine/hw_ibmca_err.h	1969-12-31 16:00:00.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/hw_ibmca_err.h	2004-06-14 15:53:52.653456056 -0700
-@@ -0,0 +1,48 @@
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/hw_ibmca_err.h openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca_err.h
+--- openssl-0.9.7d/crypto/engine/hw_ibmca_err.h	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca_err.h	2005-08-30 15:18:47.000000000 -0500
+@@ -0,0 +1,51 @@
 +
 +#ifndef HEADER_IBMCA_ERR_H
 +#define HEADER_IBMCA_ERR_H
@@ -1824,6 +2172,9 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca_err.h openssl
 +#define IBMCA_F_IBMCA_TDES_CIPHER			 108
 +#define IBMCA_F_IBMCA_SHA1_UPDATE			 109
 +#define IBMCA_F_IBMCA_SHA1_FINAL			 110
++#define IBMCA_F_IBMCA_AES_128_CIPHER			 111
++#define IBMCA_F_IBMCA_AES_192_CIPHER			 112
++#define IBMCA_F_IBMCA_AES_256_CIPHER			 113
 +
 +/* Reason codes. */
 +#define IBMCA_R_ALREADY_LOADED				 100
@@ -1844,10 +2195,10 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/hw_ibmca_err.h openssl
 +#define IBMCA_R_CIPHER_MODE_NOT_SUPPORTED		 115
 +
 +#endif
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7d_icanocleanse/crypto/engine/vendor_defns/ica_openssl_api.h
---- openssl-0.9.7d/crypto/engine/vendor_defns/ica_openssl_api.h	1969-12-31 16:00:00.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/vendor_defns/ica_openssl_api.h	2004-06-14 15:53:52.654455904 -0700
-@@ -0,0 +1,225 @@
+diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/vendor_defns/ica_openssl_api.h openssl-0.9.7d-libica-aes/crypto/engine/vendor_defns/ica_openssl_api.h
+--- openssl-0.9.7d/crypto/engine/vendor_defns/ica_openssl_api.h	1969-12-31 18:00:00.000000000 -0600
++++ openssl-0.9.7d-libica-aes/crypto/engine/vendor_defns/ica_openssl_api.h	2005-08-30 14:11:01.000000000 -0500
+@@ -0,0 +1,242 @@
 +
 +#ifndef __ICA_OPENSSL_API_H__
 +#define __ICA_OPENSSL_API_H__
@@ -1870,8 +2221,25 @@ diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/vendor_defns/ica_opens
 + | DES defines and typedefs (from ica_api.h)      |
 + *------------------------------------------------*/
 +
-+#define MODE_DES_ECB      1
-+#define MODE_DES_CBC      2
++#define MODE_ECB 1
++#define MODE_CBC 2
++
++#define MODE_AES_ECB MODE_ECB
++#define MODE_AES_CBC MODE_CBC
++
++#define AES_KEY_LEN128	(128/8)
++#define AES_KEY_LEN192	(192/8)
++#define AES_KEY_LEN256	(256/8)
++
++typedef unsigned char ICA_AES_VECTOR[16];
++
++typedef unsigned char ICA_KEY_AES_SINGLE[8];
++typedef unsigned char ICA_KEY_AES_LEN128[AES_KEY_LEN128];
++typedef unsigned char ICA_KEY_AES_LEN192[AES_KEY_LEN192];
++typedef unsigned char ICA_KEY_AES_LEN256[AES_KEY_LEN256];
++
++#define MODE_DES_ECB MODE_ECB
++#define MODE_DES_CBC MODE_CBC
 +
 +typedef unsigned char ICA_DES_VECTOR[8];
 +
