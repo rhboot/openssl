@@ -99,6 +99,7 @@ emailAddress		= optional
 ####################################################################
 [ req ]
 default_bits		= 1024
+default_md		= sha1
 default_keyfile 	= privkey.pem
 distinguished_name	= req_distinguished_name
 attributes		= req_attributes
@@ -116,23 +117,26 @@ x509_extensions	= v3_ca	# The extentions to add to the self signed cert
 # MASK:XXXX a literal mask value.
 # WARNING: current versions of Netscape crash on BMPStrings or UTF8Strings
 # so use this option with caution!
-string_mask = nombstr
+# we use PrintableString+UTF8String mask so if pure ASCII texts are used
+# the resulting certificates are compatible with Netscape
+string_mask = MASK:0x2002
 
 # req_extensions = v3_req # The extensions to add to a certificate request
 
 [ req_distinguished_name ]
 countryName			= Country Name (2 letter code)
-countryName_default		= AU
+countryName_default		= GB
 countryName_min			= 2
 countryName_max			= 2
 
 stateOrProvinceName		= State or Province Name (full name)
-stateOrProvinceName_default	= Some-State
+stateOrProvinceName_default	= Berkshire
 
 localityName			= Locality Name (eg, city)
+localityName_default		= Newbury
 
 0.organizationName		= Organization Name (eg, company)
-0.organizationName_default	= Internet Widgits Pty Ltd
+0.organizationName_default	= My Company Ltd
 
 # we can do this but it is not needed normally :-)
 #1.organizationName		= Second Organization Name (eg, company)
@@ -141,7 +145,7 @@ localityName			= Locality Name (eg, city)
 organizationalUnitName		= Organizational Unit Name (eg, section)
 #organizationalUnitName_default	=
 
-commonName			= Common Name (eg, YOUR name)
+commonName			= Common Name (eg, your name or your server\'s hostname)
 commonName_max			= 64
 
 emailAddress			= Email Address
