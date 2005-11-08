@@ -14,6 +14,7 @@
 #include <openssl/objects.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <openssl/md5.h>
 #include <openssl/ssl.h>
 
 /* Just assume we want to do engine stuff if we're using 0.9.6b or

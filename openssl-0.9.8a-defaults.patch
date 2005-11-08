@@ -1,14 +1,5 @@
---- openssl-0.9.7f/apps/openssl.cnf.defaults	2005-10-12 11:43:43.000000000 +0200
-+++ openssl-0.9.7f/apps/openssl.cnf	2005-10-12 13:39:11.000000000 +0200
-@@ -67,7 +67,7 @@
- 
- default_days	= 365			# how long to certify for
- default_crl_days= 30			# how long before next CRL
--default_md	= md5			# which md to use.
-+default_md	= sha1			# which md to use.
- preserve	= no			# keep passed DN ordering
- 
- # A few difference way of specifying how similar the request should look
+--- openssl-0.9.8a/apps/openssl.cnf.defaults	2005-09-16 14:20:24.000000000 +0200
++++ openssl-0.9.8a/apps/openssl.cnf	2005-11-04 11:00:37.000000000 +0100
 @@ -99,6 +99,7 @@
  ####################################################################
  [ req ]
