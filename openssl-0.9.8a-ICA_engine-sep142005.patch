@@ -1,94 +1,39 @@
-diff -urN -X openssl.exclude openssl-0.9.7d/crypto/engine/Makefile.ssl openssl-0.9.7d_icanocleanse/crypto/engine/Makefile.ssl
---- openssl-0.9.7d/crypto/engine/Makefile	2003-12-27 07:00:00.000000000 -0800
-+++ openssl-0.9.7d_icanocleanse/crypto/engine/Makefile	2004-06-14 15:53:52.638458336 -0700
-@@ -28,13 +28,15 @@
- 	tb_rsa.c tb_dsa.c tb_dh.c tb_rand.c tb_cipher.c tb_digest.c \
- 	eng_openssl.c eng_dyn.c eng_cnf.c \
- 	hw_atalla.c hw_cswift.c hw_ncipher.c hw_nuron.c hw_ubsec.c \
--	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c
-+	hw_cryptodev.c hw_aep.c hw_sureware.c hw_4758_cca.c \
-+	hw_ibmca.c
- LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
- 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
- 	tb_rsa.o tb_dsa.o tb_dh.o tb_rand.o tb_cipher.o tb_digest.o \
- 	eng_openssl.o eng_dyn.o eng_cnf.o \
- 	hw_atalla.o hw_cswift.o hw_ncipher.o hw_nuron.o hw_ubsec.o \
--	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o
-+	hw_cryptodev.o hw_aep.o hw_sureware.o hw_4758_cca.o \
-+	hw_ibmca.o
- 
- SRC= $(LIBSRC)
- 
-diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/eng_all.c openssl-0.9.7d-libica-aes/crypto/engine/eng_all.c
---- openssl-0.9.7d/crypto/engine/eng_all.c	2003-01-16 12:29:33.000000000 -0600
-+++ openssl-0.9.7d-libica-aes/crypto/engine/eng_all.c	2005-08-30 13:59:36.000000000 -0500
-@@ -89,6 +89,9 @@
- #ifndef OPENSSL_NO_HW_AEP
- 	ENGINE_load_aep();
+--- openssl-0.9.8a/crypto/engine/eng_all.c.ibmca	2005-04-19 15:24:44.000000000 +0200
++++ openssl-0.9.8a/crypto/engine/eng_all.c	2005-11-07 17:52:17.000000000 +0100
+@@ -69,6 +69,9 @@
+ 	ENGINE_load_openssl();
  #endif
-+#ifndef OPENSSL_NO_HW_IBMCA
+ 	ENGINE_load_dynamic();
++#if !defined(OPENSSL_NO_HW) && !defined(OPENSSL_NO_HW_IBMCA)
 +	ENGINE_load_ibmca();
 +#endif
- #ifndef OPENSSL_NO_HW_SUREWARE
- 	ENGINE_load_sureware();
- #endif
-diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/eng_err.c openssl-0.9.7d-libica-aes/crypto/engine/eng_err.c
---- openssl-0.9.7d/crypto/engine/eng_err.c	2002-10-15 20:32:35.000000000 -0500
-+++ openssl-0.9.7d-libica-aes/crypto/engine/eng_err.c	2005-08-30 13:59:36.000000000 -0500
-@@ -97,6 +97,16 @@
- {ERR_PACK(0,ENGINE_F_ENGINE_TABLE_REGISTER,0),	"ENGINE_TABLE_REGISTER"},
- {ERR_PACK(0,ENGINE_F_ENGINE_UNLOAD_KEY,0),	"ENGINE_UNLOAD_KEY"},
- {ERR_PACK(0,ENGINE_F_ENGINE_UP_REF,0),	"ENGINE_up_ref"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_FINISH,0),  "IBMCA_FINISH"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_INIT,0),    "IBMCA_INIT"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_MOD_EXP,0), "IBMCA_MOD_EXP"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_MOD_EXP_CRT,0),     "IBMCA_MOD_EXP_CRT"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_RAND_BYTES,0),      "IBMCA_RAND_BYTES"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_RSA_MOD_EXP,0),     "IBMCA_RSA_MOD_EXP"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_DES_CIPHER,0),     "IBMCA_DES_CIPHER"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_TDES_CIPHER,0),     "IBMCA_TDES_CIPHER"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_SHA1_UPDATE,0),     "IBMCA_SHA1_UPDATE"},
-+{ERR_PACK(0,ENGINE_F_IBMCA_SHA1_FINAL,0),     "IBMCA_SHA1_FINAL"},
- {ERR_PACK(0,ENGINE_F_INT_CTRL_HELPER,0),	"INT_CTRL_HELPER"},
- {ERR_PACK(0,ENGINE_F_INT_ENGINE_CONFIGURE,0),	"INT_ENGINE_CONFIGURE"},
- {ERR_PACK(0,ENGINE_F_LOG_MESSAGE,0),	"LOG_MESSAGE"},
-@@ -108,6 +118,8 @@
- 	{
- {ENGINE_R_ALREADY_LOADED                 ,"already loaded"},
- {ENGINE_R_ARGUMENT_IS_NOT_A_NUMBER       ,"argument is not a number"},
-+{ENGINE_R_BN_CTX_FULL                    ,"bn ctx full"},
-+{ENGINE_R_BN_EXPAND_FAIL                 ,"bn expand fail"},
- {ENGINE_R_CMD_NOT_EXECUTABLE             ,"cmd not executable"},
- {ENGINE_R_COMMAND_TAKES_INPUT            ,"command takes input"},
- {ENGINE_R_COMMAND_TAKES_NO_INPUT         ,"command takes no input"},
-@@ -132,6 +144,7 @@
- {ENGINE_R_INVALID_CMD_NUMBER             ,"invalid cmd number"},
- {ENGINE_R_INVALID_INIT_VALUE             ,"invalid init value"},
- {ENGINE_R_INVALID_STRING                 ,"invalid string"},
-+{ENGINE_R_MISSING_KEY_COMPONENTS         ,"missing key components"},
- {ENGINE_R_NOT_INITIALISED                ,"not initialised"},
- {ENGINE_R_NOT_LOADED                     ,"not loaded"},
- {ENGINE_R_NO_CONTROL_FUNCTION            ,"no control function"},
-@@ -141,9 +154,11 @@
- {ENGINE_R_NO_SUCH_ENGINE                 ,"no such engine"},
- {ENGINE_R_NO_UNLOAD_FUNCTION             ,"no unload function"},
- {ENGINE_R_PROVIDE_PARAMETERS             ,"provide parameters"},
-+{ENGINE_R_REQUEST_FAILED                 ,"request failed"},
- {ENGINE_R_RSA_NOT_IMPLEMENTED            ,"rsa not implemented"},
- {ENGINE_R_UNIMPLEMENTED_CIPHER           ,"unimplemented cipher"},
- {ENGINE_R_UNIMPLEMENTED_DIGEST           ,"unimplemented digest"},
-+{ENGINE_R_UNIT_FAILURE                   ,"unit failure"},
- {ENGINE_R_VERSION_INCOMPATIBILITY        ,"version incompatibility"},
- {0,NULL}
- 	};
-diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/engine.h openssl-0.9.7d-libica-aes/crypto/engine/engine.h
---- openssl-0.9.7d/crypto/engine/engine.h	2003-11-29 04:25:41.000000000 -0600
-+++ openssl-0.9.7d-libica-aes/crypto/engine/engine.h	2005-08-30 13:59:36.000000000 -0500
-@@ -677,6 +677,16 @@
- #define ENGINE_F_ENGINE_TABLE_REGISTER			 184
+ #ifndef OPENSSL_NO_STATIC_ENGINE
+ #ifndef OPENSSL_NO_HW
+ #ifndef OPENSSL_NO_HW_4758_CCA
+--- openssl-0.9.8a/crypto/engine/Makefile.ibmca	2005-07-16 13:13:05.000000000 +0200
++++ openssl-0.9.8a/crypto/engine/Makefile	2005-11-07 15:47:58.000000000 +0100
+@@ -20,12 +20,12 @@
+ LIBSRC= eng_err.c eng_lib.c eng_list.c eng_init.c eng_ctrl.c \
+ 	eng_table.c eng_pkey.c eng_fat.c eng_all.c \
+ 	tb_rsa.c tb_dsa.c tb_ecdsa.c tb_dh.c tb_ecdh.c tb_rand.c tb_store.c \
+-	tb_cipher.c tb_digest.c \
++	tb_cipher.c tb_digest.c hw_ibmca.c \
+ 	eng_openssl.c eng_cnf.c eng_dyn.c eng_cryptodev.c eng_padlock.c
+ LIBOBJ= eng_err.o eng_lib.o eng_list.o eng_init.o eng_ctrl.o \
+ 	eng_table.o eng_pkey.o eng_fat.o eng_all.o \
+ 	tb_rsa.o tb_dsa.o tb_ecdsa.o tb_dh.o tb_ecdh.o tb_rand.o tb_store.o \
+-	tb_cipher.o tb_digest.o \
++	tb_cipher.o tb_digest.o hw_ibmca.o \
+ 	eng_openssl.o eng_cnf.o eng_dyn.o eng_cryptodev.o eng_padlock.o
+ 
+ SRC= $(LIBSRC)
+--- openssl-0.9.8a/crypto/engine/engine.h.ibmca	2005-11-07 15:36:50.000000000 +0100
++++ openssl-0.9.8a/crypto/engine/engine.h	2005-11-07 16:03:18.000000000 +0100
+@@ -726,6 +726,16 @@
  #define ENGINE_F_ENGINE_UNLOAD_KEY			 152
+ #define ENGINE_F_ENGINE_UNLOCKED_FINISH			 191
  #define ENGINE_F_ENGINE_UP_REF				 190
-+#define ENGINE_F_IBMCA_FINISH                            191
++#define ENGINE_F_IBMCA_FINISH                            201
 +#define ENGINE_F_IBMCA_INIT                              192
 +#define ENGINE_F_IBMCA_MOD_EXP                           193
 +#define ENGINE_F_IBMCA_MOD_EXP_CRT                       194
@@ -100,17 +45,17 @@ diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -
 +#define ENGINE_F_IBMCA_SHA1_FINAL			 200
  #define ENGINE_F_INT_CTRL_HELPER			 172
  #define ENGINE_F_INT_ENGINE_CONFIGURE			 188
- #define ENGINE_F_LOG_MESSAGE				 141
-@@ -685,6 +695,8 @@
+ #define ENGINE_F_INT_ENGINE_MODULE_INIT			 187
+@@ -734,6 +744,8 @@
  /* Reason codes. */
  #define ENGINE_R_ALREADY_LOADED				 100
  #define ENGINE_R_ARGUMENT_IS_NOT_A_NUMBER		 133
-+#define ENGINE_R_BN_CTX_FULL                             151
++#define ENGINE_R_BN_CTX_FULL                             156
 +#define ENGINE_R_BN_EXPAND_FAIL                          152
  #define ENGINE_R_CMD_NOT_EXECUTABLE			 134
  #define ENGINE_R_COMMAND_TAKES_INPUT			 135
  #define ENGINE_R_COMMAND_TAKES_NO_INPUT			 136
-@@ -709,6 +721,7 @@
+@@ -758,6 +770,7 @@
  #define ENGINE_R_INVALID_CMD_NUMBER			 138
  #define ENGINE_R_INVALID_INIT_VALUE			 151
  #define ENGINE_R_INVALID_STRING				 150
@@ -118,7 +63,7 @@ diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -
  #define ENGINE_R_NOT_INITIALISED			 117
  #define ENGINE_R_NOT_LOADED				 112
  #define ENGINE_R_NO_CONTROL_FUNCTION			 120
-@@ -718,9 +731,11 @@
+@@ -767,9 +780,11 @@
  #define ENGINE_R_NO_SUCH_ENGINE				 116
  #define ENGINE_R_NO_UNLOAD_FUNCTION			 126
  #define ENGINE_R_PROVIDE_PARAMETERS			 113
@@ -130,14 +75,54 @@ diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -
  #define ENGINE_R_VERSION_INCOMPATIBILITY		 145
  
  #ifdef  __cplusplus
-diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/hw.ec openssl-0.9.7d-libica-aes/crypto/engine/hw.ec
---- openssl-0.9.7d/crypto/engine/hw.ec	2002-02-27 16:44:43.000000000 -0600
-+++ openssl-0.9.7d-libica-aes/crypto/engine/hw.ec	2005-08-30 13:59:36.000000000 -0500
-@@ -6,3 +6,4 @@
- L SUREWARE	hw_sureware_err.h		hw_sureware_err.c
- L UBSEC		hw_ubsec_err.h			hw_ubsec_err.c
- L CCA4758	hw_4758_cca_err.h		hw_4758_cca_err.c
-+L IBMCA		hw_ibmca_err.h			hw_ibmca_err.c
+--- openssl-0.9.8a/crypto/engine/eng_err.c.ibmca	2005-05-11 05:45:27.000000000 +0200
++++ openssl-0.9.8a/crypto/engine/eng_err.c	2005-11-07 15:53:42.000000000 +0100
+@@ -102,6 +102,16 @@
+ {ERR_FUNC(ENGINE_F_ENGINE_UNLOAD_KEY),	"ENGINE_UNLOAD_KEY"},
+ {ERR_FUNC(ENGINE_F_ENGINE_UNLOCKED_FINISH),	"ENGINE_UNLOCKED_FINISH"},
+ {ERR_FUNC(ENGINE_F_ENGINE_UP_REF),	"ENGINE_up_ref"},
++{ERR_FUNC(ENGINE_F_IBMCA_FINISH),  "IBMCA_FINISH"},
++{ERR_FUNC(ENGINE_F_IBMCA_INIT),    "IBMCA_INIT"},
++{ERR_FUNC(ENGINE_F_IBMCA_MOD_EXP), "IBMCA_MOD_EXP"},
++{ERR_FUNC(ENGINE_F_IBMCA_MOD_EXP_CRT),     "IBMCA_MOD_EXP_CRT"},
++{ERR_FUNC(ENGINE_F_IBMCA_RAND_BYTES),      "IBMCA_RAND_BYTES"},
++{ERR_FUNC(ENGINE_F_IBMCA_RSA_MOD_EXP),     "IBMCA_RSA_MOD_EXP"},
++{ERR_FUNC(ENGINE_F_IBMCA_DES_CIPHER),     "IBMCA_DES_CIPHER"},
++{ERR_FUNC(ENGINE_F_IBMCA_TDES_CIPHER),     "IBMCA_TDES_CIPHER"},
++{ERR_FUNC(ENGINE_F_IBMCA_SHA1_UPDATE),     "IBMCA_SHA1_UPDATE"},
++{ERR_FUNC(ENGINE_F_IBMCA_SHA1_FINAL),     "IBMCA_SHA1_FINAL"},
+ {ERR_FUNC(ENGINE_F_INT_CTRL_HELPER),	"INT_CTRL_HELPER"},
+ {ERR_FUNC(ENGINE_F_INT_ENGINE_CONFIGURE),	"INT_ENGINE_CONFIGURE"},
+ {ERR_FUNC(ENGINE_F_INT_ENGINE_MODULE_INIT),	"INT_ENGINE_MODULE_INIT"},
+@@ -113,6 +123,8 @@
+ 	{
+ {ERR_REASON(ENGINE_R_ALREADY_LOADED)     ,"already loaded"},
+ {ERR_REASON(ENGINE_R_ARGUMENT_IS_NOT_A_NUMBER),"argument is not a number"},
++{ERR_REASON(ENGINE_R_BN_CTX_FULL)                    ,"bn ctx full"},
++{ERR_REASON(ENGINE_R_BN_EXPAND_FAIL)                 ,"bn expand fail"},
+ {ERR_REASON(ENGINE_R_CMD_NOT_EXECUTABLE) ,"cmd not executable"},
+ {ERR_REASON(ENGINE_R_COMMAND_TAKES_INPUT),"command takes input"},
+ {ERR_REASON(ENGINE_R_COMMAND_TAKES_NO_INPUT),"command takes no input"},
+@@ -137,6 +149,7 @@
+ {ERR_REASON(ENGINE_R_INVALID_CMD_NUMBER) ,"invalid cmd number"},
+ {ERR_REASON(ENGINE_R_INVALID_INIT_VALUE) ,"invalid init value"},
+ {ERR_REASON(ENGINE_R_INVALID_STRING)     ,"invalid string"},
++{ERR_REASON(ENGINE_R_MISSING_KEY_COMPONENTS)         ,"missing key components"},
+ {ERR_REASON(ENGINE_R_NOT_INITIALISED)    ,"not initialised"},
+ {ERR_REASON(ENGINE_R_NOT_LOADED)         ,"not loaded"},
+ {ERR_REASON(ENGINE_R_NO_CONTROL_FUNCTION),"no control function"},
+@@ -146,9 +159,11 @@
+ {ERR_REASON(ENGINE_R_NO_SUCH_ENGINE)     ,"no such engine"},
+ {ERR_REASON(ENGINE_R_NO_UNLOAD_FUNCTION) ,"no unload function"},
+ {ERR_REASON(ENGINE_R_PROVIDE_PARAMETERS) ,"provide parameters"},
++{ERR_REASON(ENGINE_R_REQUEST_FAILED)                 ,"request failed"},
+ {ERR_REASON(ENGINE_R_RSA_NOT_IMPLEMENTED),"rsa not implemented"},
+ {ERR_REASON(ENGINE_R_UNIMPLEMENTED_CIPHER),"unimplemented cipher"},
+ {ERR_REASON(ENGINE_R_UNIMPLEMENTED_DIGEST),"unimplemented digest"},
++{ERR_REASON(ENGINE_R_UNIT_FAILURE)                   ,"unit failure"},
+ {ERR_REASON(ENGINE_R_VERSION_INCOMPATIBILITY),"version incompatibility"},
+ {0,NULL}
+ 	};
 diff -x tools -x opensslconf.h -x 'Makefile*' -x test -x cscope.out -x '*.txt' -x '*~' -x certs -x apps -Naur openssl-0.9.7d/crypto/engine/hw_ibmca.c openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca.c
 --- openssl-0.9.7d/crypto/engine/hw_ibmca.c	1969-12-31 18:00:00.000000000 -0600
 +++ openssl-0.9.7d-libica-aes/crypto/engine/hw_ibmca.c	2005-08-30 16:06:47.000000000 -0500

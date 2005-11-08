@@ -5,7 +5,8 @@
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
 # 0.9.7ef soversion = 5
-%define soversion 5
+# 0.9.8a soversion = 6
+%define soversion 6
 
 # Number of threads to spawn when testing some threading fixes.
 #%define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
@@ -21,8 +22,8 @@
 
 Summary: The OpenSSL toolkit.
 Name: openssl
-Version: 0.9.7f
-Release: 11
+Version: 0.9.8a
+Release: 1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -35,27 +36,24 @@ Source7: libica-%{libicaversion}.tar.bz2
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
-Patch0: openssl-0.9.7f-redhat.patch
-Patch1: openssl-0.9.7f-defaults.patch
-Patch2: openssl-0.9.7-beta6-ia64.patch
-Patch3: openssl-0.9.7e-soversion.patch
-Patch4: openssl-0.9.6-x509.patch
-Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7d-ICA_engine-sep142005.patch
-Patch10: libica-1.3.4-urandom.patch
-Patch11: libica-1.2-cleanup.patch
-Patch12: openssl-0.9.7a-libica-autoconf.patch
-Patch18: openssl-0.9.7a-krb5-1.3.patch
-Patch42: openssl-0.9.7e-krb5.patch
-Patch43: openssl-0.9.7f-bn-asm-uninitialized.patch
-Patch44: openssl-0.9.7f-ca-dir.patch
-Patch45: openssl-0.9.7f-use-poll.patch
-Patch46: openssl-0.9.7f-backport-097g.patch
-Patch47: openssl-0.9.7f-can-2005-0109.patch
-Patch48: openssl-0.9.7f-dsa-consttime.patch
-Patch49: openssl-0.9.7f-bn-ppc-div.patch
-Patch50: openssl-0.9.7f-apps-initialize.patch
-Patch51: openssl-0.9.7a-can-2005-2969.patch
+# Build changes
+Patch0: openssl-0.9.8a-redhat.patch
+Patch1: openssl-0.9.8a-defaults.patch
+Patch2: openssl-0.9.8a-link-krb5.patch
+Patch3: openssl-0.9.8a-soversion.patch
+Patch4: openssl-0.9.8a-enginesdir.patch
+Patch6: openssl-0.9.7a-libica-autoconf.patch
+# Added engines
+Patch20: libica-1.3.4-urandom.patch
+Patch21: libica-1.2-cleanup.patch
+Patch22: openssl-0.9.8a-ICA_engine-sep142005.patch
+# Functionality changes
+Patch32: openssl-0.9.7-beta6-ia64.patch
+Patch33: openssl-0.9.7f-ca-dir.patch
+Patch34: openssl-0.9.6-x509.patch
+Patch35: openssl-0.9.7-beta5-version-add-engines.patch
+Patch36: openssl-0.9.8a-use-poll.patch
+# Backported fixes including security fixes
 
 License: BSDish
 Group: System Environment/Libraries
@@ -63,8 +61,6 @@ URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 Requires: mktemp
-
-%define solibbase %(echo %version | sed 's/[[:alpha:]]//g')
 
 %description
 The OpenSSL toolkit provides support for secure communications between
@@ -100,17 +96,17 @@ from other formats to the formats used by the OpenSSL toolkit.
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .defaults
-%patch2 -p1 -b .ia64
+# Fix link line for libssl (bug #111154).
+%patch2 -p1 -b .krb5
 %patch3 -p1 -b .soversion
-%patch4 -p1 -b .x509
-%patch5 -p1 -b .version-add-engines
-%patch6 -p1 -b .ibmca
+%patch4 -p1 -b .enginesdir
+%patch6 -p1 -b .libica-autoconf
 
 pushd libica-%{libicaversion}
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
-%patch10 -p2 -b .urandom
-%patch11 -p1 -b .cleanup
+%patch20 -p2 -b .urandom
+%patch21 -p1 -b .cleanup
 %ifarch s390 s390x
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
@@ -122,27 +118,13 @@ autoconf
 libtoolize --copy --force
 %endif
 popd
+%patch22 -p1 -b .ibmca
 
-%patch12 -p1 -b .libica-autoconf
-%patch18 -p1 -b .krb5-1.3
-
-
-# Fix link line for libssl (bug #111154).
-%patch42 -p1 -b .krb5
-
-# Additional fixes
-%patch43 -p1 -b .uninitialized
-#patch44 is applied after make test
-%patch45 -p1 -b .use-poll
-
-%patch46 -p1 -b .backport-097g
-# CAN-2005-0109
-%patch47 -p1 -b .modexp-consttime
-%patch48 -p1 -b .dsa-consttime
-%patch49 -p1 -b .ppc-div
-%patch50 -p1 -b .apps-initialize
-# CAN-2005-2969
-%patch51 -p0 -b .ssl2-rollback
+%patch32 -p1 -b .ia64
+#patch33 is applied after make test
+%patch34 -p1 -b .x509
+%patch35 -p1 -b .version-add-engines
+%patch36 -p1 -b .use-poll
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -162,8 +144,8 @@ make
 popd
 %endif
 
-# Figure out which flags we want to use.  Set the number of threads to use to
-# the maximum we've managed to run without running afoul of the OOM killer.
+# Figure out which flags we want to use.
+# default
 sslarch=%{_os}-%{_arch}
 %ifarch %ix86
 sslarch=linux-elf
@@ -175,34 +157,23 @@ fi
 sslarch=linux-sparcv9
 sslflags=no-asm
 %endif
-%ifarch ia64
-sslarch=linux-ia64
-%endif
 %ifarch alpha
 sslarch=linux-alpha-gcc
 %endif
 %ifarch s390
-sslarch=linux-s390
+sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM"
 %endif
 %ifarch s390x
-sslarch=linux-s390x
+sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
 %endif
-%ifarch x86_64
-sslarch=linux-x86_64
-%endif
-%ifarch ppc
-sslarch=linux-ppc
-%endif
-%ifarch ppc64
-sslarch=linux-ppc64
-%endif
+# ia64, x86_64, ppc, ppc64 are OK by default
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
 ./Configure \
 	--prefix=%{_prefix} --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
-	zlib no-idea no-mdc2 no-rc5 no-ec shared \
-	--with-krb5-flavor=MIT \
+	zlib no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa shared \
+	--with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
 	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib} \
 	${sslarch}
 
@@ -223,25 +194,27 @@ make -C test apps tests
 	`krb5-config --cflags` \
 	-I./include \
 	$RPM_OPT_FLAGS \
-	$RPM_SOURCE_DIR/openssl-thread-test.c \
-	libssl.a libcrypto.a \
+	%{SOURCE8} \
+	-L. \
+	-lssl -lcrypto \
 	`krb5-config --libs` \
 	-lpthread -lz -ldl
-#./openssl-thread-test --threads %{thread_test_threads}
+./openssl-thread-test --threads %{thread_test_threads}
 
-# Patch44 must be patched after tests otherwise they will fail
-patch -p1 -b -z .ca-dir < %{PATCH44}
+# Patch33 must be patched after tests otherwise they will fail
+patch -p1 -b -z .ca-dir < %{PATCH33}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 # Install OpenSSL.
-install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir}}
+install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir},%{_libdir}/openssl}
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
-mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{solibbase} $RPM_BUILD_ROOT/%{_lib}/
+mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{soversion} $RPM_BUILD_ROOT/%{_lib}/
+mv $RPM_BUILD_ROOT/usr/lib/engines $RPM_BUILD_ROOT/%{_libdir}/openssl
 mv $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man/* $RPM_BUILD_ROOT%{_mandir}/
 rmdir $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man
 mv $RPM_BUILD_ROOT/usr/lib/* $RPM_BUILD_ROOT%{_libdir}/ || :
-rename so.%{solibbase} so.%{version} $RPM_BUILD_ROOT/%{_lib}/*.so.%{solibbase}
+rename so.%{soversion} so.%{version} $RPM_BUILD_ROOT/%{_lib}/*.so.%{soversion}
 for lib in $RPM_BUILD_ROOT/%{_lib}/*.so.%{version} ; do
 	chmod 755 ${lib}
 	ln -s -f ../../%{_lib}/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
@@ -295,12 +268,14 @@ install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/
 ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/cert.pem
 
 # Fix libdir.
-sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
-	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc > \
-	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp && \
-cat $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp > \
-	$RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc && \
-rm -f $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/openssl.pc.tmp
+pushd $RPM_BUILD_ROOT/%{_libdir}/pkgconfig
+for i in *.pc ; do
+	sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
+	    $i >$i.tmp && \
+	cat $i.tmp >$i && \
+	rm -f $i.tmp
+done
+popd
 
 # Determine which arch opensslconf.h is going to try to #include.
 basearch=%{_arch}
@@ -378,6 +353,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
 %attr(0755,root,root) /%{_lib}/*.so.%{soversion}
+%attr(0755,root,root) %{_libdir}/openssl
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
@@ -395,7 +371,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
-%attr(0644,root,root) %{_libdir}/pkgconfig/openssl.pc
+%attr(0644,root,root) %{_libdir}/pkgconfig/*.pc
 
 %files perl
 %defattr(-,root,root)
@@ -410,6 +386,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Nov  8 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-1
+- new upstream version
+- patches partially renumbered
+
 * Fri Oct 21 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7f-11
 - updated IBM ICA engine library and patch to latest upstream version
 

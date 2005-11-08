@@ -1,0 +1,11 @@
+--- openssl-0.9.8a/Makefile.org.link-krb5	2005-07-05 07:14:21.000000000 +0200
++++ openssl-0.9.8a/Makefile.org	2005-11-07 18:00:08.000000000 +0100
+@@ -266,7 +266,7 @@
+ 
+ do_$(SHLIB_TARGET):
+ 	@ set -e; libs='-L. ${SHLIBDEPS}'; for i in ${SHLIBDIRS}; do \
+-		if [ "${SHLIBDIRS}" = "ssl" -a -n "$(LIBKRB5)" ]; then \
++		if [ "$$i" = "ssl" -a -n "$(LIBKRB5)" ]; then \
+ 			libs="$(LIBKRB5) $$libs"; \
+ 		fi; \
+ 		$(CLEARENV) && $(MAKE) -f Makefile.shared -e $(BUILDENV) \
