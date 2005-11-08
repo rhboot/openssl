@@ -564,6 +564,7 @@ my $idx_arflags = $idx++;
 
 my $prefix="";
 my $openssldir="";
+my $enginesdir="";
 my $exe_ext="";
 my $install_prefix="";
 my $fipslibdir="/usr/local/ssl/lib/fips-1.0/";
@@ -777,6 +778,10 @@ PROCESS_ARGS:
 			elsif (/^--openssldir=(.*)$/)
 				{
 				$openssldir=$1;
+				}
+			elsif (/^--enginesdir=(.*)$/)
+				{
+				$enginesdir=$1;
 				}
 			elsif (/^--install.prefix=(.*)$/)
 				{
@@ -1027,7 +1032,7 @@ chop $prefix if $prefix =~ /\/$/;
 
 $openssldir=$prefix . "/ssl" if $openssldir eq "";
 $openssldir=$prefix . "/" . $openssldir if $openssldir !~ /(^\/|^[a-zA-Z]:[\\\/])/;
-
+$enginesdir="$prefix/lib/engines" if $enginesdir eq "";
 
 print "IsMK1MF=$IsMK1MF\n";
 
@@ -1571,7 +1576,7 @@ while (<IN>)
 	if	(/^#define\s+OPENSSLDIR/)
 		{ print OUT "#define OPENSSLDIR \"$openssldir\"\n"; }
 	elsif	(/^#define\s+ENGINESDIR/)
-		{ print OUT "#define ENGINESDIR \"$prefix/lib/engines\"\n"; }
+		{ print OUT "#define ENGINESDIR \"$enginesdir\"\n"; }
 	elsif	(/^#((define)|(undef))\s+OPENSSL_EXPORT_VAR_AS_FUNCTION/)
 		{ printf OUT "#undef OPENSSL_EXPORT_VAR_AS_FUNCTION\n"
 			if $export_var_as_fn;
