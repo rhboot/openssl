@@ -23,7 +23,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.8a
-Release: 1
+Release: 2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -42,6 +42,7 @@ Patch1: openssl-0.9.8a-defaults.patch
 Patch2: openssl-0.9.8a-link-krb5.patch
 Patch3: openssl-0.9.8a-soversion.patch
 Patch4: openssl-0.9.8a-enginesdir.patch
+Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.7a-libica-autoconf.patch
 # Added engines
 Patch20: libica-1.3.4-urandom.patch
@@ -100,6 +101,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch2 -p1 -b .krb5
 %patch3 -p1 -b .soversion
 %patch4 -p1 -b .enginesdir
+%patch5 -p1 -b .no-rpath
 %patch6 -p1 -b .libica-autoconf
 
 pushd libica-%{libicaversion}
@@ -386,6 +388,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Nov 16 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-2
+- don't set -rpath for openssl binary
+
 * Tue Nov  8 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-1
 - new upstream version
 - patches partially renumbered
