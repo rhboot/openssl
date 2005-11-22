@@ -23,7 +23,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.8a
-Release: 2
+Release: 3
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -54,6 +54,7 @@ Patch33: openssl-0.9.7f-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.7-beta5-version-add-engines.patch
 Patch36: openssl-0.9.8a-use-poll.patch
+Patch37: openssl-0.9.8a-no-builtin-comp.patch
 # Backported fixes including security fixes
 
 License: BSDish
@@ -127,6 +128,7 @@ popd
 %patch34 -p1 -b .x509
 %patch35 -p1 -b .version-add-engines
 %patch36 -p1 -b .use-poll
+%patch37 -p1 -b .no-builtin-comp
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -388,6 +390,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Nov 22 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-3
+- disable builtin compression methods for now until they work
+  properly (#173399)
+
 * Wed Nov 16 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-2
 - don't set -rpath for openssl binary
 
