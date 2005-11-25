@@ -670,6 +670,16 @@ void ERR_load_ENGINE_strings(void);
 #define ENGINE_F_ENGINE_TABLE_REGISTER			 184
 #define ENGINE_F_ENGINE_UNLOAD_KEY			 152
 #define ENGINE_F_ENGINE_UP_REF				 190
+#define ENGINE_F_IBMCA_FINISH                            191
+#define ENGINE_F_IBMCA_INIT                              192
+#define ENGINE_F_IBMCA_MOD_EXP                           193
+#define ENGINE_F_IBMCA_MOD_EXP_CRT                       194
+#define ENGINE_F_IBMCA_RAND_BYTES                        195
+#define ENGINE_F_IBMCA_RSA_MOD_EXP                       196
+#define ENGINE_F_IBMCA_DES_CIPHER			 197
+#define ENGINE_F_IBMCA_TDES_CIPHER			 198
+#define ENGINE_F_IBMCA_SHA1_UPDATE			 199
+#define ENGINE_F_IBMCA_SHA1_FINAL			 200
 #define ENGINE_F_INT_CTRL_HELPER			 172
 #define ENGINE_F_INT_ENGINE_CONFIGURE			 188
 #define ENGINE_F_LOG_MESSAGE				 141
@@ -678,6 +688,8 @@ void ERR_load_ENGINE_strings(void);
 /* Reason codes. */
 #define ENGINE_R_ALREADY_LOADED				 100
 #define ENGINE_R_ARGUMENT_IS_NOT_A_NUMBER		 133
+#define ENGINE_R_BN_CTX_FULL                             151
+#define ENGINE_R_BN_EXPAND_FAIL                          152
 #define ENGINE_R_CMD_NOT_EXECUTABLE			 134
 #define ENGINE_R_COMMAND_TAKES_INPUT			 135
 #define ENGINE_R_COMMAND_TAKES_NO_INPUT			 136
@@ -702,6 +714,7 @@ void ERR_load_ENGINE_strings(void);
 #define ENGINE_R_INVALID_CMD_NUMBER			 138
 #define ENGINE_R_INVALID_INIT_VALUE			 151
 #define ENGINE_R_INVALID_STRING				 150
+#define ENGINE_R_MISSING_KEY_COMPONENTS                  153
 #define ENGINE_R_NOT_INITIALISED			 117
 #define ENGINE_R_NOT_LOADED				 112
 #define ENGINE_R_NO_CONTROL_FUNCTION			 120
@@ -711,9 +724,11 @@ void ERR_load_ENGINE_strings(void);
 #define ENGINE_R_NO_SUCH_ENGINE				 116
 #define ENGINE_R_NO_UNLOAD_FUNCTION			 126
 #define ENGINE_R_PROVIDE_PARAMETERS			 113
+#define ENGINE_R_REQUEST_FAILED                          154
 #define ENGINE_R_RSA_NOT_IMPLEMENTED			 141
 #define ENGINE_R_UNIMPLEMENTED_CIPHER			 146
 #define ENGINE_R_UNIMPLEMENTED_DIGEST			 147
+#define ENGINE_R_UNIT_FAILURE                            155
 #define ENGINE_R_VERSION_INCOMPATIBILITY		 145
 
 #ifdef  __cplusplus
