@@ -16,12 +16,12 @@
 # Arches for which we don't build subpackages.
 %define optimize_arches i686
 
-%define libicaversion 1.3.5-3
+%define libicaversion 1.3.6-rc3
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.4
+Release: 43.5
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -29,7 +29,8 @@ Source3: ca-bundle.crt
 Source4: https://rhn.redhat.com/help/RHNS-CA-CERT
 Source5: https://rhn.redhat.com/help/RHNS-CA-CERT.asc
 Source6: make-dummy-cert
-Source7: libica-%{libicaversion}.tar.gz
+# http://sourceforge.net/projects/opencryptoki/
+Source7: libica-%{libicaversion}.tar.bz2
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
@@ -39,11 +40,11 @@ Patch2: openssl-0.9.7-beta6-ia64.patch
 Patch3: openssl-0.9.7a-soversion.patch
 Patch4: openssl-0.9.6-x509.patch
 Patch5: openssl-0.9.7-beta5-version-add-engines.patch
-Patch6: openssl-0.9.7d-ICA_engine-jun142004.patch
+Patch6: openssl-0.9.7d-ICA_engine-sep142005.patch
 Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
-Patch10: libica-1.2-struct.patch
+Patch10: libica-1.3.4-urandom.patch
 Patch11: libica-1.2-cleanup.patch
 Patch12: openssl-0.9.7a-libica-autoconf.patch
 Patch13: openssl-0.9.7a-blinding-threads.patch
@@ -56,7 +57,6 @@ Patch19: niscc-097.txt
 Patch20: openssl-0.9.6c-ccert.patch
 Patch21: openssl-0.9.7a-utf8fix.patch
 Patch22: openssl-0.9.7a-no-der_chop.patch
-Patch40: libica-1.3.4-urandom.patch
 Patch42: openssl-0.9.7a-krb5.patch
 Patch43: openssl-0.9.7a-krb5-security.patch
 Patch44: openssl-0.9.7a-dccs.patch
@@ -117,9 +117,12 @@ pushd ssl
 %patch9 -p0 -b .klima-pokorny-rosa
 popd
 
-%ifarch s390 s390x
 pushd libica-%{libicaversion}
+# Patch for libica to use /dev/urandom instead of internal pseudo random number
+# generator.
+%patch10 -p2 -b .urandom
 %patch11 -p1 -b .cleanup
+%ifarch s390 s390x
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
 fi
@@ -128,8 +131,8 @@ touch Makefile.macros
 automake --gnu -acf
 autoconf
 libtoolize --copy --force
-popd
 %endif
+popd
 
 %patch12 -p1 -b .libica-autoconf
 %patch13 -p1 -b .blinding-threads
@@ -142,10 +145,6 @@ popd
 %patch20 -p1 -b .ccert
 %patch21 -p1 -b .utf8fix
 %patch22 -p1 -b .no-der_chop
-
-# Patch for libica to use /dev/urandom instead of internal pseudo random number
-# generator.
-%patch40 -p1 -b .urandom
 
 # Fix link line for libssl (bug #111154).
 %patch42 -p1 -b .krb5
@@ -412,6 +411,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov 25 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.5
+- updated ICA engine to 1.3.6-rc3
+
 * Thu Oct  6 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.4
 - fix CAN-2005-2969 - remove SSL_OP_MSIE_SSLV2_RSA_PADDING which
   disables the countermeasure against man in the middle attack in SSLv2
