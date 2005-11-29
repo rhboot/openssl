@@ -1,0 +1,17 @@
+--- libica-1.3.6-rc3/configure.linkcrypto	2005-10-21 17:35:02.000000000 +0200
++++ libica-1.3.6-rc3/configure	2005-11-29 10:42:11.000000000 +0100
+@@ -19113,12 +19113,12 @@
+ if [ $build_cpu == "s390" ]; 
+ then
+    echo "S390_FLAG=-m31 -D_LINUX_S390_" > ./Makefile.macros
+-   echo "LIBCRYPTO=-lcrypto" >> ./Makefile.macros
++   echo "LIBCRYPTO=-L../.. -lcrypto" >> ./Makefile.macros
+ else
+    if [ $build_cpu == "s390x" ];
+    then
+       echo "S390_FLAG=-m64 -D_LINUX_S390_ -D_LINUX_S390X_" >./Makefile.macros
+-      echo "LIBCRYPTO=-lcrypto" >> ./Makefile.macros
++      echo "LIBCRYPTO=-L../.. -lcrypto" >> ./Makefile.macros
+    else
+       touch ./Makefile.macros
+    fi

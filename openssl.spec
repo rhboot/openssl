@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.5
+Release: 43.6
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -45,7 +45,7 @@ Patch7: openssl-0.9.7-ppc64.patch
 Patch8: openssl-sec3-blinding-0.9.7.patch
 Patch9: openssl-0.9.7a-klima-pokorny-rosa.patch
 Patch10: libica-1.3.4-urandom.patch
-Patch11: libica-1.2-cleanup.patch
+Patch11: libica-1.3.6-linkcrypto.patch
 Patch12: openssl-0.9.7a-libica-autoconf.patch
 Patch13: openssl-0.9.7a-blinding-threads.patch
 Patch14: openssl-0.9.7a-specific-engine.patch
@@ -121,17 +121,7 @@ pushd libica-%{libicaversion}
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
 %patch10 -p2 -b .urandom
-%patch11 -p1 -b .cleanup
-%ifarch s390 s390x
-if [[ $RPM_BUILD_ROOT  ]] ; then
-        export INSROOT=$RPM_BUILD_ROOT
-fi
-aclocal
-touch Makefile.macros
-automake --gnu -acf
-autoconf
-libtoolize --copy --force
-%endif
+%patch11 -p1 -b .linkcrypto
 popd
 
 %patch12 -p1 -b .libica-autoconf
@@ -163,16 +153,6 @@ perl util/perlpath.pl `dirname %{__perl}`
 make TABLE PERL=%{__perl}
 
 %build 
-%ifarch s390 s390x
-pushd libica-%{libicaversion}
-if [[ $RPM_BUILD_ROOT  ]] ; then
-        export INSROOT=$RPM_BUILD_ROOT
-fi
-%configure
-make
-popd
-%endif
-
 # Figure out which flags we want to use.  Set the number of threads to use to
 # the maximum we've managed to run without running afoul of the OOM killer.
 sslarch=%{_os}-%{_arch}
@@ -241,6 +221,16 @@ make -C test apps tests
 	`krb5-config --libs` \
 	-lpthread -lz -ldl
 ./openssl-thread-test --threads %{thread_test_threads}
+
+%ifarch s390 s390x
+pushd libica-%{libicaversion}
+if [[ $RPM_BUILD_ROOT  ]] ; then
+        export INSROOT=$RPM_BUILD_ROOT
+fi
+%configure
+make
+popd
+%endif
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -350,8 +340,9 @@ then
 fi
 %makeinstall
 mkdir -p $RPM_BUILD_ROOT/%{_libdir}
-mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so
-cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
+mkdir -p $RPM_BUILD_ROOT/%{_includedir}
+mv $RPM_BUILD_ROOT%{_bindir}/libica.so $RPM_BUILD_ROOT%{_libdir}/libica.so || :
+mv $RPM_BUILD_ROOT/usr/include/ica_api.h $RPM_BUILD_ROOT%{_includedir}/ || :
 popd
 %endif
 
@@ -411,6 +402,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Nov 29 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.6
+- fix build (-lcrypto was erroneusly dropped) of the updated libica
+
 * Fri Nov 25 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.5
 - updated ICA engine to 1.3.6-rc3
 
