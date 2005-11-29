@@ -9,7 +9,7 @@
 %define soversion 6
 
 # Number of threads to spawn when testing some threading fixes.
-#%define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
+%define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
 
 # Arches on which we need to prevent arch conflicts on opensslconf.h, must
 # also be handled in opensslconf-new.h.
@@ -18,12 +18,12 @@
 # Arches for which we don't build subpackages.
 %define optimize_arches i686
 
-%define libicaversion 1.3.6-rc2
+%define libicaversion 1.3.6-rc3
 
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.8a
-Release: 3
+Release: 4
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -46,7 +46,7 @@ Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.7a-libica-autoconf.patch
 # Added engines
 Patch20: libica-1.3.4-urandom.patch
-Patch21: libica-1.2-cleanup.patch
+Patch21: libica-1.3.6-linkcrypto.patch
 Patch22: openssl-0.9.8a-ICA_engine-sep142005.patch
 # Functionality changes
 Patch32: openssl-0.9.7-beta6-ia64.patch
@@ -109,17 +109,7 @@ pushd libica-%{libicaversion}
 # Patch for libica to use /dev/urandom instead of internal pseudo random number
 # generator.
 %patch20 -p2 -b .urandom
-%patch21 -p1 -b .cleanup
-%ifarch s390 s390x
-if [[ $RPM_BUILD_ROOT  ]] ; then
-        export INSROOT=$RPM_BUILD_ROOT
-fi
-aclocal
-touch Makefile.macros
-automake --gnu -acf
-autoconf
-libtoolize --copy --force
-%endif
+%patch21 -p1 -b .linkcrypto
 popd
 %patch22 -p1 -b .ibmca
 
@@ -138,16 +128,6 @@ touch Makefile
 make TABLE PERL=%{__perl}
 
 %build 
-%ifarch s390 s390x
-pushd libica-%{libicaversion}
-if [[ $RPM_BUILD_ROOT  ]] ; then
-        export INSROOT=$RPM_BUILD_ROOT
-fi
-%configure
-make
-popd
-%endif
-
 # Figure out which flags we want to use.
 # default
 sslarch=%{_os}-%{_arch}
@@ -207,6 +187,16 @@ make -C test apps tests
 
 # Patch33 must be patched after tests otherwise they will fail
 patch -p1 -b -z .ca-dir < %{PATCH33}
+
+%ifarch s390 s390x
+pushd libica-%{libicaversion}
+if [[ $RPM_BUILD_ROOT  ]] ; then
+        export INSROOT=$RPM_BUILD_ROOT
+fi
+%configure
+make
+popd
+%endif
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -390,6 +380,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Nov 29 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-4
+- fix build (-lcrypto was erroneusly dropped) of the updated libica
+- updated ICA engine to 1.3.6-rc3
+
 * Tue Nov 22 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-3
 - disable builtin compression methods for now until they work
   properly (#173399)
