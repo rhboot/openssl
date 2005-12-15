@@ -23,7 +23,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.8a
-Release: 4.1
+Release: 5
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -55,6 +55,7 @@ Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.7-beta5-version-add-engines.patch
 Patch36: openssl-0.9.8a-use-poll.patch
 Patch37: openssl-0.9.8a-no-builtin-comp.patch
+Patch38: openssl-0.9.8a-reuse-cipher-change.patch
 # Backported fixes including security fixes
 
 License: BSDish
@@ -119,6 +120,7 @@ popd
 %patch35 -p1 -b .version-add-engines
 %patch36 -p1 -b .use-poll
 %patch37 -p1 -b .no-builtin-comp
+%patch38 -p1 -b .cipher-change
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -380,6 +382,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Dec 15 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-5
+- don't include SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG
+  in SSL_OP_ALL (#175779)
+
 * Fri Dec 09 2005 Jesse Keating <jkeating@redhat.com>
 - rebuilt
 
