@@ -480,7 +480,7 @@ typedef struct ssl_session_st
 
 #define SSL_OP_MICROSOFT_SESS_ID_BUG			0x00000001L
 #define SSL_OP_NETSCAPE_CHALLENGE_BUG			0x00000002L
-#define SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG		0x00000008L
+#define SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG		0x00000008L /* can break some security expectations */
 #define SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG		0x00000010L
 #define SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER		0x00000020L
 #define SSL_OP_MSIE_SSLV2_RSA_PADDING			0x00000040L /* no effect since 0.9.7h and 0.9.8b */
@@ -497,7 +497,7 @@ typedef struct ssl_session_st
 
 /* SSL_OP_ALL: various bug workarounds that should be rather harmless.
  *             This used to be 0x000FFFFFL before 0.9.7. */
-#define SSL_OP_ALL					0x00000FFFL
+#define SSL_OP_ALL					0x00000FF7L /* without SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG */
 
 /* DTLS options */
 #define SSL_OP_NO_QUERY_MTU                 0x00001000L
