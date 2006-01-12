@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.7
+Release: 43.8
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -404,7 +404,7 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
-* Thu Jan 12 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.7
+* Thu Jan 12 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.8
 - fix stale open handles in libica (#177155)
 
 * Tue Nov 29 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.6
