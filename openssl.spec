@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.6
+Release: 43.7
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -63,6 +63,7 @@ Patch44: openssl-0.9.7a-dccs.patch
 Patch45: openssl-0.9.7a-can-2005-0109.patch
 Patch46: openssl-0.9.7a-dsa-consttime.patch
 Patch47: openssl-0.9.7a-can-2005-2969.patch
+Patch48: libica-1.3.6-stale-handles.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -122,6 +123,7 @@ pushd libica-%{libicaversion}
 # generator.
 %patch10 -p2 -b .urandom
 %patch11 -p1 -b .linkcrypto
+%patch48 -p1 -b .stale-handles
 popd
 
 %patch12 -p1 -b .libica-autoconf
@@ -402,6 +404,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Jan 12 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.7
+- fix stale open handles in libica (#177155)
+
 * Tue Nov 29 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.6
 - fix build (-lcrypto was erroneusly dropped) of the updated libica
 
