@@ -23,7 +23,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.8a
-Release: 5
+Release: 5.1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -382,6 +382,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Feb 07 2006 Jesse Keating <jkeating@redhat.com> - 0.9.8a-5.1
+- rebuilt for new gcc4.1 snapshot and glibc changes
+
 * Thu Dec 15 2005 Tomas Mraz <tmraz@redhat.com> 0.9.8a-5
 - don't include SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG
   in SSL_OP_ALL (#175779)
