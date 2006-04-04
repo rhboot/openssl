@@ -69,6 +69,9 @@ void ENGINE_load_builtin_engines(void)
 	ENGINE_load_openssl();
 #endif
 	ENGINE_load_dynamic();
+#if !defined(OPENSSL_NO_HW) && !defined(OPENSSL_NO_HW_PADLOCK)
+	ENGINE_load_padlock();
+#endif
 #ifndef OPENSSL_NO_STATIC_ENGINE
 #ifndef OPENSSL_NO_HW
 #ifndef OPENSSL_NO_HW_4758_CCA
@@ -94,9 +97,6 @@ void ENGINE_load_builtin_engines(void)
 #endif
 #ifndef OPENSSL_NO_HW_UBSEC
 	ENGINE_load_ubsec();
-#endif
-#ifndef OPENSSL_NO_HW_PADLOCK
-	ENGINE_load_padlock();
 #endif
 #endif
 #if defined(__OpenBSD__) || defined(__FreeBSD__)
