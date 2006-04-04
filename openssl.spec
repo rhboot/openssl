@@ -23,7 +23,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.8a
-Release: 5.2
+Release: 6
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -48,6 +48,8 @@ Patch6: openssl-0.9.7a-libica-autoconf.patch
 Patch20: libica-1.3.4-urandom.patch
 Patch21: libica-1.3.6-linkcrypto.patch
 Patch22: openssl-0.9.8a-ICA_engine-sep142005.patch
+Patch23: libica-1.3.6-stale-handles.patch
+Patch24: openssl-0.9.8a-padlock.patch
 # Functionality changes
 Patch32: openssl-0.9.7-beta6-ia64.patch
 Patch33: openssl-0.9.7f-ca-dir.patch
@@ -111,8 +113,10 @@ pushd libica-%{libicaversion}
 # generator.
 %patch20 -p2 -b .urandom
 %patch21 -p1 -b .linkcrypto
+%patch23 -p1 -b .stale-handles
 popd
 %patch22 -p1 -b .ibmca
+%patch24 -p1 -b .padlock
 
 %patch32 -p1 -b .ia64
 #patch33 is applied after make test
@@ -232,7 +236,8 @@ for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
 done
 
 # Rename man pages so that they don't conflict with other system man pages.
-for manpage in $RPM_BUILD_ROOT%{_mandir}/man*/* ; do
+pushd $RPM_BUILD_ROOT%{_mandir}
+for manpage in man*/* ; do
 	if [ -L ${manpage} ]; then
 		TARGET=`ls -l ${manpage} | awk '{ print $NF }'`
 		ln -snf ${TARGET}ssl ${manpage}ssl
@@ -242,8 +247,9 @@ for manpage in $RPM_BUILD_ROOT%{_mandir}/man*/* ; do
 	fi
 done
 for conflict in passwd rand ; do
-	rename ${conflict} ssl${conflict} $RPM_BUILD_ROOT%{_mandir}/man*/${conflict}*
+	rename ${conflict} ssl${conflict} man*/${conflict}*
 done
+popd
 
 # Pick a CA script.
 pushd  $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/misc
@@ -382,6 +388,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Apr  4 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8a-6
+- fix stale open handles in libica (#177155)
+- fix build if 'rand' or 'passwd' in buildroot path (#178782)
+- initialize VIA Padlock engine (#186857)
+
 * Fri Feb 10 2006 Jesse Keating <jkeating@redhat.com> - 0.9.8a-5.2
 - bump again for double-long bug on ppc(64)
 
