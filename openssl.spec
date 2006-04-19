@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.8
+Release: 43.9
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -64,6 +64,7 @@ Patch45: openssl-0.9.7a-can-2005-0109.patch
 Patch46: openssl-0.9.7a-dsa-consttime.patch
 Patch47: openssl-0.9.7a-can-2005-2969.patch
 Patch48: libica-1.3.6-stale-handles.patch
+Patch49: openssl-0.9.7a-bn-ia64asm.patch
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -147,6 +148,7 @@ popd
 %patch45 -p1 -b .modexp-consttime
 %patch46 -p1 -b .dsa-consttime
 %patch47 -p0 -b .ssl2-rollback
+%patch49 -p1 -b .ia64asm
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -170,7 +172,6 @@ sslflags=no-asm
 %endif
 %ifarch ia64
 sslarch=linux-ia64
-sslflags=no-asm
 %endif
 %ifarch alpha
 sslarch=linux-alpha-gcc
@@ -404,6 +405,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Apr 19 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.9
+- enable compilation of updated assembler code on IA64 (#180091)
+
 * Thu Jan 12 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.8
 - fix stale open handles in libica (#177155)
 
