@@ -5,7 +5,7 @@
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
 # 0.9.7ef soversion = 5
-# 0.9.8a soversion = 6
+# 0.9.8ab soversion = 6
 %define soversion 6
 
 # Number of threads to spawn when testing some threading fixes.
@@ -22,8 +22,8 @@
 
 Summary: The OpenSSL toolkit.
 Name: openssl
-Version: 0.9.8a
-Release: 6
+Version: 0.9.8b
+Release: 1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -40,7 +40,7 @@ Source10: opensslconf-new-warning.h
 Patch0: openssl-0.9.8a-redhat.patch
 Patch1: openssl-0.9.8a-defaults.patch
 Patch2: openssl-0.9.8a-link-krb5.patch
-Patch3: openssl-0.9.8a-soversion.patch
+Patch3: openssl-0.9.8b-soversion.patch
 Patch4: openssl-0.9.8a-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.7a-libica-autoconf.patch
@@ -388,6 +388,9 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu May 11 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-1
+- upgrade to new version, stays ABI compatible
+
 * Tue Apr  4 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8a-6
 - fix stale open handles in libica (#177155)
 - fix build if 'rand' or 'passwd' in buildroot path (#178782)

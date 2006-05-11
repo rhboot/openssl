@@ -3,8 +3,8 @@ compatibility, we have to increment the soname in order to allow
 this version to co-exist with another versions and have everything
 work right.
 
---- openssl-0.9.8a/Makefile.org.soversion	2005-07-05 07:14:21.000000000 +0200
-+++ openssl-0.9.8a/Makefile.org	2005-11-04 14:43:24.000000000 +0100
+--- openssl-0.9.8b/Makefile.org.soversion	2006-05-11 11:53:26.000000000 +0200
++++ openssl-0.9.8b/Makefile.org	2006-05-11 12:14:05.000000000 +0200
 @@ -10,6 +10,7 @@
  SHLIB_MAJOR=
  SHLIB_MINOR=
@@ -13,10 +13,10 @@ work right.
  PLATFORM=dist
  OPTIONS=
  CONFIGURE_ARGS=
-@@ -256,10 +257,9 @@
+@@ -277,10 +278,9 @@
  link-shared:
  	@ set -e; for i in ${SHLIBDIRS}; do \
- 		$(MAKE) -f $(HERE)/Makefile.shared \
+ 		$(MAKE) -f $(HERE)/Makefile.shared -e $(BUILDENV) \
 -			LIBNAME=$$i LIBVERSION=${SHLIB_MAJOR}.${SHLIB_MINOR} \
 +			LIBNAME=$$i LIBVERSION=${SHLIB_SONAMEVER} \
  			LIBCOMPATVERSIONS=";${SHLIB_VERSION_HISTORY}" \
@@ -25,7 +25,7 @@ work right.
  	done
  
  build-shared: do_$(SHLIB_TARGET) link-shared
-@@ -270,7 +270,7 @@
+@@ -291,7 +291,7 @@
  			libs="$(LIBKRB5) $$libs"; \
  		fi; \
  		$(CLEARENV) && $(MAKE) -f Makefile.shared -e $(BUILDENV) \
@@ -34,9 +34,9 @@ work right.
  			LIBCOMPATVERSIONS=";${SHLIB_VERSION_HISTORY}" \
  			LIBDEPS="$$libs $(EX_LIBS)" \
  			link_a.$(SHLIB_TARGET); \
---- openssl-0.9.8a/Configure.soversion	2005-11-04 14:35:38.000000000 +0100
-+++ openssl-0.9.8a/Configure	2005-11-04 14:35:38.000000000 +0100
-@@ -1311,7 +1311,7 @@
+--- openssl-0.9.8b/Configure.soversion	2006-05-11 11:53:26.000000000 +0200
++++ openssl-0.9.8b/Configure	2006-05-11 11:53:26.000000000 +0200
+@@ -1327,7 +1327,7 @@
  	elsif ($shared_extension ne "" && $shared_extension =~ /^\.s([ol])\.[^\.]*\.[^\.]*$/)
  		{
  		my $sotmp = $1;
