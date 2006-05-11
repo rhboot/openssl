@@ -50,6 +50,7 @@ Patch21: libica-1.3.6-linkcrypto.patch
 Patch22: openssl-0.9.8a-ICA_engine-sep142005.patch
 Patch23: libica-1.3.6-stale-handles.patch
 Patch24: openssl-0.9.8a-padlock.patch
+Patch25: libica-1.3.6-no-config-h.patch
 # Functionality changes
 Patch32: openssl-0.9.7-beta6-ia64.patch
 Patch33: openssl-0.9.7f-ca-dir.patch
@@ -114,6 +115,7 @@ pushd libica-%{libicaversion}
 %patch20 -p2 -b .urandom
 %patch21 -p1 -b .linkcrypto
 %patch23 -p1 -b .stale-handles
+%patch25 -p1 -b .no-config-h
 popd
 %patch22 -p1 -b .ibmca
 %patch24 -p1 -b .padlock
@@ -390,6 +392,7 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %changelog
 * Thu May 11 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-1
 - upgrade to new version, stays ABI compatible
+- there is no more linux/config.h (it was empty anyway)
 
 * Tue Apr  4 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8a-6
 - fix stale open handles in libica (#177155)
