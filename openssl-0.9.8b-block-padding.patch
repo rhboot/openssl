@@ -1,0 +1,22 @@
+openssl/ssl/t1_enc.c     1.35.2.1 -> 1.35.2.2
+
+--- openssl/ssl/t1_enc.c 2005/09/30 23:38:20 1.35.2.1
++++ openssl/ssl/t1_enc.c 2006/05/07 12:27:48 1.35.2.2
+@@ -628,7 +628,15 @@
+ 			{
+ 			ii=i=rec->data[l-1]; /* padding_length */
+ 			i++;
+-			if (s->options&SSL_OP_TLS_BLOCK_PADDING_BUG)
++			/* NB: if compression is in operation the first packet
++			 * may not be of even length so the padding bug check
++			 * cannot be performed. This bug workaround has been
++			 * around since SSLeay so hopefully it is either fixed
++			 * now or no buggy implementation supports compression 
++			 * [steve]
++			 */
++			if ( (s->options&SSL_OP_TLS_BLOCK_PADDING_BUG)
++				&& !s->expand)
+ 				{
+ 				/* First packet is even in size, so check */
+ 				if ((memcmp(s->s3->read_sequence,
+

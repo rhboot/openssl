@@ -20,10 +20,10 @@
 
 %define libicaversion 1.3.6-rc3
 
-Summary: The OpenSSL toolkit.
+Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 1
+Release: 2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -57,15 +57,16 @@ Patch33: openssl-0.9.7f-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.7-beta5-version-add-engines.patch
 Patch36: openssl-0.9.8a-use-poll.patch
-Patch37: openssl-0.9.8a-no-builtin-comp.patch
 Patch38: openssl-0.9.8a-reuse-cipher-change.patch
 # Backported fixes including security fixes
+Patch51: openssl-0.9.8b-block-padding.patch
+Patch52: openssl-0.9.8b-pkcs12-fix.patch
 
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildPreReq: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
+BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 Requires: mktemp
 
 %description
@@ -75,7 +76,7 @@ libraries which provide various cryptographic algorithms and
 protocols.
 
 %package devel
-Summary: Files for development of applications which will use OpenSSL.
+Summary: Files for development of applications which will use OpenSSL
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}, krb5-devel, zlib-devel
 
@@ -86,7 +87,7 @@ applications which support various cryptographic algorithms and
 protocols.
 
 %package perl
-Summary: Perl scripts provided with OpenSSL.
+Summary: Perl scripts provided with OpenSSL
 Group: Applications/Internet
 Requires: perl
 Requires: %{name} = %{version}-%{release}
@@ -125,8 +126,10 @@ popd
 %patch34 -p1 -b .x509
 %patch35 -p1 -b .version-add-engines
 %patch36 -p1 -b .use-poll
-%patch37 -p1 -b .no-builtin-comp
 %patch38 -p1 -b .cipher-change
+
+%patch51 -p1 -b .block-padding
+%patch52 -p1 -b .pkcs12-fix
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -211,6 +214,7 @@ popd
 # Install OpenSSL.
 install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir},%{_libdir}/openssl}
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
+# OpenSSL install doesn't use correct _libdir
 mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{soversion} $RPM_BUILD_ROOT/%{_lib}/
 mv $RPM_BUILD_ROOT/usr/lib/engines $RPM_BUILD_ROOT/%{_libdir}/openssl
 mv $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man/* $RPM_BUILD_ROOT%{_mandir}/
@@ -227,8 +231,8 @@ done
 # Install a makefile for generating keys and self-signed certs, and a script
 # for generating them on the fly.
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs
-install -m644 $RPM_SOURCE_DIR/Makefile.certificate $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/Makefile
-install -m644 $RPM_SOURCE_DIR/make-dummy-cert      $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/make-dummy-cert
+install -m644 %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/Makefile
+install -m755 %{SOURCE6} $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/make-dummy-cert
 
 # Make sure we actually include the headers we built against.
 for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
@@ -390,6 +394,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Jun  5 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-2
+- fixed a few rpmlint warnings
+- better fix for #173399 from upstream
+- upstream fix for pkcs12
+
 * Thu May 11 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-1
 - upgrade to new version, stays ABI compatible
 - there is no more linux/config.h (it was empty anyway)
