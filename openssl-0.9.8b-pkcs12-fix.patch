@@ -1,0 +1,49 @@
+openssl/crypto/pkcs12/p12_mutl.c     1.23.2.1 -> 1.23.2.2
+
+--- openssl/crypto/pkcs12/p12_mutl.c 2005/06/30 11:34:27 1.23.2.1
++++ openssl/crypto/pkcs12/p12_mutl.c 2006/05/17 18:20:27 1.23.2.2
+@@ -69,7 +69,7 @@
+ {
+ 	const EVP_MD *md_type;
+ 	HMAC_CTX hmac;
+-	unsigned char key[PKCS12_MAC_KEY_LENGTH], *salt;
++	unsigned char key[EVP_MAX_MD_SIZE], *salt;
+ 	int saltlen, iter;
+ 
+ 	if (!PKCS7_type_is_data(p12->authsafes))
+@@ -88,12 +88,12 @@
+ 		return 0;
+ 	}
+ 	if(!PKCS12_key_gen (pass, passlen, salt, saltlen, PKCS12_MAC_ID, iter,
+-				 PKCS12_MAC_KEY_LENGTH, key, md_type)) {
++				 EVP_MD_size(md_type), key, md_type)) {
+ 		PKCS12err(PKCS12_F_PKCS12_GEN_MAC,PKCS12_R_KEY_GEN_ERROR);
+ 		return 0;
+ 	}
+ 	HMAC_CTX_init(&hmac);
+-	HMAC_Init_ex(&hmac, key, PKCS12_MAC_KEY_LENGTH, md_type, NULL);
++	HMAC_Init_ex(&hmac, key, EVP_MD_size(md_type), md_type, NULL);
+     	HMAC_Update(&hmac, p12->authsafes->d.data->data,
+ 					 p12->authsafes->d.data->length);
+     	HMAC_Final(&hmac, mac, maclen);
+openssl/apps/pkcs12.c     1.79.2.1 -> 1.79.2.2
+
+--- openssl/apps/pkcs12.c 2005/05/31 17:31:50 1.79.2.1
++++ openssl/apps/pkcs12.c 2006/05/17 18:25:59 1.79.2.2
+@@ -825,12 +825,14 @@
+ 	PBEPARAM *pbe;
+ 	const unsigned char *p;
+ 	p = alg->parameter->value.sequence->data;
+-	pbe = d2i_PBEPARAM (NULL, &p, alg->parameter->value.sequence->length);
++	pbe = d2i_PBEPARAM(NULL, &p, alg->parameter->value.sequence->length);
++	if (!pbe)
++		return 1;
+ 	BIO_printf (bio_err, "%s, Iteration %ld\n", 
+ 		OBJ_nid2ln(OBJ_obj2nid(alg->algorithm)),
+ 		ASN1_INTEGER_get(pbe->iter));
+ 	PBEPARAM_free (pbe);
+-	return 0;
++	return 1;
+ }
+ 
+ /* Load all certificates from a given file */
