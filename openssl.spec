@@ -205,6 +205,7 @@ if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
 fi
 CPPFLAGS=-I../../include
+export CPPFLAGS
 %configure
 make
 popd
