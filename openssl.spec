@@ -204,6 +204,7 @@ pushd libica-%{libicaversion}
 if [[ $RPM_BUILD_ROOT  ]] ; then
         export INSROOT=$RPM_BUILD_ROOT
 fi
+CPPFLAGS=-I../../include
 %configure
 make
 popd
