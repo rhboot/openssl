@@ -23,7 +23,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 2
+Release: 3
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -396,6 +396,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jun 21 2006 Joe Orton <jorton@redhat.com> 0.9.8b-3
+- update to new CA bundle from mozilla.org; adds CA certificates
+  from netlock.hu and startcom.org
+
 * Mon Jun  5 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-2
 - fixed a few rpmlint warnings
 - better fix for #173399 from upstream
