@@ -18,8 +18,6 @@
 # Arches for which we don't build subpackages.
 %define optimize_arches i686
 
-%define libicaversion 1.3.6-rc3
-
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
@@ -31,8 +29,6 @@ Source3: ca-bundle.crt
 Source4: https://rhn.redhat.com/help/RHNS-CA-CERT
 Source5: https://rhn.redhat.com/help/RHNS-CA-CERT.asc
 Source6: make-dummy-cert
-# http://sourceforge.net/projects/opencryptoki/
-Source7: libica-%{libicaversion}.tar.bz2
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
@@ -43,14 +39,7 @@ Patch2: openssl-0.9.8a-link-krb5.patch
 Patch3: openssl-0.9.8b-soversion.patch
 Patch4: openssl-0.9.8a-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
-Patch6: openssl-0.9.7a-libica-autoconf.patch
-# Added engines
-Patch20: libica-1.3.4-urandom.patch
-Patch21: libica-1.3.6-linkcrypto.patch
-Patch22: openssl-0.9.8a-ICA_engine-sep142005.patch
-Patch23: libica-1.3.6-stale-handles.patch
 Patch24: openssl-0.9.8a-padlock.patch
-Patch25: libica-1.3.6-no-config-h.patch
 # Functionality changes
 Patch32: openssl-0.9.7-beta6-ia64.patch
 Patch33: openssl-0.9.7f-ca-dir.patch
@@ -98,7 +87,7 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q -a 7
+%setup -q
 
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
@@ -108,17 +97,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch3 -p1 -b .soversion
 %patch4 -p1 -b .enginesdir
 %patch5 -p1 -b .no-rpath
-%patch6 -p1 -b .libica-autoconf
 
-pushd libica-%{libicaversion}
-# Patch for libica to use /dev/urandom instead of internal pseudo random number
-# generator.
-%patch20 -p2 -b .urandom
-%patch21 -p1 -b .linkcrypto
-%patch23 -p1 -b .stale-handles
-%patch25 -p1 -b .no-config-h
-popd
-%patch22 -p1 -b .ibmca
 %patch24 -p1 -b .padlock
 
 %patch32 -p1 -b .ia64
@@ -198,18 +177,6 @@ make -C test apps tests
 
 # Patch33 must be patched after tests otherwise they will fail
 patch -p1 -b -z .ca-dir < %{PATCH33}
-
-%ifarch s390 s390x
-pushd libica-%{libicaversion}
-if [[ $RPM_BUILD_ROOT  ]] ; then
-        export INSROOT=$RPM_BUILD_ROOT
-fi
-CPPFLAGS=-I../../include
-export CPPFLAGS
-%configure
-make
-popd
-%endif
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -321,21 +288,6 @@ rm -rf $RPM_BUILD_ROOT/%{_sysconfdir}/pki/tls/misc/*.pl
 # Remove fips fingerprint script 
 rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 
-%ifarch s390 s390x
-pushd libica-%{libicaversion}
-if [[ $RPM_BUILD_ROOT  ]] ;
-then
-        export INSROOT=$RPM_BUILD_ROOT
-fi
-%makeinstall
-mkdir -p $RPM_BUILD_ROOT/%{_libdir}
-mv $RPM_BUILD_ROOT/%{_bindir}/libica.so $RPM_BUILD_ROOT/%{_libdir}/libica.so
-cp -f include/ica_api.h $RPM_BUILD_ROOT%{_includedir}
-popd
-rm -f $RPM_BUILD_ROOT/%{_libdir}/libcrypto.so.%{soversion}
-rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
-%endif
-
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
@@ -367,17 +319,11 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
-%ifarch s390 s390x
-%attr(0755,root,root) %{_libdir}/libica.so
-%endif
 
 %ifnarch %{optimize_arches}
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
-%ifarch s390 s390x
-%{_includedir}/*.h
-%endif
 %attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
@@ -396,7 +342,10 @@ rm -f $RPM_BUILD_ROOT/%{_libdir}/libssl.so.%{soversion}
 %postun -p /sbin/ldconfig
 
 %changelog
-* Wed Jun 21 2006 Joe Orton <jorton@redhat.com> 0.9.8b-3
+* Wed Jun 21 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-3
+- dropped libica and ica engine from build
+
+* Wed Jun 21 2006 Joe Orton <jorton@redhat.com>
 - update to new CA bundle from mozilla.org; adds CA certificates
   from netlock.hu and startcom.org
 
