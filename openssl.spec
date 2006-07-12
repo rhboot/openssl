@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 3
+Release: 3.1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -342,6 +342,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jul 12 2006 Jesse Keating <jkeating@redhat.com> - 0.9.8b-3.1
+- rebuild
+
 * Wed Jun 21 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-3
 - dropped libica and ica engine from build
 
