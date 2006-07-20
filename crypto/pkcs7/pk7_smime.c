@@ -127,6 +127,8 @@ PKCS7 *PKCS7_sign(X509 *signcert, EVP_PKEY *pkey, STACK_OF(X509) *certs,
 		}
 	}
 
+	if(flags & PKCS7_DETACHED) PKCS7_set_detached(p7, 1);
+
 	if (flags & PKCS7_STREAM)
 		return p7;
 
@@ -137,8 +139,6 @@ PKCS7 *PKCS7_sign(X509 *signcert, EVP_PKEY *pkey, STACK_OF(X509) *certs,
 	}
 
 	SMIME_crlf_copy(data, p7bio, flags);
-
-	if(flags & PKCS7_DETACHED)PKCS7_set_detached(p7, 1);
 
         if (!PKCS7_dataFinal(p7,p7bio)) {
 		PKCS7err(PKCS7_F_PKCS7_SIGN,PKCS7_R_PKCS7_DATASIGN);
