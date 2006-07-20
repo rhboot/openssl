@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 3.1
+Release: 4
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -47,9 +47,13 @@ Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.7-beta5-version-add-engines.patch
 Patch36: openssl-0.9.8a-use-poll.patch
 Patch38: openssl-0.9.8a-reuse-cipher-change.patch
+Patch39: openssl-0.9.8b-ipv6-apps.patch
 # Backported fixes including security fixes
 Patch51: openssl-0.9.8b-block-padding.patch
 Patch52: openssl-0.9.8b-pkcs12-fix.patch
+Patch53: openssl-0.9.8b-bn-threadsafety.patch
+Patch54: openssl-0.9.8b-aes-cachecol.patch
+Patch55: openssl-0.9.8b-pkcs7-leak.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -106,9 +110,13 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch35 -p1 -b .version-add-engines
 %patch36 -p1 -b .use-poll
 %patch38 -p1 -b .cipher-change
+%patch39 -p1 -b .ipv6-apps
 
 %patch51 -p1 -b .block-padding
 %patch52 -p1 -b .pkcs12-fix
+%patch53 -p1 -b .bn-threadsafety
+%patch54 -p1 -b .cachecol
+%patch55 -p1 -b .pkcs7-leak
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -264,11 +272,11 @@ basearch=i386
 # Do an opensslconf.h switcheroo to avoid file conflicts on systems where you
 # can have both a 32- and 64-bit version of the library, and they each need
 # their own correct-but-different versions of opensslconf.h to be usable.
-install -m644 $RPM_SOURCE_DIR/opensslconf-new-warning.h \
+install -m644 %{SOURCE10} \
    $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 cat $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h >> \
    $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
-install -m644 $RPM_SOURCE_DIR/opensslconf-new.h \
+install -m644 %{SOURCE9} \
    $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
 %endif
 
@@ -342,6 +350,11 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Jul 20 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-4
+- add ipv6 support to s_client and s_server (by Jan Pazdziora) (#198737)
+- add patches for BN threadsafety, AES cache collision attack hazard fix and
+  pkcs7 code memleak fix from upstream CVS
+
 * Wed Jul 12 2006 Jesse Keating <jkeating@redhat.com> - 0.9.8b-3.1
 - rebuild
 

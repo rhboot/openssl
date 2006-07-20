@@ -1,0 +1,20 @@
+--- openssl-0.9.8b/crypto/pkcs7/pk7_smime.c.pk7-leak	2005-08-05 00:10:05.000000000 +0200
++++ openssl-0.9.8b/crypto/pkcs7/pk7_smime.c	2006-07-20 13:53:16.000000000 +0200
+@@ -127,6 +127,8 @@
+ 		}
+ 	}
+ 
++	if(flags & PKCS7_DETACHED) PKCS7_set_detached(p7, 1);
++
+ 	if (flags & PKCS7_STREAM)
+ 		return p7;
+ 
+@@ -138,8 +140,6 @@
+ 
+ 	SMIME_crlf_copy(data, p7bio, flags);
+ 
+-	if(flags & PKCS7_DETACHED)PKCS7_set_detached(p7, 1);
+-
+         if (!PKCS7_dataFinal(p7,p7bio)) {
+ 		PKCS7err(PKCS7_F_PKCS7_SIGN,PKCS7_R_PKCS7_DATASIGN);
+ 		PKCS7_free(p7);
