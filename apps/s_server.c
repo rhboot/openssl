@@ -532,7 +532,7 @@ int MAIN(int argc, char *argv[])
 	{
 	X509_STORE *store = NULL;
 	int vflags = 0;
-	short port=PORT;
+	char *port_str = PORT_STR;
 	char *CApath=NULL,*CAfile=NULL;
 	unsigned char *context = NULL;
 	char *dhfile = NULL;
@@ -597,8 +597,7 @@ int MAIN(int argc, char *argv[])
 			 (strcmp(*argv,"-accept") == 0))
 			{
 			if (--argc < 1) goto bad;
-			if (!extract_port(*(++argv),&port))
-				goto bad;
+			port_str= *(++argv);
 			}
 		else if	(strcmp(*argv,"-verify") == 0)
 			{
@@ -1086,9 +1085,9 @@ bad:
 
 	BIO_printf(bio_s_out,"ACCEPT\n");
 	if (www)
-		do_server(port,sock_type,&accept_socket,www_body, context);
+		do_server(port_str,sock_type,&accept_socket,www_body, context);
 	else
-		do_server(port,sock_type,&accept_socket,sv_body, context);
+		do_server(port_str,sock_type,&accept_socket,sv_body, context);
 	print_stats(bio_s_out,ctx);
 	ret=0;
 end:
