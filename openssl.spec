@@ -143,7 +143,8 @@ sslflags=no-asm
 sslarch=linux-alpha-gcc
 %endif
 %ifarch s390
-sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM"
+# The -fno-regmove is a workaround for bug #199604
+sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM -fno-regmove"
 %endif
 %ifarch s390x
 sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
@@ -350,7 +351,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Thu Jul 20 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-4
+* Fri Jul 21 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-4
+- add a temporary workaround for sha512 test failure on s390 (#199604)
+
+* Thu Jul 20 2006 Tomas Mraz <tmraz@redhat.com>
 - add ipv6 support to s_client and s_server (by Jan Pazdziora) (#198737)
 - add patches for BN threadsafety, AES cache collision attack hazard fix and
   pkcs7 code memleak fix from upstream CVS
