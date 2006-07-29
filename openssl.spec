@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 4
+Release: 4.1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -351,6 +351,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Jul 28 2006 Alexandre Oliva <aoliva@redhat.com> - 0.9.8b-4.1
+- rebuild with new binutils (#200330)
+
 * Fri Jul 21 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-4
 - add a temporary workaround for sha512 test failure on s390 (#199604)
 
