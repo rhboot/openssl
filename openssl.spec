@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 4.1
+Release: 5
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -48,6 +48,7 @@ Patch35: openssl-0.9.7-beta5-version-add-engines.patch
 Patch36: openssl-0.9.8a-use-poll.patch
 Patch38: openssl-0.9.8a-reuse-cipher-change.patch
 Patch39: openssl-0.9.8b-ipv6-apps.patch
+Patch40: openssl-0.9.8b-enc-bufsize.patch
 # Backported fixes including security fixes
 Patch51: openssl-0.9.8b-block-padding.patch
 Patch52: openssl-0.9.8b-pkcs12-fix.patch
@@ -111,6 +112,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch36 -p1 -b .use-poll
 %patch38 -p1 -b .cipher-change
 %patch39 -p1 -b .ipv6-apps
+%patch40 -p1 -b .enc-bufsize
 
 %patch51 -p1 -b .block-padding
 %patch52 -p1 -b .pkcs12-fix
@@ -351,6 +353,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Aug  2 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-5
+- set buffering to none on stdio/stdout FILE when bufsize is set (#200580)
+  patch by IBM
+
 * Fri Jul 28 2006 Alexandre Oliva <aoliva@redhat.com> - 0.9.8b-4.1
 - rebuild with new binutils (#200330)
 
