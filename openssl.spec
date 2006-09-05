@@ -340,7 +340,9 @@ popd
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
 %dir %{_datadir}/ssl
-%{_datadir}/ssl/certs
+%dir %{_datadir}/ssl/certs
+%{_datadir}/ssl/certs/Makefile
+%{_datadir}/ssl/certs/make-dummy-cert
 %{_datadir}/ssl/cert.pem
 %{_datadir}/ssl/lib
 %dir %{_datadir}/ssl/misc
@@ -351,6 +353,7 @@ popd
 %{_datadir}/ssl/private
 
 %config(noreplace) %{_datadir}/ssl/openssl.cnf
+%config(noreplace) %{_datadir}/ssl/certs/ca-bundle.crt
 
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
@@ -388,6 +391,7 @@ popd
 %changelog
 * Tue Sep  9 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.18
 - fix CVE-2006-4339 - prevent attack on PKCS#1 v1.5 signatures (#205180)
+- don't overwrite customized ca-bundle.pem on upgrade (#170740)
 
 * Thu Oct  6 2005 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.17
 - fix CAN-2005-2969 - remove SSL_OP_MSIE_SSLV2_RSA_PADDING which
