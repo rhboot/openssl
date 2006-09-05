@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 5
+Release: 6
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -55,6 +55,7 @@ Patch52: openssl-0.9.8b-pkcs12-fix.patch
 Patch53: openssl-0.9.8b-bn-threadsafety.patch
 Patch54: openssl-0.9.8b-aes-cachecol.patch
 Patch55: openssl-0.9.8b-pkcs7-leak.patch
+Patch56: openssl-0.9.8b-cve-2006-4339.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -119,6 +120,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch53 -p1 -b .bn-threadsafety
 %patch54 -p1 -b .cachecol
 %patch55 -p1 -b .pkcs7-leak
+%patch56 -p1 -b .short-padding
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -353,6 +355,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Sep  9 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-6
+- fix CVE-2006-4339 - prevent attack on PKCS#1 v1.5 signatures (#205180)
+
 * Wed Aug  2 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-5
 - set buffering to none on stdio/stdout FILE when bufsize is set (#200580)
   patch by IBM
