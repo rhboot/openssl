@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.18
+Release: 33.19
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -52,6 +52,11 @@ Patch45: openssl-0.9.7a-can-2005-0109.patch
 Patch46: openssl-0.9.7a-dsa-consttime.patch
 Patch47: openssl-0.9.7a-can-2005-2969.patch
 Patch49: openssl-0.9.7a-cve-2006-4339.patch
+Patch50: openssl-0.9.7a-cve-2006-2937.patch
+Patch51: openssl-0.9.7a-cve-2006-2940.patch
+Patch52: openssl-0.9.8b-cve-2006-3738.patch
+Patch53: openssl-0.9.8b-cve-2006-4343.patch
+
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
@@ -149,6 +154,10 @@ popd
 %patch46 -p1 -b .dsa-consttime
 %patch47 -p0 -b .ssl2-rollback
 %patch49 -p1 -b .short-padding
+%patch50 -p1 -b .asn1-error
+%patch51 -p1 -b .parasitic
+%patch52 -p0 -b .shared-ciphers
+%patch53 -p0 -b .client-dos
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -389,7 +398,13 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
-* Tue Sep  9 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.18
+* Mon Sep 25 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.19
+- fix CVE-2006-2937 - mishandled error on ASN.1 parsing (#207276)
+- fix CVE-2006-2940 - parasitic public keys DoS (#207274)
+- fix CVE-2006-3738 - buffer overflow in SSL_get_shared_ciphers (#206940)
+- fix CVE-2006-4343 - sslv2 client DoS (#206940)
+
+* Tue Sep  5 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.18
 - fix CVE-2006-4339 - prevent attack on PKCS#1 v1.5 signatures (#205180)
 - don't overwrite customized ca-bundle.pem on upgrade (#170740)
 
