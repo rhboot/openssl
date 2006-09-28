@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 6
+Release: 7
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
