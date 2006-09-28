@@ -56,6 +56,10 @@ Patch53: openssl-0.9.8b-bn-threadsafety.patch
 Patch54: openssl-0.9.8b-aes-cachecol.patch
 Patch55: openssl-0.9.8b-pkcs7-leak.patch
 Patch56: openssl-0.9.8b-cve-2006-4339.patch
+Patch57: openssl-0.9.8b-cve-2006-2937.patch
+Patch58: openssl-0.9.8b-cve-2006-2940.patch
+Patch59: openssl-0.9.8b-cve-2006-3738.patch
+Patch60: openssl-0.9.8b-cve-2006-4343.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -121,6 +125,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch54 -p1 -b .cachecol
 %patch55 -p1 -b .pkcs7-leak
 %patch56 -p1 -b .short-padding
+%patch57 -p1 -b .asn1-error
+%patch58 -p0 -b .parasitic
+%patch59 -p0 -b .shared-ciphers
+%patch60 -p0 -b .client-dos
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -355,7 +363,13 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Tue Sep  9 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-6
+* Mon Sep 25 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-7
+- fix CVE-2006-2937 - mishandled error on ASN.1 parsing (#207276)
+- fix CVE-2006-2940 - parasitic public keys DoS (#207274)
+- fix CVE-2006-3738 - buffer overflow in SSL_get_shared_ciphers (#206940)
+- fix CVE-2006-4343 - sslv2 client DoS (#206940)
+
+* Tue Sep  5 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-6
 - fix CVE-2006-4339 - prevent attack on PKCS#1 v1.5 signatures (#205180)
 
 * Wed Aug  2 2006 Tomas Mraz <tmraz@redhat.com> - 0.9.8b-5
