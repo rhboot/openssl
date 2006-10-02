@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.14
+Release: 43.15
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -421,6 +421,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Oct  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.15
+- CVE-2006-2940 fix was incorrect (#208744)
+
 * Thu Sep 28 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.14
 - fix CVE-2006-2937 - mishandled error on ASN.1 parsing (#207276)
 - fix CVE-2006-2940 - parasitic public keys DoS (#207274)
