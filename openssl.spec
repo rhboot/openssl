@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 7
+Release: 8
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -363,6 +363,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Oct  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8
+- CVE-2006-2940 fix was incorrect (#208744)
+
 * Mon Sep 25 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-7
 - fix CVE-2006-2937 - mishandled error on ASN.1 parsing (#207276)
 - fix CVE-2006-2940 - parasitic public keys DoS (#207274)
