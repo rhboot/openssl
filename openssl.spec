@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 8
+Release: 9%{?dist}
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -60,6 +60,7 @@ Patch57: openssl-0.9.8b-cve-2006-2937.patch
 Patch58: openssl-0.9.8b-cve-2006-2940.patch
 Patch59: openssl-0.9.8b-cve-2006-3738.patch
 Patch60: openssl-0.9.8b-cve-2006-4343.patch
+Patch61: openssl-0.9.8b-aliasing-bug.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -129,6 +130,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch58 -p0 -b .parasitic
 %patch59 -p0 -b .shared-ciphers
 %patch60 -p0 -b .client-dos
+%patch61 -p1 -b .aliasing-bug
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -363,6 +365,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Nov  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-9
+- aliasing bug in engine loading, patch by IBM (#213216)
+
 * Mon Oct  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8
 - CVE-2006-2940 fix was incorrect (#208744)
 
