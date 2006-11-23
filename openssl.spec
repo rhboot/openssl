@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 9%{?dist}
+Release: 10%{?dist}
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -61,6 +61,7 @@ Patch58: openssl-0.9.8b-cve-2006-2940.patch
 Patch59: openssl-0.9.8b-cve-2006-3738.patch
 Patch60: openssl-0.9.8b-cve-2006-4343.patch
 Patch61: openssl-0.9.8b-aliasing-bug.patch
+Patch62: openssl-0.9.8b-x509-name-cmp.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -131,6 +132,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch59 -p0 -b .shared-ciphers
 %patch60 -p0 -b .client-dos
 %patch61 -p1 -b .aliasing-bug
+%patch62 -p1 -b .name-cmp
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -365,6 +367,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Nov 23 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-10
+- make X509_NAME_cmp transitive otherwise certificate lookup
+  is broken (#216050)
+
 * Thu Nov  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-9
 - aliasing bug in engine loading, patch by IBM (#213216)
 
