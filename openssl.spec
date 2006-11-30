@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 8.2%{?dist}
+Release: 8.3%{?dist}
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -367,6 +367,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Nov 30 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.3
+- the previous change still didn't make X509_NAME_cmp transitive
+
 * Thu Nov 23 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.2
 - make X509_NAME_cmp transitive otherwise certificate lookup
   is broken (#216050)
