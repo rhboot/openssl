@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 11%{?dist}
+Release: 12%{?dist}
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -62,6 +62,7 @@ Patch59: openssl-0.9.8b-cve-2006-3738.patch
 Patch60: openssl-0.9.8b-cve-2006-4343.patch
 Patch61: openssl-0.9.8b-aliasing-bug.patch
 Patch62: openssl-0.9.8b-x509-name-cmp.patch
+Patch63: openssl-0.9.8b-x509-add-dir.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -133,6 +134,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch60 -p0 -b .client-dos
 %patch61 -p1 -b .aliasing-bug
 %patch62 -p1 -b .name-cmp
+%patch63 -p1 -b .add-dir
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -367,6 +369,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Dec 11 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-12
+- detect duplicates in add_dir properly (#206346)
+
 * Thu Nov 30 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-11
 - the previous change still didn't make X509_NAME_cmp transitive
 
