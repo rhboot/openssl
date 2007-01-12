@@ -437,7 +437,11 @@ static int ca_check(const X509 *x)
 		if((x->ex_flags & V1_ROOT) == V1_ROOT) return 3;
 		/* If key usage present it must have certSign so tolerate it */
 		else if (x->ex_flags & EXFLAG_KUSAGE) return 3;
-		else return 2;
+		/* Older certificates could have Netscape-specific CA types */
+		else if (x->ex_flags & EXFLAG_NSCERT
+			 && x->ex_nscert & NS_ANY_CA) return 5;
+		/* can this still be regarded a CA certificate?  I doubt it */
+		return 0;
 	}
 }
 
@@ -448,11 +452,7 @@ static int check_ssl_ca(const X509 *x)
 	ca_ret = ca_check(x);
 	if(!ca_ret) return 0;
 	/* check nsCertType if present */
-	if(x->ex_flags & EXFLAG_NSCERT) {
-		if(x->ex_nscert & NS_SSL_CA) return ca_ret;
-		return 0;
-	}
-	if(ca_ret != 2) return ca_ret;
+	if(ca_ret != 5 || x->ex_nscert & NS_SSL_CA) return ca_ret;
 	else return 0;
 }
 
@@ -500,11 +500,7 @@ static int purpose_smime(const X509 *x, int ca)
 		ca_ret = ca_check(x);
 		if(!ca_ret) return 0;
 		/* check nsCertType if present */
-		if(x->ex_flags & EXFLAG_NSCERT) {
-			if(x->ex_nscert & NS_SMIME_CA) return ca_ret;
-			return 0;
-		}
-		if(ca_ret != 2) return ca_ret;
+		if(ca_ret != 5 || x->ex_nscert & NS_SMIME_CA) return ca_ret;
 		else return 0;
 	}
 	if(x->ex_flags & EXFLAG_NSCERT) {
@@ -551,17 +547,9 @@ static int check_purpose_crl_sign(const X509_PURPOSE *xp, const X509 *x, int ca)
 
 static int ocsp_helper(const X509_PURPOSE *xp, const X509 *x, int ca)
 {
-	/* Must be a valid CA */
-	if(ca) {
-		int ca_ret;
-		ca_ret = ca_check(x);
-		if(ca_ret != 2) return ca_ret;
-		if(x->ex_flags & EXFLAG_NSCERT) {
-			if(x->ex_nscert & NS_ANY_CA) return ca_ret;
-			return 0;
-		}
-		return 0;
-	}
+	/* Must be a valid CA.  Should we really support the "I don't know"
+	   value (2)? */
+	if(ca) return ca_check(x);
 	/* leaf certificate is checked in OCSP_verify() */
 	return 1;
 }
