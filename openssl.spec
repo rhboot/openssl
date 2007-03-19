@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.22
+Release: 33.23
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -56,6 +56,7 @@ Patch50: openssl-0.9.7a-cve-2006-2937.patch
 Patch51: openssl-0.9.7a-cve-2006-2940.patch
 Patch52: openssl-0.9.8b-cve-2006-3738.patch
 Patch53: openssl-0.9.8b-cve-2006-4343.patch
+Patch54: openssl-0.9.7a-ca-check.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -158,6 +159,7 @@ popd
 %patch51 -p1 -b .parasitic
 %patch52 -p0 -b .shared-ciphers
 %patch53 -p0 -b .client-dos
+%patch54 -p1 -b .ca-check
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -398,6 +400,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Mar 19 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.23
+- improve handling of certificates with EXFLAG_NSCERT set (#200880)
+
 * Mon Oct  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.22
 - CVE-2006-2940 fix was incorrect (#208744)
 
