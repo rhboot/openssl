@@ -77,7 +77,10 @@ BN_BLINDING *BN_BLINDING_new(BIGNUM *A, BIGNUM *Ai, BIGNUM *mod)
 	if ((ret->Ai=BN_new()) == NULL) goto err;
 	if (!BN_copy(ret->A,A)) goto err;
 	if (!BN_copy(ret->Ai,Ai)) goto err;
-	ret->mod=mod;
+	/* save a copy of mod in the BN_BLINDING structure */
+	if ((ret->mod = BN_dup(mod)) == NULL) goto err;
+	if (BN_get_flags(mod, BN_FLG_CONSTTIME) != 0)
+		BN_set_flags(ret->mod, BN_FLG_CONSTTIME);
 	return(ret);
 err:
 	if (ret != NULL) BN_BLINDING_free(ret);
@@ -91,6 +94,7 @@ void BN_BLINDING_free(BN_BLINDING *r)
 
 	if (r->A  != NULL) BN_free(r->A );
 	if (r->Ai != NULL) BN_free(r->Ai);
+	if (r->mod != NULL) BN_free(r->mod); 
 	OPENSSL_free(r);
 	}
 
