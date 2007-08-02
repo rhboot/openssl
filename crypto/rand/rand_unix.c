@@ -123,6 +123,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/poll.h>
 
 int RAND_poll(void)
 {
@@ -136,6 +137,7 @@ int RAND_poll(void)
 	static const char *randomfiles[] = { DEVRANDOM, NULL };
 	const char **randomfile = NULL;
 	int fd;
+	struct pollfd pfd;
 #endif
 #ifdef DEVRANDOM_EGD
 	static const char *egdsockets[] = { DEVRANDOM_EGD, NULL };
@@ -159,37 +161,31 @@ int RAND_poll(void)
 #endif
 			)) >= 0)
 			{
-			struct timeval t = { 0, 10*1000 }; /* Spend 10ms on
+			int t = 10;                        /* Spend 10ms on
 							      each file. */
 			int r;
-			fd_set fset;
 
 			do
 				{
-				FD_ZERO(&fset);
-				FD_SET(fd, &fset);
-				r = -1;
-
-				if (select(fd+1,&fset,NULL,NULL,&t) < 0)
-					t.tv_usec=0;
-				else if (FD_ISSET(fd, &fset))
+				pfd.fd = fd;
+				pfd.events = POLLIN;
+				pfd.revents = 0;
+				
+				if ((r=poll(&pfd,1,t)) == 0)
+					t = 0;
+				else if (r > 0 && (pfd.revents & POLLIN))
 					{
 					r=read(fd,(unsigned char *)tmpbuf+n,
 					       ENTROPY_NEEDED-n);
 					if (r > 0)
 						n += r;
 					}
-
-				/* Some Unixen will update t, some
-				   won't.  For those who won't, give
-				   up here, otherwise, we will do
-				   this once again for the remaining
-				   time. */
-				if (t.tv_usec == 10*1000)
-					t.tv_usec=0;
+				/* we don't know how big part of the timeout elapsed
+				    wait half the original timeout next time */
+				t >>= 1; 
 				}
 			while ((r > 0 || (errno == EINTR || errno == EAGAIN))
-				&& t.tv_usec != 0 && n < ENTROPY_NEEDED);
+				&& t != 0 && n < ENTROPY_NEEDED);
 
 			close(fd);
 			}
