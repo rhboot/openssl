@@ -174,13 +174,17 @@ struct rsa_st
 /* This flag in the RSA_METHOD enables the new rsa_sign, rsa_verify functions.
  */
 #define RSA_FLAG_SIGN_VER		0x40
-#define RSA_FLAG_NO_EXP_CONSTTIME      0x100 /* the built-in RSA
-                                             * implementation now uses constant time
-                                             * modular exponentiation for secret exponents
-                                             * by default. This flag causes the
-                                             * faster variable sliding window method to
-                                             * be used for all exponents.
-                                	     */
+#define RSA_FLAG_NO_CONSTTIME		0x0100 /* new with 0.9.8f; the built-in RSA
+						* implementation now uses constant time
+						* operations by default in private key operations,
+						* e.g., constant time modular exponentiation, 
+                                                * modular inverse without leaking branches, 
+                                                * division without leaking branches. This 
+                                                * flag disables these constant time 
+                                                * operations and results in faster RSA 
+                                                * private key operations.
+                                                */ 
+#define RSA_FLAG_NO_EXP_CONSTTIME RSA_FLAG_NO_CONSTTIME /* deprecated name for the flag */
 
 #define RSA_PKCS1_PADDING	1
 #define RSA_SSLV23_PADDING	2

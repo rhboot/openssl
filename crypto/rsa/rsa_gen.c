@@ -67,6 +67,8 @@ RSA *RSA_generate_key(int bits, unsigned long e_value,
 	{
 	RSA *rsa=NULL;
 	BIGNUM *r0=NULL,*r1=NULL,*r2=NULL,*r3=NULL,*tmp;
+	BIGNUM local_r0,local_d,local_p;
+	BIGNUM *pr0,*d,*p;
 	int bitsp,bitsq,ok= -1,n=0,i;
 	BN_CTX *ctx=NULL,*ctx2=NULL;
 
@@ -158,21 +160,43 @@ RSA *RSA_generate_key(int bits, unsigned long e_value,
 		goto err;
 		}
 */
-	rsa->d=BN_mod_inverse(NULL,rsa->e,r0,ctx2);	/* d */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		  pr0 = &local_r0;
+		  BN_with_flags(pr0, r0, BN_FLG_CONSTTIME);
+		}
+	else
+	  pr0 = r0;
+	rsa->d=BN_mod_inverse(NULL,rsa->e,pr0,ctx2);	/* d */
 	if (rsa->d == NULL) goto err;
+	/* set up d for correct BN_FLG_CONSTTIME flag */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))  /* this will be always true but... */
+		{
+		d = &local_d;
+		BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
+		}
+	else
+		d = rsa->d;
 
 	/* calculate d mod (p-1) */
 	rsa->dmp1=BN_new();
 	if (rsa->dmp1 == NULL) goto err;
-	if (!BN_mod(rsa->dmp1,rsa->d,r1,ctx)) goto err;
+	if (!BN_mod(rsa->dmp1,d,r1,ctx)) goto err;
 
 	/* calculate d mod (q-1) */
 	rsa->dmq1=BN_new();
 	if (rsa->dmq1 == NULL) goto err;
-	if (!BN_mod(rsa->dmq1,rsa->d,r2,ctx)) goto err;
+	if (!BN_mod(rsa->dmq1,d,r2,ctx)) goto err;
 
 	/* calculate inverse of q mod p */
-	rsa->iqmp=BN_mod_inverse(NULL,rsa->q,rsa->p,ctx2);
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME)) /* this will be always true but... */
+		{
+		p = &local_p;
+		BN_with_flags(p, rsa->p, BN_FLG_CONSTTIME);
+		}
+	else
+		p = rsa->p;
+	rsa->iqmp=BN_mod_inverse(NULL,rsa->q,p,ctx2);
 	if (rsa->iqmp == NULL) goto err;
 
 	ok=1;
