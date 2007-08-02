@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.16
+Release: 43.17
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -72,6 +72,10 @@ Patch51: openssl-0.9.7a-cve-2006-2940.patch
 Patch52: openssl-0.9.8b-cve-2006-3738.patch
 Patch53: openssl-0.9.8b-cve-2006-4343.patch
 Patch54: openssl-0.9.7a-ca-check.patch
+Patch55: openssl-0.9.7a-use-poll.patch
+Patch56: openssl-0.9.7a-ssl-strict-matching.patch
+Patch57: openssl-0.9.7a-pkcs12-no-crash.patch
+Patch58: openssl-0.9.7a-cve-2007-3108.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -164,6 +168,10 @@ popd
 %patch52 -p0 -b .shared-ciphers
 %patch53 -p0 -b .client-dos
 %patch54 -p1 -b .ca-check
+%patch55 -p1 -b .use-poll
+%patch56 -p1 -b .strict-matching
+%patch57 -p1 -b .no-crash
+%patch58 -p1 -b .no-branch
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -423,6 +431,13 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Aug  2 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17
+- use poll when reading random device (#236164)
+- make ssl session ID context matching strict (#244436)
+- openssl utility shouldn't crash on invalid PKCS#12 files (#245083)
+- CVE-2007-3108 remove conditionals in BN_div, BN_mod and final
+  Montgomery reduction (#250580)
+
 * Fri Jan 12 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.16
 - improves handling of certificates with EXFLAG_NSCERT set (#201005)
 
