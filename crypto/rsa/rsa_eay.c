@@ -685,8 +685,9 @@ err:
 static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa)
 	{
 	BIGNUM r1,m1,vrfy;
-	BIGNUM local_dmp1, local_dmq1;
-	BIGNUM *dmp1, *dmq1;
+	BIGNUM local_dmp1,local_dmq1,local_c,local_r1;
+	BIGNUM *dmp1,*dmq1,*c,*pr1;
+	int bn_flags;
 	int ret=0;
 	BN_CTX *ctx;
 
@@ -700,6 +701,11 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa)
 		if (rsa->_method_mod_p == NULL)
 			{
 			BN_MONT_CTX* bn_mont_ctx;
+			bn_flags = rsa->p->flags;
+			if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+				{
+				rsa->p->flags |= BN_FLG_CONSTTIME;
+				}
 			if ((bn_mont_ctx=BN_MONT_CTX_new()) == NULL)
 				goto err;
 			if (!BN_MONT_CTX_set(bn_mont_ctx,rsa->p,ctx))
@@ -719,11 +725,17 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa)
 				}
 			if (bn_mont_ctx)
 				BN_MONT_CTX_free(bn_mont_ctx);
+			rsa->p->flags = bn_flags;
 			}
 
 		if (rsa->_method_mod_q == NULL)
 			{
 			BN_MONT_CTX* bn_mont_ctx;
+			bn_flags = rsa->q->flags;
+			if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+				{
+				rsa->q->flags |= BN_FLG_CONSTTIME;
+				}
 			if ((bn_mont_ctx=BN_MONT_CTX_new()) == NULL)
 				goto err;
 			if (!BN_MONT_CTX_set(bn_mont_ctx,rsa->q,ctx))
@@ -743,11 +755,22 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa)
 				}
 			if (bn_mont_ctx)
 				BN_MONT_CTX_free(bn_mont_ctx);
+			rsa->q->flags = bn_flags;	
 			}
 		}
 		
-	if (!BN_mod(&r1,I,rsa->q,ctx)) goto err;
-	if (!(rsa->flags & RSA_FLAG_NO_EXP_CONSTTIME))
+	/* compute I mod q */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		c = &local_c;
+		BN_with_flags(c, I, BN_FLG_CONSTTIME);
+		if (!BN_mod(&r1,c,rsa->q,ctx)) goto err;
+		}
+	else
+		{
+		if (!BN_mod(&r1,I,rsa->q,ctx)) goto err;
+		}
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
 		{
 		dmq1 = &local_dmq1;
 		BN_with_flags(dmq1, rsa->dmq1, BN_FLG_EXP_CONSTTIME);
@@ -757,8 +780,20 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa)
 	if (!rsa->meth->bn_mod_exp(&m1,&r1,dmq1,rsa->q,ctx,
 		rsa->_method_mod_q)) goto err;
 
-	if (!BN_mod(&r1,I,rsa->p,ctx)) goto err;
-	if (!(rsa->flags & RSA_FLAG_NO_EXP_CONSTTIME))
+	/* compute I mod p */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		c = &local_c;
+		BN_with_flags(c, I, BN_FLG_CONSTTIME);
+		if (!BN_mod(&r1,c,rsa->p,ctx)) goto err;
+		}
+	else
+		{
+		if (!BN_mod(&r1,I,rsa->p,ctx)) goto err;
+		}
+
+	/* compute r1^dmp1 mod p */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
 		{
 		dmp1 = &local_dmp1;
 		BN_with_flags(dmp1, rsa->dmp1, BN_FLG_EXP_CONSTTIME);
@@ -775,7 +810,16 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa)
 		if (!BN_add(r0,r0,rsa->p)) goto err;
 
 	if (!BN_mul(&r1,r0,rsa->iqmp,ctx)) goto err;
-	if (!BN_mod(r0,&r1,rsa->p,ctx)) goto err;
+
+	/* Turn BN_FLG_CONSTTIME flag on before division operation */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		pr1 = &local_r1;
+		BN_with_flags(pr1, &r1, BN_FLG_CONSTTIME);
+		}
+	else
+		pr1 = &r1;
+	if (!BN_mod(r0,pr1,rsa->p,ctx)) goto err;
 	/* If p < q it is occasionally possible for the correction of
          * adding 'p' if r0 is negative above to leave the result still
 	 * negative. This can break the private key operations: the following

@@ -321,6 +321,8 @@ int RSA_blinding_on(RSA *rsa, BN_CTX *p_ctx)
 	{
 	BIGNUM *A,*Ai;
 	BN_CTX *ctx;
+	BIGNUM local_n;
+	BIGNUM *n;
 	int ret=0;
 
 	if (p_ctx == NULL)
@@ -345,11 +347,19 @@ int RSA_blinding_on(RSA *rsa, BN_CTX *p_ctx)
 		{
 		if (!BN_rand_range(A,rsa->n)) goto err;
 		}
-	if ((Ai=BN_mod_inverse(NULL,A,rsa->n,ctx)) == NULL) goto err;
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		/* Set BN_FLG_CONSTTIME flag */
+		n = &local_n;
+		BN_with_flags(n, rsa->n, BN_FLG_CONSTTIME);
+		}
+	else
+		n = rsa->n;
+	if ((Ai=BN_mod_inverse(NULL,A,n,ctx)) == NULL) goto err;
 
-	if (!rsa->meth->bn_mod_exp(A,A,rsa->e,rsa->n,ctx,rsa->_method_mod_n))
+	if (!rsa->meth->bn_mod_exp(A,A,rsa->e,n,ctx,rsa->_method_mod_n))
 	    goto err;
-	rsa->blinding=BN_BLINDING_new(A,Ai,rsa->n);
+	rsa->blinding=BN_BLINDING_new(A,Ai,n);
 	rsa->flags|=RSA_FLAG_BLINDING;
 	BN_free(Ai);
 	ret=1;
