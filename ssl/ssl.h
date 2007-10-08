@@ -315,7 +315,7 @@ extern "C" {
 /* The following cipher list is used by default.
  * It also is substituted when an application-defined cipher list string
  * starts with 'DEFAULT'. */
-#define SSL_DEFAULT_CIPHER_LIST	"ALL:!ADH:+RC4:@STRENGTH" /* low priority for RC4 */
+#define SSL_DEFAULT_CIPHER_LIST	"AES:ALL:!aNULL:!eNULL:+RC4:@STRENGTH" /* low priority for RC4 */
 
 /* Used in SSL_set_shutdown()/SSL_get_shutdown(); */
 #define SSL_SENT_SHUTDOWN	1
@@ -1551,6 +1551,7 @@ void ERR_load_SSL_strings(void);
 #define SSL_F_DTLS1_GET_MESSAGE_FRAGMENT		 253
 #define SSL_F_DTLS1_GET_RECORD				 254
 #define SSL_F_DTLS1_OUTPUT_CERT_CHAIN			 255
+#define SSL_F_DTLS1_PREPROCESS_FRAGMENT			 277
 #define SSL_F_DTLS1_PROCESS_OUT_OF_SEQ_MESSAGE		 256
 #define SSL_F_DTLS1_PROCESS_RECORD			 257
 #define SSL_F_DTLS1_READ_BYTES				 258
