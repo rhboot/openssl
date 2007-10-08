@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 8.3%{?dist}
+Release: 8.3%{?dist}.1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -62,6 +62,9 @@ Patch59: openssl-0.9.8b-cve-2006-3738.patch
 Patch60: openssl-0.9.8b-cve-2006-4343.patch
 Patch61: openssl-0.9.8b-aliasing-bug.patch
 Patch62: openssl-0.9.8b-x509-name-cmp.patch
+Patch63: openssl-0.9.8b-cve-2007-3108.patch
+Patch64: openssl-0.9.8b-cve-2007-4995.patch
+Patch65: openssl-0.9.8b-cve-2007-5135.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -133,6 +136,9 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch60 -p0 -b .client-dos
 %patch61 -p1 -b .aliasing-bug
 %patch62 -p1 -b .name-cmp
+%patch63 -p1 -b .no-branch
+%patch64 -p1 -b .dtls-fixes
+%patch65 -p1 -b .shciphers
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -367,6 +373,11 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Oct  8 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.3.1
+- fix CVE-2007-3108 - side channel attack on private keys (#322891)
+- fix CVE-2007-5135 - off-by-one in SSL_get_shared_ciphers (#309871)
+- fix CVE-2007-4995 - out of order DTLS fragments buffer overflow (#321211)
+
 * Thu Nov 30 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.3
 - the previous change still didn't make X509_NAME_cmp transitive
 
