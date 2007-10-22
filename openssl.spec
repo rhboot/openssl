@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.17
+Release: 43.17.%{?dist}.1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -76,6 +76,7 @@ Patch55: openssl-0.9.7a-use-poll.patch
 Patch56: openssl-0.9.7a-ssl-strict-matching.patch
 Patch57: openssl-0.9.7a-pkcs12-no-crash.patch
 Patch58: openssl-0.9.7a-cve-2007-3108.patch
+Patch59: openssl-0.9.8b-cve-2007-5135.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -172,6 +173,7 @@ popd
 %patch56 -p1 -b .strict-matching
 %patch57 -p1 -b .no-crash
 %patch58 -p1 -b .no-branch
+%patch59 -p1 -b .shciphers
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -431,6 +433,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Oct 22 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.1
+- CVE-2007-5135 off by one buffer overflow in SSL_get_shared_ciphers (#309851)
+
 * Thu Aug  2 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17
 - use poll when reading random device (#236164)
 - make ssl session ID context matching strict (#244436)
