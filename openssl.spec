@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 9%{?dist}
+Release: 10%{?dist}
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -65,6 +65,7 @@ Patch62: openssl-0.9.8b-x509-name-cmp.patch
 Patch63: openssl-0.9.8b-cve-2007-3108.patch
 Patch64: openssl-0.9.8b-cve-2007-4995.patch
 Patch65: openssl-0.9.8b-cve-2007-5135.patch
+Patch66: openssl-0.9.7a-ssl-strict-matching.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -139,6 +140,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch63 -p1 -b .no-branch
 %patch64 -p1 -b .dtls-fixes
 %patch65 -p1 -b .shciphers
+%patch66 -p1 -b .strict-matching
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -166,7 +168,7 @@ sslarch=linux-alpha-gcc
 %endif
 %ifarch s390
 # The -fno-regmove is a workaround for bug #199604
-sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM -fno-regmove"
+sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM -march=z900 -fno-regmove"
 %endif
 %ifarch s390x
 sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
@@ -373,6 +375,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Jan 15 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8b-10
+- compile with -march=z900 on s390 for performance improvements (#250818)
+- make ssl session ID matching strict (#233599)
+
 * Mon Oct  8 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-9
 - fix CVE-2007-3108 - side channel attack on private keys (#250581)
 - fix CVE-2007-5135 - off-by-one in SSL_get_shared_ciphers (#309881)
