@@ -47,6 +47,8 @@
  *
  */
 
+#define _GNU_SOURCE
+
 #include <openssl/fips.h>
 #include <openssl/rand.h>
 #include <openssl/fips_rand.h>
@@ -56,6 +58,9 @@
 #include <openssl/rsa.h>
 #include <string.h>
 #include <limits.h>
+#include <dlfcn.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "fips_locl.h"
 
 #ifdef OPENSSL_FIPS
@@ -165,6 +170,7 @@ int FIPS_selftest()
 
 extern const void         *FIPS_text_start(),  *FIPS_text_end();
 extern const unsigned char FIPS_rodata_start[], FIPS_rodata_end[];
+#if 0
 unsigned char              FIPS_signature [20] = { 0 };
 static const char          FIPS_hmac_key[]="etaonrishdlcupfm";
 
@@ -241,6 +247,206 @@ int FIPS_check_incore_fingerprint(void)
 
     return 1;
     }
+#else
+/* we implement what libfipscheck does ourselves */
+
+static int
+get_library_path(const char *libname, const char *symbolname, char *path, size_t pathlen)
+{
+	Dl_info info;
+	void *dl, *sym;
+	int rv = -1;
+
+        dl = dlopen(libname, RTLD_NODELETE|RTLD_NOLOAD|RTLD_LAZY);
+        if (dl == NULL) {
+	        return -1;
+        }       
+
+	sym = dlsym(dl, symbolname);
+
+	if (sym != NULL && dladdr(sym, &info)) {
+		strncpy(path, info.dli_fname, pathlen-1);
+		path[pathlen-1] = '\0';
+		rv = 0;
+	}
+
+	dlclose(dl);	
+	
+	return rv;
+}
+
+static const char conv[] = "0123456789abcdef";
+
+static char *
+bin2hex(void *buf, size_t len)
+{
+	char *hex, *p;
+	unsigned char *src = buf;
+	
+	hex = malloc(len * 2 + 1);
+	if (hex == NULL)
+		return NULL;
+
+	p = hex;
+
+	while (len > 0) {
+		unsigned c;
+
+		c = *src;
+		src++;
+
+		*p = conv[c >> 4];
+		++p;
+		*p = conv[c & 0x0f];
+		++p;
+		--len;
+	}
+	*p = '\0';
+	return hex;
+}
+
+#define HMAC_PREFIX "." 
+#define HMAC_SUFFIX ".hmac" 
+#define READ_BUFFER_LENGTH 16384
+
+static char *
+make_hmac_path(const char *origpath)
+{
+	char *path, *p;
+	const char *fn;
+
+	path = malloc(sizeof(HMAC_PREFIX) + sizeof(HMAC_SUFFIX) + strlen(origpath));
+	if(path == NULL) {
+		return NULL;
+	}
+
+	fn = strrchr(origpath, '/');
+	if (fn == NULL) {
+		fn = origpath;
+	} else {
+		++fn;
+	}
+
+	strncpy(path, origpath, fn-origpath);
+	p = path + (fn - origpath);
+	p = stpcpy(p, HMAC_PREFIX);
+	p = stpcpy(p, fn);
+	p = stpcpy(p, HMAC_SUFFIX);
+
+	return path;
+}
+
+static const char hmackey[] = "orboDeJITITejsirpADONivirpUkvarP";
+
+static int
+compute_file_hmac(const char *path, void **buf, size_t *hmaclen)
+{
+	FILE *f = NULL;
+	int rv = -1;
+	unsigned char rbuf[READ_BUFFER_LENGTH];
+	size_t len;
+	unsigned int hlen;
+	HMAC_CTX c;
+
+	HMAC_CTX_init(&c);
+
+	f = fopen(path, "r");
+
+	if (f == NULL) {
+		goto end;
+	}
+
+	HMAC_Init(&c, hmackey, sizeof(hmackey)-1, EVP_sha256());
+
+	while ((len=fread(rbuf, 1, sizeof(rbuf), f)) != 0) {
+		HMAC_Update(&c, rbuf, len);
+	}
+
+	len = sizeof(rbuf);
+	/* reuse rbuf for hmac */
+	HMAC_Final(&c, rbuf, &hlen);
+
+	*buf = malloc(hlen);
+	if (*buf == NULL) {
+		goto end;
+	}
+
+	*hmaclen = hlen;
+
+	memcpy(*buf, rbuf, hlen);
+
+	rv = 0;
+end:
+	HMAC_CTX_cleanup(&c);
+
+	if (f)
+		fclose(f);
+
+	return rv;
+}
+
+static int
+FIPSCHECK_verify(const char *libname, const char *symbolname)
+{
+	char path[PATH_MAX+1];
+	int rv;
+	FILE *hf;
+	char *hmacpath, *p;
+	char *hmac = NULL;
+	size_t n;
+	
+	rv = get_library_path(libname, symbolname, path, sizeof(path));
+
+	if (rv < 0)
+		return 0;
+
+	hmacpath = make_hmac_path(path);
+
+	hf = fopen(hmacpath, "r");
+	if (hf == NULL) {
+		free(hmacpath);
+		return 0;
+	}
+
+	if (getline(&hmac, &n, hf) > 0) {
+		void *buf;
+		size_t hmaclen;
+		char *hex;
+
+		if ((p=strchr(hmac, '\n')) != NULL)
+			*p = '\0';
+
+		if (compute_file_hmac(path, &buf, &hmaclen) < 0) {
+			rv = -4;
+			goto end;
+		}
+
+		if ((hex=bin2hex(buf, hmaclen)) == NULL) {
+			free(buf);
+			rv = -5;
+			goto end;
+		}
+
+		if (strcmp(hex, hmac) != 0) {
+			rv = -1;
+		}
+		free(buf);
+		free(hex);
+	}
+
+end:
+	free(hmac);
+	free(hmacpath);
+	fclose(hf);
+
+	if (rv < 0)
+		return 0;
+
+	/* check successful */
+	return 1;	
+}
+
+#endif
 
 int FIPS_mode_set(int onoff)
     {
@@ -278,16 +484,9 @@ int FIPS_mode_set(int onoff)
 	    }
 #endif
 
-	if(fips_signature_witness() != FIPS_signature)
+	if(!FIPSCHECK_verify("libcrypto.so.0.9.8e","FIPS_mode_set"))
 	    {
-	    FIPSerr(FIPS_F_FIPS_MODE_SET,FIPS_R_CONTRADICTING_EVIDENCE);
-	    fips_selftest_fail = 1;
-	    ret = 0;
-	    goto end;
-	    }
-
-	if(!FIPS_check_incore_fingerprint())
-	    {
+	    FIPSerr(FIPS_F_FIPS_MODE_SET,FIPS_R_FINGERPRINT_DOES_NOT_MATCH);
 	    fips_selftest_fail = 1;
 	    ret = 0;
 	    goto end;
@@ -403,11 +602,13 @@ int fips_clear_owning_thread(void)
 	return ret;
 	}
 
+#if 0
 unsigned char *fips_signature_witness(void)
 	{
 	extern unsigned char FIPS_signature[];
 	return FIPS_signature;
 	}
+#endif
 
 /* Generalized public key test routine. Signs and verifies the data
  * supplied in tbs using mesage digest md and setting option digest

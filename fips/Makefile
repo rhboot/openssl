@@ -62,9 +62,9 @@ testapps:
 
 all:
 	@if [ -z "$(FIPSLIBDIR)" ]; then \
-		$(MAKE) -e subdirs lib fips_premain_dso$(EXE_EXT); \
+		$(MAKE) -e subdirs lib; \
 	else \
-		$(MAKE) -e lib fips_premain_dso$(EXE_EXT) fips_standalone_sha1$(EXE_EXT); \
+		$(MAKE) -e lib; \
 	fi
 
 # Idea behind fipscanister.o is to "seize" the sequestered code between
@@ -109,7 +109,6 @@ fipscanister.o: fips_start.o $(LIBOBJ) $(FIPS_OBJ_LISTS) fips_end.o
 		HP-UX|OSF1|SunOS) set -x; /usr/ccs/bin/ld -r -o $@ $$objs ;; \
 		*) set -x; $(CC) $$cflags -r -o $@ $$objs ;; \
 	esac fi
-	./fips_standalone_sha1 fipscanister.o > fipscanister.o.sha1
 
 # If another exception is immediately required, assign approprite
 # site-specific ld command to FIPS_SITE_LD environment variable.
@@ -154,7 +153,7 @@ $(FIPSCANLIB):	$(FIPSCANLOC)
 	$(RANLIB) ../$(FIPSCANLIB).a || echo Never mind.
 	@touch lib
 
-shared:	lib subdirs fips_premain_dso$(EXE_EXT)
+shared:	lib subdirs
 
 libs:
 	@target=lib; $(RECURSIVE_MAKE)
@@ -178,10 +177,6 @@ install:
 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
 	done;
 	@target=install; $(RECURSIVE_MAKE)
-	@cp -p -f fipscanister.o fipscanister.o.sha1 fips_premain.c \
-		fips_premain.c.sha1 \
-		$(INSTALL_PREFIX)$(INSTALLTOP)/lib/; \
-	chmod 0444 $(INSTALL_PREFIX)$(INSTALLTOP)/lib/fips*
 
 lint:
 	@target=lint; $(RECURSIVE_MAKE)
