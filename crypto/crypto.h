@@ -343,7 +343,18 @@ DECLARE_STACK_OF(CRYPTO_EX_DATA_FUNCS)
 
 /* Set standard debugging functions (not done by default
  * unless CRYPTO_MDEBUG is defined) */
+#ifdef OPENSSL_USE_NEW_FUNCTIONS
 void CRYPTO_malloc_debug_init(void);
+#else
+#define CRYPTO_malloc_debug_init()	do {\
+	CRYPTO_set_mem_debug_functions(\
+		CRYPTO_dbg_malloc,\
+		CRYPTO_dbg_realloc,\
+		CRYPTO_dbg_free,\
+		CRYPTO_dbg_set_options,\
+		CRYPTO_dbg_get_options);\
+	} while(0)
+#endif
 
 int CRYPTO_mem_ctrl(int mode);
 int CRYPTO_is_mem_check_on(void);
