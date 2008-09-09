@@ -610,12 +610,13 @@ bad:
 	if (!set_cert_key_stuff(ctx,cert,key))
 		goto end;
 
-	if ((!SSL_CTX_load_verify_locations(ctx,CAfile,CApath)) ||
-		(!SSL_CTX_set_default_verify_paths(ctx)))
+	if (!SSL_CTX_load_verify_locations(ctx,CAfile,CApath))
 		{
-		/* BIO_printf(bio_err,"error setting default verify locations\n"); */
 		ERR_print_errors(bio_err);
-		/* goto end; */
+		}
+	if (!SSL_CTX_set_default_verify_paths(ctx))
+		{
+		ERR_print_errors(bio_err);
 		}
 
 	store = SSL_CTX_get_cert_store(ctx);
