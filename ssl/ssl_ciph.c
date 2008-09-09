@@ -284,7 +284,7 @@ static void load_builtin_compressions(void)
 
 			MemCheck_off();
 			ssl_comp_methods=sk_SSL_COMP_new(sk_comp_cmp);
-			if (ssl_comp_methods != NULL)
+			if (ssl_comp_methods != NULL && getenv("OPENSSL_NO_DEFAULT_ZLIB") == NULL)
 				{
 				comp=(SSL_COMP *)OPENSSL_malloc(sizeof(SSL_COMP));
 				if (comp != NULL)
