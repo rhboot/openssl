@@ -62,9 +62,9 @@ testapps:
 
 all:
 	@if [ -z "$(FIPSLIBDIR)" ]; then \
-		$(MAKE) -e subdirs lib fips_premain_dso$(EXE_EXT); \
+		$(MAKE) -e subdirs lib; \
 	else \
-		$(MAKE) -e lib fips_premain_dso$(EXE_EXT) fips_standalone_sha1$(EXE_EXT); \
+		$(MAKE) -e lib; \
 	fi
 
 # Idea behind fipscanister.o is to "seize" the sequestered code between
@@ -109,7 +109,6 @@ fipscanister.o: fips_start.o $(LIBOBJ) $(FIPS_OBJ_LISTS) fips_end.o
 		HP-UX|OSF1|SunOS) set -x; /usr/ccs/bin/ld -r -o $@ $$objs ;; \
 		*) set -x; $(CC) $$cflags -r -o $@ $$objs ;; \
 	esac fi
-	./fips_standalone_sha1 fipscanister.o > fipscanister.o.sha1
 
 # If another exception is immediately required, assign approprite
 # site-specific ld command to FIPS_SITE_LD environment variable.
@@ -141,8 +140,24 @@ links:
 lib:	$(LIB)
 	@touch lib
 
-$(LIB):	$(FIPSLIBDIR)fipscanister.o
-	$(AR) $(LIB) $(FIPSLIBDIR)fipscanister.o
+$(LIB):	$(LIBOBJ) $(FIPS_OBJ_LISTS)
+	FIPS_ASM=""; \
+	list="$(BN_ASM)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/bn/$$i" ; done; \
+	list="$(AES_ASM_OBJ)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/aes/$$i" ; done; \
+	list="$(DES_ENC)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/des/$$i" ; done; \
+	list="$(SHA1_ASM_OBJ)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/sha/$$i" ; done; \
+	if [ -n "$(CPUID_OBJ)" ]; then \
+		CPUID=../crypto/$(CPUID_OBJ) ; \
+	else \
+		CPUID="" ; \
+	fi ; \
+	objs="$(LIBOBJ) $(FIPS_EX_OBJ) $$CPUID $$FIPS_ASM"; \
+	for i in $(FIPS_OBJ_LISTS); do \
+		dir=`dirname $$i`; script="s|^|$$dir/|;s| | $$dir/|g"; \
+		objs="$$objs `sed "$$script" $$i`"; \
+	done; \
+	objs="$$objs" ; \
+	$(AR) $(LIB) $$objs 
 	$(RANLIB) $(LIB) || echo Never mind.
 
 $(FIPSCANLIB):	$(FIPSCANLOC)
@@ -154,7 +169,7 @@ $(FIPSCANLIB):	$(FIPSCANLOC)
 	$(RANLIB) ../$(FIPSCANLIB).a || echo Never mind.
 	@touch lib
 
-shared:	lib subdirs fips_premain_dso$(EXE_EXT)
+shared:	lib subdirs
 
 libs:
 	@target=lib; $(RECURSIVE_MAKE)
@@ -178,10 +193,6 @@ install:
 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
 	done;
 	@target=install; $(RECURSIVE_MAKE)
-	@cp -p -f fipscanister.o fipscanister.o.sha1 fips_premain.c \
-		fips_premain.c.sha1 \
-		$(INSTALL_PREFIX)$(INSTALLTOP)/lib/; \
-	chmod 0444 $(INSTALL_PREFIX)$(INSTALLTOP)/lib/fips*
 
 lint:
 	@target=lint; $(RECURSIVE_MAKE)
