@@ -1,0 +1,38 @@
+diff -up openssl-fips-0.9.8e/README.env-nozlib openssl-fips-0.9.8e/README
+--- openssl-fips-0.9.8e/README.env-nozlib	2007-03-22 01:37:41.000000000 +0100
++++ openssl-fips-0.9.8e/README	2008-09-06 12:11:27.000000000 +0200
+@@ -8,8 +8,20 @@
+  WARNING
+  -------
+ 
+- This version of OpenSSL is an initial port of the FIPS 140-2 code to OpenSSL
+- 0.9.8. See the file README.FIPS for brief usage details.
++ This version of OpenSSL is based on upstream openssl-fips-1.2.0 code
++ which is also undergoing FIPS validation.
++ 
++ However this version contains a few differences from the upstream code
++ some of which are:
++   * The module respects the kernel FIPS flag /proc/sys/crypto/fips and
++     tries to initialize the FIPS mode if it is set to 1 aborting if the
++     FIPS mode could not be initialized. It is also possible to force the
++     OpenSSL library to FIPS mode especially for debugging purposes by
++     setting the environment variable OPENSSL_FORCE_FIPS_MODE.
++   * If the environment variable OPENSSL_NO_DEFAULT_ZLIB is set the module
++     will not automatically load the built in compression method ZLIB
++     when initialized. Applications can still explicitely ask for ZLIB
++     compression method.
+ 
+  DESCRIPTION
+  -----------
+diff -up openssl-fips-0.9.8e/ssl/ssl_ciph.c.env-nozlib openssl-fips-0.9.8e/ssl/ssl_ciph.c
+--- openssl-fips-0.9.8e/ssl/ssl_ciph.c.env-nozlib	2007-08-13 20:35:04.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/ssl_ciph.c	2008-09-06 11:58:15.000000000 +0200
+@@ -284,7 +284,7 @@ static void load_builtin_compressions(vo
+ 
+ 			MemCheck_off();
+ 			ssl_comp_methods=sk_SSL_COMP_new(sk_comp_cmp);
+-			if (ssl_comp_methods != NULL)
++			if (ssl_comp_methods != NULL && getenv("OPENSSL_NO_DEFAULT_ZLIB") == NULL)
+ 				{
+ 				comp=(SSL_COMP *)OPENSSL_malloc(sizeof(SSL_COMP));
+ 				if (comp != NULL)

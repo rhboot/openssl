@@ -1,0 +1,211 @@
+diff -up openssl-fips-0.9.8e/test/Makefile.use-fipscheck openssl-fips-0.9.8e/test/Makefile
+--- openssl-fips-0.9.8e/test/Makefile.use-fipscheck	2007-08-26 16:57:41.000000000 +0200
++++ openssl-fips-0.9.8e/test/Makefile	2008-09-04 15:58:52.000000000 +0200
+@@ -395,21 +395,17 @@ FIPS_BUILD_CMD=shlib_target=; if [ -n "$
+ 	if [ "$(FIPSCANLIB)" = "libfips" ]; then \
+ 		LIBRARIES="-L$(TOP) -lfips"; \
+ 	else \
+-		FIPSLD_CC=$(CC); CC=$(TOP)/fips/fipsld; export CC FIPSLD_CC; \
+ 		LIBRARIES="$${FIPSLIBDIR:-$(TOP)/fips/}fipscanister.o"; \
+ 	fi; \
+ 	$(MAKE) -f $(TOP)/Makefile.shared -e \
+ 		CC=$${CC} APPNAME=$$target$(EXE_EXT) OBJECTS="$$target.o" \
+-		LIBDEPS="$(PEX_LIBS) $$LIBRARIES $(EX_LIBS)" \
++		LIBDEPS="$(PEX_LIBS) $$LIBRARIES -lfipscheck $(EX_LIBS)" \
+ 		link_app.$${shlib_target}
+ 
+ FIPS_CRYPTO_BUILD_CMD=shlib_target=; if [ -n "$(SHARED_LIBS)" ]; then \
+ 		shlib_target="$(SHLIB_TARGET)"; \
+ 	fi; \
+ 	LIBRARIES="$(LIBSSL) $(LIBCRYPTO) $(LIBKRB5)"; \
+-	if [ -z "$(SHARED_LIBS)" ] ; then \
+-		FIPSLD_CC=$(CC); CC=$(TOP)/fips/fipsld; export CC FIPSLD_CC; \
+-	fi; \
+ 	[ "$(FIPSCANLIB)" = "libfips" ] && LIBRARIES="$$LIBRARIES -lfips"; \
+ 	$(MAKE) -f $(TOP)/Makefile.shared -e \
+ 		CC=$${CC} APPNAME=$$target$(EXE_EXT) OBJECTS="$$target.o" \
+diff -up openssl-fips-0.9.8e/apps/Makefile.use-fipscheck openssl-fips-0.9.8e/apps/Makefile
+--- openssl-fips-0.9.8e/apps/Makefile.use-fipscheck	2007-08-15 15:35:29.000000000 +0200
++++ openssl-fips-0.9.8e/apps/Makefile	2008-09-04 15:58:51.000000000 +0200
+@@ -152,8 +152,6 @@ $(EXE): progs.h $(E_OBJ) $(PROGRAM).o $(
+ 	$(RM) $(EXE)
+ 	shlib_target=; if [ -n "$(SHARED_LIBS)" ]; then \
+ 		shlib_target="$(SHLIB_TARGET)"; \
+-	elif [ -n "$(FIPSCANLIB)" ]; then \
+-	  FIPSLD_CC=$(CC); CC=$(TOP)/fips/fipsld; export CC FIPSLD_CC; \
+ 	fi; \
+ 	LIBRARIES="$(LIBSSL) $(LIBKRB5) $(LIBCRYPTO)" ; \
+ 	[ "x$(FIPSCANLIB)" = "xlibfips" ] && LIBRARIES="$$LIBRARIES -lfips"; \
+diff -up openssl-fips-0.9.8e/Makefile.org.use-fipscheck openssl-fips-0.9.8e/Makefile.org
+--- openssl-fips-0.9.8e/Makefile.org.use-fipscheck	2008-09-04 15:58:18.000000000 +0200
++++ openssl-fips-0.9.8e/Makefile.org	2008-09-04 15:58:18.000000000 +0200
+@@ -355,11 +355,7 @@ libcrypto$(SHLIB_EXT): libcrypto.a $(SHA
+ 			$(MAKE) SHLIBDIRS='crypto' SHLIBDEPS='-lfips' build-shared; \
+ 			$(AR) libcrypto.a fips/fipscanister.o ; \
+ 		else \
+-			if [ "$(FIPSCANLIB)" = "libcrypto" ]; then \
+-				FIPSLD_CC=$(CC); CC=fips/fipsld; \
+-				export CC FIPSLD_CC; \
+-			fi; \
+-			$(MAKE) -e SHLIBDIRS='crypto' build-shared; \
++			$(MAKE) -e SHLIBDIRS='crypto' SHLIBDEPS='-lfipscheck' build-shared; \
+ 		fi \
+ 	else \
+ 		echo "There's no support for shared libraries on this platform" >&2; \
+@@ -379,9 +375,8 @@ libssl$(SHLIB_EXT): libcrypto$(SHLIB_EXT
+ fips/fipscanister.o:	build_fips
+ libfips$(SHLIB_EXT):		fips/fipscanister.o
+ 	@if [ "$(SHLIB_TARGET)" != "" ]; then \
+-		FIPSLD_CC=$(CC); CC=fips/fipsld; export CC FIPSLD_CC; \
+ 		$(MAKE) -f Makefile.shared -e $(BUILDENV) \
+-			CC=$${CC} LIBNAME=fips THIS=$@ \
++			CC=$(CC) LIBNAME=fips THIS=$@ \
+ 			LIBEXTRAS=fips/fipscanister.o \
+ 			LIBDEPS="$(EX_LIBS)" \
+ 			LIBVERSION=${SHLIB_MAJOR}.${SHLIB_MINOR} \
+@@ -441,7 +436,8 @@ libcrypto.pc: Makefile
+ 	    echo 'Description: OpenSSL cryptography library'; \
+ 	    echo 'Version: '$(VERSION); \
+ 	    echo 'Requires: '; \
+-	    echo 'Libs: -L$${libdir} -lcrypto $(EX_LIBS)'; \
++	    echo 'Libs: -L$${libdir} -lcrypto'; \
++	    echo 'Libs.private: -lfipscheck $(EX_LIBS)'; \
+ 	    echo 'Cflags: -I$${includedir} $(KRB5_INCLUDES)' ) > libcrypto.pc
+ 
+ libssl.pc: Makefile
+@@ -454,7 +450,8 @@ libssl.pc: Makefile
+ 	    echo 'Description: Secure Sockets Layer and cryptography libraries'; \
+ 	    echo 'Version: '$(VERSION); \
+ 	    echo 'Requires: '; \
+-	    echo 'Libs: -L$${libdir} -lssl -lcrypto $(EX_LIBS)'; \
++	    echo 'Libs: -L$${libdir} -lssl -lcrypto'; \
++	    echo 'Libs.private: -lfipscheck $(EX_LIBS)'; \
+ 	    echo 'Cflags: -I$${includedir} $(KRB5_INCLUDES)' ) > libssl.pc
+ 
+ openssl.pc: Makefile
+@@ -467,7 +464,8 @@ openssl.pc: Makefile
+ 	    echo 'Description: Secure Sockets Layer and cryptography libraries and tools'; \
+ 	    echo 'Version: '$(VERSION); \
+ 	    echo 'Requires: '; \
+-	    echo 'Libs: -L$${libdir} -lssl -lcrypto $(EX_LIBS)'; \
++	    echo 'Libs: -L$${libdir} -lssl -lcrypto';\
++	    echo 'Libs.private: -lfipscheck $(EX_LIBS)'; \
+ 	    echo 'Cflags: -I$${includedir} $(KRB5_INCLUDES)' ) > openssl.pc
+ 
+ Makefile: Makefile.org Configure config
+diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/fips.c
+--- openssl-fips-0.9.8e/fips/fips.c.use-fipscheck	2007-08-26 16:57:10.000000000 +0200
++++ openssl-fips-0.9.8e/fips/fips.c	2008-09-04 15:58:18.000000000 +0200
+@@ -56,6 +56,7 @@
+ #include <openssl/rsa.h>
+ #include <string.h>
+ #include <limits.h>
++#include <fipscheck.h>
+ #include "fips_locl.h"
+ 
+ #ifdef OPENSSL_FIPS
+@@ -165,6 +166,7 @@ int FIPS_selftest()
+ 
+ extern const void         *FIPS_text_start(),  *FIPS_text_end();
+ extern const unsigned char FIPS_rodata_start[], FIPS_rodata_end[];
++#if 0
+ unsigned char              FIPS_signature [20] = { 0 };
+ static const char          FIPS_hmac_key[]="etaonrishdlcupfm";
+ 
+@@ -241,6 +243,7 @@ int FIPS_check_incore_fingerprint(void)
+ 
+     return 1;
+     }
++#endif
+ 
+ int FIPS_mode_set(int onoff)
+     {
+@@ -278,16 +281,9 @@ int FIPS_mode_set(int onoff)
+ 	    }
+ #endif
+ 
+-	if(fips_signature_witness() != FIPS_signature)
+-	    {
+-	    FIPSerr(FIPS_F_FIPS_MODE_SET,FIPS_R_CONTRADICTING_EVIDENCE);
+-	    fips_selftest_fail = 1;
+-	    ret = 0;
+-	    goto end;
+-	    }
+-
+-	if(!FIPS_check_incore_fingerprint())
++	if(!FIPSCHECK_verify("libcrypto.so.0.9.8e","FIPS_mode_set"))
+ 	    {
++	    FIPSerr(FIPS_F_FIPS_MODE_SET,FIPS_R_FINGERPRINT_DOES_NOT_MATCH);
+ 	    fips_selftest_fail = 1;
+ 	    ret = 0;
+ 	    goto end;
+@@ -403,11 +399,13 @@ int fips_clear_owning_thread(void)
+ 	return ret;
+ 	}
+ 
++#if 0
+ unsigned char *fips_signature_witness(void)
+ 	{
+ 	extern unsigned char FIPS_signature[];
+ 	return FIPS_signature;
+ 	}
++#endif
+ 
+ /* Generalized public key test routine. Signs and verifies the data
+  * supplied in tbs using mesage digest md and setting option digest
+diff -up openssl-fips-0.9.8e/fips/Makefile.use-fipscheck openssl-fips-0.9.8e/fips/Makefile
+--- openssl-fips-0.9.8e/fips/Makefile.use-fipscheck	2007-08-15 15:35:30.000000000 +0200
++++ openssl-fips-0.9.8e/fips/Makefile	2008-09-04 16:12:45.000000000 +0200
+@@ -62,9 +62,9 @@ testapps:
+ 
+ all:
+ 	@if [ -z "$(FIPSLIBDIR)" ]; then \
+-		$(MAKE) -e subdirs lib fips_premain_dso$(EXE_EXT); \
++		$(MAKE) -e subdirs lib; \
+ 	else \
+-		$(MAKE) -e lib fips_premain_dso$(EXE_EXT) fips_standalone_sha1$(EXE_EXT); \
++		$(MAKE) -e lib; \
+ 	fi
+ 
+ # Idea behind fipscanister.o is to "seize" the sequestered code between
+@@ -109,7 +109,6 @@ fipscanister.o: fips_start.o $(LIBOBJ) $
+ 		HP-UX|OSF1|SunOS) set -x; /usr/ccs/bin/ld -r -o $@ $$objs ;; \
+ 		*) set -x; $(CC) $$cflags -r -o $@ $$objs ;; \
+ 	esac fi
+-	./fips_standalone_sha1 fipscanister.o > fipscanister.o.sha1
+ 
+ # If another exception is immediately required, assign approprite
+ # site-specific ld command to FIPS_SITE_LD environment variable.
+@@ -154,7 +153,7 @@ $(FIPSCANLIB):	$(FIPSCANLOC)
+ 	$(RANLIB) ../$(FIPSCANLIB).a || echo Never mind.
+ 	@touch lib
+ 
+-shared:	lib subdirs fips_premain_dso$(EXE_EXT)
++shared:	lib subdirs
+ 
+ libs:
+ 	@target=lib; $(RECURSIVE_MAKE)
+@@ -178,10 +177,6 @@ install:
+ 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
+ 	done;
+ 	@target=install; $(RECURSIVE_MAKE)
+-	@cp -p -f fipscanister.o fipscanister.o.sha1 fips_premain.c \
+-		fips_premain.c.sha1 \
+-		$(INSTALL_PREFIX)$(INSTALLTOP)/lib/; \
+-	chmod 0444 $(INSTALL_PREFIX)$(INSTALLTOP)/lib/fips*
+ 
+ lint:
+ 	@target=lint; $(RECURSIVE_MAKE)
+diff -up openssl-fips-0.9.8e/fips/fips_locl.h.use-fipscheck openssl-fips-0.9.8e/fips/fips_locl.h
+--- openssl-fips-0.9.8e/fips/fips_locl.h.use-fipscheck	2007-08-15 15:35:31.000000000 +0200
++++ openssl-fips-0.9.8e/fips/fips_locl.h	2008-09-04 15:58:18.000000000 +0200
+@@ -63,7 +63,9 @@ int fips_is_owning_thread(void);
+ int fips_set_owning_thread(void);
+ void fips_set_selftest_fail(void);
+ int fips_clear_owning_thread(void);
++#if 0
+ unsigned char *fips_signature_witness(void);
++#endif
+ 
+ #define FIPS_MAX_CIPHER_TEST_SIZE	16
+ 

@@ -1,0 +1,65 @@
+Add flag EVP_CIPH_FLAG_LENGTH_BITS to indicate that input buffer length
+is in bits not bytes. The Monte Carlo FIPS140-2 CFB1 tests require this.
+[Steve Henson]
+
+openssl/crypto/evp/evp.h     1.112.2.4.2.8 -> 1.112.2.4.2.9
+
+--- openssl/crypto/evp/evp.h 2007/12/14 01:15:44 1.112.2.4.2.8
++++ openssl/crypto/evp/evp.h 2007/12/26 19:04:57 1.112.2.4.2.9
+@@ -378,6 +378,8 @@
+ #define		EVP_CIPH_FLAG_NON_FIPS_ALLOW	0x800
+ /* Allow use default ASN1 get/set iv */
+ #define		EVP_CIPH_FLAG_DEFAULT_ASN1	0x1000
++/* Buffer length in bits not bytes: CFB1 mode only */
++#define		EVP_CIPH_FLAG_LENGTH_BITS	0x2000
+ 
+ /* ctrl() values */
+ 
+@@ -470,6 +472,7 @@
+ #define M_EVP_MD_CTX_type(e)		M_EVP_MD_type(M_EVP_MD_CTX_md(e))
+ #define M_EVP_MD_CTX_md(e)			((e)->digest)
+ 
++#define M_EVP_CIPHER_CTX_set_flags(ctx,flgs) ((ctx)->flags|=(flgs))
+ 
+ int EVP_MD_type(const EVP_MD *md);
+ #define EVP_MD_nid(e)			EVP_MD_type(e)
+
+openssl/crypto/evp/evp_locl.h     1.10.2.1.2.3 -> 1.10.2.1.2.4
+
+--- openssl/crypto/evp/evp_locl.h 2007/07/08 19:20:48 1.10.2.1.2.3
++++ openssl/crypto/evp/evp_locl.h 2007/12/26 19:04:57 1.10.2.1.2.4
+@@ -92,7 +92,7 @@
+ #define BLOCK_CIPHER_func_cfb(cname, cprefix, cbits, kstruct, ksched) \
+ static int cname##_cfb##cbits##_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+ {\
+-	cprefix##_cfb##cbits##_encrypt(in, out, (long)(cbits==1?inl*8:inl), &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num, ctx->encrypt);\
++	cprefix##_cfb##cbits##_encrypt(in, out, (long)((cbits==1) && !(ctx->flags & EVP_CIPH_FLAG_LENGTH_BITS) ?inl*8:inl), &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num, ctx->encrypt);\
+ 	return 1;\
+ }
+ 
+
+openssl/fips/aes/fips_aesavs.c     1.1.4.3 -> 1.1.4.4
+
+--- openssl/fips/aes/fips_aesavs.c 2007/09/21 18:00:23 1.1.4.3
++++ openssl/fips/aes/fips_aesavs.c 2007/12/26 19:04:58 1.1.4.4
+@@ -212,6 +212,8 @@
+ 	}
+     if (EVP_CipherInit_ex(ctx, cipher, NULL, aKey, iVec, dir) <= 0)
+ 	return 0;
++    if(!strcasecmp(amode,"CFB1"))
++	M_EVP_CIPHER_CTX_set_flags(ctx, EVP_CIPH_FLAG_LENGTH_BITS);
+     if (dir)
+ 		EVP_Cipher(ctx, ciphertext, plaintext, len);
+ 	else
+@@ -377,9 +379,11 @@
+ 	    case CFB1:
+ 		if(j == 0)
+ 		    {
++#if 0
+ 		    /* compensate for wrong endianness of input file */
+ 		    if(i == 0)
+ 			ptext[0][0]<<=7;
++#endif
+ 		    ret = AESTest(&ctx,amode,akeysz,key[i],iv[i],dir,
+ 				ptext[j], ctext[j], len);
+ 		    }

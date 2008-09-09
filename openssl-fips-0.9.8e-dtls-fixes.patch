@@ -1,12 +1,6 @@
-Fix DTLS implementation to be RFC 4347 compliant. This makes the new client
-incompatible with the old openssl DTLS servers. However the older openssl client
-will still be able to connect to the new server code. This change also
-resolves buffer overrun when out-of-order fragments are received during
-the handshake.
-CVE-2007-4995
-diff -up openssl-0.9.8b/ssl/dtls1.h.dtls-fixes openssl-0.9.8b/ssl/dtls1.h
---- openssl-0.9.8b/ssl/dtls1.h.dtls-fixes	2007-10-08 17:55:22.000000000 +0200
-+++ openssl-0.9.8b/ssl/dtls1.h	2007-10-08 17:55:22.000000000 +0200
+diff -up openssl-fips-0.9.8f-dev/ssl/dtls1.h.dtls-fixes openssl-fips-0.9.8f-dev/ssl/dtls1.h
+--- openssl-fips-0.9.8f-dev/ssl/dtls1.h.dtls-fixes	2008-07-15 21:01:29.000000000 +0200
++++ openssl-fips-0.9.8f-dev/ssl/dtls1.h	2008-07-15 21:01:29.000000000 +0200
 @@ -67,9 +67,8 @@
  extern "C" {
  #endif
@@ -28,9 +22,9 @@ diff -up openssl-0.9.8b/ssl/dtls1.h.dtls-fixes openssl-0.9.8b/ssl/dtls1.h
  
  #define DTLS1_AL_HEADER_LENGTH                   7
  
-diff -up openssl-0.9.8b/ssl/d1_lib.c.dtls-fixes openssl-0.9.8b/ssl/d1_lib.c
---- openssl-0.9.8b/ssl/d1_lib.c.dtls-fixes	2005-08-08 21:26:35.000000000 +0200
-+++ openssl-0.9.8b/ssl/d1_lib.c	2007-10-08 17:55:22.000000000 +0200
+diff -up openssl-fips-0.9.8f-dev/ssl/d1_lib.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/d1_lib.c
+--- openssl-fips-0.9.8f-dev/ssl/d1_lib.c.dtls-fixes	2007-01-21 17:07:25.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/d1_lib.c	2008-07-15 21:01:29.000000000 +0200
 @@ -188,3 +188,23 @@ void dtls1_clear(SSL *s)
  	ssl3_clear(s);
  	s->version=DTLS1_VERSION;
@@ -55,9 +49,9 @@ diff -up openssl-0.9.8b/ssl/d1_lib.c.dtls-fixes openssl-0.9.8b/ssl/d1_lib.c
 +
 +	return ciph;
 +	}
-diff -up openssl-0.9.8b/ssl/d1_srvr.c.dtls-fixes openssl-0.9.8b/ssl/d1_srvr.c
---- openssl-0.9.8b/ssl/d1_srvr.c.dtls-fixes	2005-12-05 18:32:19.000000000 +0100
-+++ openssl-0.9.8b/ssl/d1_srvr.c	2007-10-10 14:21:49.000000000 +0200
+diff -up openssl-fips-0.9.8f-dev/ssl/d1_srvr.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/d1_srvr.c
+--- openssl-fips-0.9.8f-dev/ssl/d1_srvr.c.dtls-fixes	2007-09-19 02:02:49.000000000 +0200
++++ openssl-fips-0.9.8f-dev/ssl/d1_srvr.c	2008-07-15 21:01:29.000000000 +0200
 @@ -285,6 +285,10 @@ int dtls1_accept(SSL *s)
  			s->d1->send_cookie = 0;
  			s->state=SSL3_ST_SW_FLUSH;
@@ -109,48 +103,10 @@ diff -up openssl-0.9.8b/ssl/d1_srvr.c.dtls-fixes openssl-0.9.8b/ssl/d1_srvr.c
  
  		/* Random stuff */
  		memcpy(p,s->s3->server_random,SSL3_RANDOM_SIZE);
-@@ -1009,6 +1021,7 @@ int dtls1_send_certificate_request(SSL *
- 	STACK_OF(X509_NAME) *sk=NULL;
- 	X509_NAME *name;
- 	BUF_MEM *buf;
-+	unsigned int msg_len;
- 
- 	if (s->state == SSL3_ST_SW_CERT_REQ_A)
- 		{
-@@ -1086,6 +1099,10 @@ int dtls1_send_certificate_request(SSL *
- #endif
- 
- 		/* XDTLS:  set message header ? */
-+		msg_len = s->init_num - DTLS1_HM_HEADER_LENGTH;
-+		dtls1_set_message_header(s, (void *)s->init_buf->data,
-+			SSL3_MT_CERTIFICATE_REQUEST, msg_len, 0, msg_len);
-+
- 		/* buffer the message to handle re-xmits */
- 		dtls1_buffer_message(s, 0);
- 
-diff -up openssl-0.9.8b/ssl/s3_srvr.c.dtls-fixes openssl-0.9.8b/ssl/s3_srvr.c
---- openssl-0.9.8b/ssl/s3_srvr.c.dtls-fixes	2007-10-08 17:55:22.000000000 +0200
-+++ openssl-0.9.8b/ssl/s3_srvr.c	2007-10-08 17:55:22.000000000 +0200
-@@ -679,9 +679,9 @@ int ssl3_get_client_hello(SSL *s)
- 	 */
- 	if (s->state == SSL3_ST_SR_CLNT_HELLO_A)
- 		{
--		s->first_packet=1;
- 		s->state=SSL3_ST_SR_CLNT_HELLO_B;
- 		}
-+	s->first_packet=1;
- 	n=s->method->ssl_get_message(s,
- 		SSL3_ST_SR_CLNT_HELLO_B,
- 		SSL3_ST_SR_CLNT_HELLO_C,
-@@ -690,6 +690,7 @@ int ssl3_get_client_hello(SSL *s)
- 		&ok);
- 
- 	if (!ok) return((int)n);
-+	s->first_packet=0;
- 	d=p=(unsigned char *)s->init_msg;
- 
- 	/* use version from inside client hello, not from record header
-@@ -697,7 +698,8 @@ int ssl3_get_client_hello(SSL *s)
+diff -up openssl-fips-0.9.8f-dev/ssl/s3_srvr.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/s3_srvr.c
+--- openssl-fips-0.9.8f-dev/ssl/s3_srvr.c.dtls-fixes	2007-03-22 01:39:14.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/s3_srvr.c	2008-07-15 21:01:29.000000000 +0200
+@@ -699,7 +699,8 @@ int ssl3_get_client_hello(SSL *s)
  	s->client_version=(((int)p[0])<<8)|(int)p[1];
  	p+=2;
  
@@ -160,7 +116,7 @@ diff -up openssl-0.9.8b/ssl/s3_srvr.c.dtls-fixes openssl-0.9.8b/ssl/s3_srvr.c
  		{
  		SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO, SSL_R_WRONG_VERSION_NUMBER);
  		if ((s->client_version>>8) == SSL3_VERSION_MAJOR) 
-@@ -748,7 +750,7 @@ int ssl3_get_client_hello(SSL *s)
+@@ -750,7 +751,7 @@ int ssl3_get_client_hello(SSL *s)
  
  	p+=j;
  
@@ -169,7 +125,7 @@ diff -up openssl-0.9.8b/ssl/s3_srvr.c.dtls-fixes openssl-0.9.8b/ssl/s3_srvr.c
  		{
  		/* cookie stuff */
  		cookie_len = *(p++);
-@@ -1709,8 +1711,9 @@ int ssl3_get_client_key_exchange(SSL *s)
+@@ -1713,8 +1714,9 @@ int ssl3_get_client_key_exchange(SSL *s)
  			rsa=pkey->pkey.rsa;
  			}
  
@@ -181,10 +137,10 @@ diff -up openssl-0.9.8b/ssl/s3_srvr.c.dtls-fixes openssl-0.9.8b/ssl/s3_srvr.c
  			{
  			n2s(p,i);
  			if (n != i+2)
-diff -up openssl-0.9.8b/ssl/ssl_locl.h.dtls-fixes openssl-0.9.8b/ssl/ssl_locl.h
---- openssl-0.9.8b/ssl/ssl_locl.h.dtls-fixes	2007-10-08 17:55:22.000000000 +0200
-+++ openssl-0.9.8b/ssl/ssl_locl.h	2007-10-08 17:55:22.000000000 +0200
-@@ -677,7 +677,7 @@ SSL_METHOD *func_name(void)  \
+diff -up openssl-fips-0.9.8f-dev/ssl/ssl_locl.h.dtls-fixes openssl-fips-0.9.8f-dev/ssl/ssl_locl.h
+--- openssl-fips-0.9.8f-dev/ssl/ssl_locl.h.dtls-fixes	2008-07-15 21:01:29.000000000 +0200
++++ openssl-fips-0.9.8f-dev/ssl/ssl_locl.h	2008-07-15 21:01:29.000000000 +0200
+@@ -680,7 +680,7 @@ SSL_METHOD *func_name(void)  \
  		ssl3_put_cipher_by_char, \
  		ssl3_pending, \
  		ssl3_num_ciphers, \
@@ -193,7 +149,7 @@ diff -up openssl-0.9.8b/ssl/ssl_locl.h.dtls-fixes openssl-0.9.8b/ssl/ssl_locl.h
  		s_get_meth, \
  		dtls1_default_timeout, \
  		&DTLSv1_enc_data, \
-@@ -842,6 +842,8 @@ void dtls1_get_message_header(unsigned c
+@@ -845,6 +845,8 @@ void dtls1_get_message_header(unsigned c
  void dtls1_get_ccs_header(unsigned char *data, struct ccs_header_st *ccs_hdr);
  void dtls1_reset_seq_numbers(SSL *s, int rw);
  long dtls1_default_timeout(void);
@@ -202,10 +158,10 @@ diff -up openssl-0.9.8b/ssl/ssl_locl.h.dtls-fixes openssl-0.9.8b/ssl/ssl_locl.h
  
  
  /* some client-only functions */
-diff -up openssl-0.9.8b/ssl/t1_enc.c.dtls-fixes openssl-0.9.8b/ssl/t1_enc.c
---- openssl-0.9.8b/ssl/t1_enc.c.dtls-fixes	2007-10-08 17:55:22.000000000 +0200
-+++ openssl-0.9.8b/ssl/t1_enc.c	2007-10-10 14:24:52.000000000 +0200
-@@ -737,15 +737,35 @@ int tls1_mac(SSL *ssl, unsigned char *md
+diff -up openssl-fips-0.9.8f-dev/ssl/t1_enc.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/t1_enc.c
+--- openssl-fips-0.9.8f-dev/ssl/t1_enc.c.dtls-fixes	2007-03-22 01:39:15.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/t1_enc.c	2008-07-15 21:01:29.000000000 +0200
+@@ -740,15 +740,35 @@ int tls1_mac(SSL *ssl, unsigned char *md
  	md_size=EVP_MD_size(hash);
  
  	buf[0]=rec->type;
@@ -244,7 +200,7 @@ diff -up openssl-0.9.8b/ssl/t1_enc.c.dtls-fixes openssl-0.9.8b/ssl/t1_enc.c
  	HMAC_Update(&hmac,buf,5);
  	HMAC_Update(&hmac,rec->input,rec->length);
  	HMAC_Final(&hmac,md,&md_size);
-@@ -762,8 +782,8 @@ printf("rec=");
+@@ -765,8 +785,8 @@ printf("rec=");
  {unsigned int z; for (z=0; z<rec->length; z++) printf("%02X ",buf[z]); printf("\n"); }
  #endif
  
@@ -255,19 +211,10 @@ diff -up openssl-0.9.8b/ssl/t1_enc.c.dtls-fixes openssl-0.9.8b/ssl/t1_enc.c
  		for (i=7; i>=0; i--)
  			{
  			++seq[i];
-diff -up openssl-0.9.8b/ssl/ssl.h.dtls-fixes openssl-0.9.8b/ssl/ssl.h
---- openssl-0.9.8b/ssl/ssl.h.dtls-fixes	2007-10-08 17:55:22.000000000 +0200
-+++ openssl-0.9.8b/ssl/ssl.h	2007-10-08 17:55:22.000000000 +0200
-@@ -315,7 +315,7 @@ extern "C" {
- /* The following cipher list is used by default.
-  * It also is substituted when an application-defined cipher list string
-  * starts with 'DEFAULT'. */
--#define SSL_DEFAULT_CIPHER_LIST	"ALL:!ADH:+RC4:@STRENGTH" /* low priority for RC4 */
-+#define SSL_DEFAULT_CIPHER_LIST	"AES:ALL:!aNULL:!eNULL:+RC4:@STRENGTH" /* low priority for RC4 */
- 
- /* Used in SSL_set_shutdown()/SSL_get_shutdown(); */
- #define SSL_SENT_SHUTDOWN	1
-@@ -1551,6 +1551,7 @@ void ERR_load_SSL_strings(void);
+diff -up openssl-fips-0.9.8f-dev/ssl/ssl.h.dtls-fixes openssl-fips-0.9.8f-dev/ssl/ssl.h
+--- openssl-fips-0.9.8f-dev/ssl/ssl.h.dtls-fixes	2008-07-15 21:01:29.000000000 +0200
++++ openssl-fips-0.9.8f-dev/ssl/ssl.h	2008-07-15 21:01:29.000000000 +0200
+@@ -1554,6 +1554,7 @@ void ERR_load_SSL_strings(void);
  #define SSL_F_DTLS1_GET_MESSAGE_FRAGMENT		 253
  #define SSL_F_DTLS1_GET_RECORD				 254
  #define SSL_F_DTLS1_OUTPUT_CERT_CHAIN			 255
@@ -275,9 +222,9 @@ diff -up openssl-0.9.8b/ssl/ssl.h.dtls-fixes openssl-0.9.8b/ssl/ssl.h
  #define SSL_F_DTLS1_PROCESS_OUT_OF_SEQ_MESSAGE		 256
  #define SSL_F_DTLS1_PROCESS_RECORD			 257
  #define SSL_F_DTLS1_READ_BYTES				 258
-diff -up openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes openssl-0.9.8b/ssl/d1_pkt.c
---- openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes	2006-02-08 20:16:32.000000000 +0100
-+++ openssl-0.9.8b/ssl/d1_pkt.c	2007-10-08 17:55:22.000000000 +0200
+diff -up openssl-fips-0.9.8f-dev/ssl/d1_pkt.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/d1_pkt.c
+--- openssl-fips-0.9.8f-dev/ssl/d1_pkt.c.dtls-fixes	2006-11-29 15:45:13.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/d1_pkt.c	2008-07-15 21:01:29.000000000 +0200
 @@ -120,6 +120,7 @@
  #include <openssl/evp.h>
  #include <openssl/buffer.h>
@@ -307,23 +254,16 @@ diff -up openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes openssl-0.9.8b/ssl/d1_pkt.c
  		n2s(p,rr->epoch);
  
  		memcpy(&(s->s3->read_sequence[2]), p, 6);
-@@ -533,13 +534,9 @@ again:
- 		n2s(p,rr->length);
- 
+@@ -535,7 +536,7 @@ again:
  		/* Lets check version */
--		if (s->first_packet)
-+		if (!s->first_packet)
+ 		if (!s->first_packet)
  			{
--			s->first_packet=0;
--			}
--		else
--			{
 -			if (version != s->version)
 +			if (version != s->version && version != DTLS1_BAD_VER)
  				{
  				SSLerr(SSL_F_DTLS1_GET_RECORD,SSL_R_WRONG_VERSION_NUMBER);
  				/* Send back error using their
-@@ -550,7 +547,8 @@ again:
+@@ -546,7 +547,8 @@ again:
  				}
  			}
  
@@ -333,24 +273,15 @@ diff -up openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes openssl-0.9.8b/ssl/d1_pkt.c
  			{
  			SSLerr(SSL_F_DTLS1_GET_RECORD,SSL_R_WRONG_VERSION_NUMBER);
  			goto err;
-@@ -796,8 +794,14 @@ start:
- 			dest = s->d1->alert_fragment;
- 			dest_len = &s->d1->alert_fragment_len;
+@@ -559,6 +561,7 @@ again:
+ 			goto f_err;
  			}
--		else	/* else it's a CCS message */
--			OPENSSL_assert(rr->type == SSL3_RT_CHANGE_CIPHER_SPEC);
-+                /* else it's a CCS message, or it's wrong */
-+                else if (rr->type != SSL3_RT_CHANGE_CIPHER_SPEC)
-+                        {
-+                          /* Not certain if this is the right error handling */
-+                          al=SSL_AD_UNEXPECTED_MESSAGE;
-+                          SSLerr(SSL_F_DTLS1_READ_BYTES,SSL_R_UNEXPECTED_RECORD);
-+                          goto f_err;
-+                        }
  
++		s->client_version = version;
+ 		/* now s->rstate == SSL_ST_READ_BODY */
+ 		}
  
- 		if (dest_maxlen > 0)
-@@ -971,47 +975,40 @@ start:
+@@ -973,47 +976,40 @@ start:
  		}
  
  	if (rr->type == SSL3_RT_CHANGE_CIPHER_SPEC)
@@ -420,14 +351,14 @@ diff -up openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes openssl-0.9.8b/ssl/d1_pkt.c
 +		/* do this whenever CCS is processed */
 +		dtls1_reset_seq_numbers(s, SSL3_CC_READ);
 +
-+		/* handshake read seq is reset upon handshake completion */
-+		s->d1->handshake_read_seq++;
++		if (s->client_version == DTLS1_BAD_VER)
++			s->d1->handshake_read_seq++;
 +
 +		goto start;
  		}
  
  	/* Unexpected handshake message (Client Hello, or protocol violation) */
-@@ -1339,8 +1336,12 @@ int do_dtls1_write(SSL *s, int type, con
+@@ -1341,8 +1337,12 @@ int do_dtls1_write(SSL *s, int type, con
  	*(p++)=type&0xff;
  	wr->type=type;
  
@@ -442,7 +373,7 @@ diff -up openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes openssl-0.9.8b/ssl/d1_pkt.c
  
  	/* field where we are to write out packet epoch, seq num and len */
  	pseq=p; 
-@@ -1395,8 +1396,14 @@ int do_dtls1_write(SSL *s, int type, con
+@@ -1397,8 +1397,14 @@ int do_dtls1_write(SSL *s, int type, con
  
  
  	/* ssl3_enc can only have an error on read */
@@ -459,9 +390,9 @@ diff -up openssl-0.9.8b/ssl/d1_pkt.c.dtls-fixes openssl-0.9.8b/ssl/d1_pkt.c
  	s->method->ssl3_enc->enc(s,1);
  
  	/* record length after mac and block padding */
-diff -up openssl-0.9.8b/ssl/ssl_err.c.dtls-fixes openssl-0.9.8b/ssl/ssl_err.c
---- openssl-0.9.8b/ssl/ssl_err.c.dtls-fixes	2006-01-08 22:52:46.000000000 +0100
-+++ openssl-0.9.8b/ssl/ssl_err.c	2007-10-08 17:55:22.000000000 +0200
+diff -up openssl-fips-0.9.8f-dev/ssl/ssl_err.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/ssl_err.c
+--- openssl-fips-0.9.8f-dev/ssl/ssl_err.c.dtls-fixes	2006-11-21 21:14:46.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/ssl_err.c	2008-07-15 21:01:29.000000000 +0200
 @@ -87,6 +87,7 @@ static ERR_STRING_DATA SSL_str_functs[]=
  {ERR_FUNC(SSL_F_DTLS1_GET_MESSAGE_FRAGMENT),	"DTLS1_GET_MESSAGE_FRAGMENT"},
  {ERR_FUNC(SSL_F_DTLS1_GET_RECORD),	"DTLS1_GET_RECORD"},
@@ -470,80 +401,26 @@ diff -up openssl-0.9.8b/ssl/ssl_err.c.dtls-fixes openssl-0.9.8b/ssl/ssl_err.c
  {ERR_FUNC(SSL_F_DTLS1_PROCESS_OUT_OF_SEQ_MESSAGE),	"DTLS1_PROCESS_OUT_OF_SEQ_MESSAGE"},
  {ERR_FUNC(SSL_F_DTLS1_PROCESS_RECORD),	"DTLS1_PROCESS_RECORD"},
  {ERR_FUNC(SSL_F_DTLS1_READ_BYTES),	"DTLS1_READ_BYTES"},
-diff -up openssl-0.9.8b/ssl/s3_pkt.c.dtls-fixes openssl-0.9.8b/ssl/s3_pkt.c
---- openssl-0.9.8b/ssl/s3_pkt.c.dtls-fixes	2005-10-01 01:38:20.000000000 +0200
-+++ openssl-0.9.8b/ssl/s3_pkt.c	2007-10-08 17:55:22.000000000 +0200
-@@ -277,11 +277,7 @@ again:
- 		n2s(p,rr->length);
- 
- 		/* Lets check version */
--		if (s->first_packet)
--			{
--			s->first_packet=0;
--			}
--		else
-+		if (!s->first_packet)
+diff -up openssl-fips-0.9.8f-dev/ssl/s3_clnt.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/s3_clnt.c
+--- openssl-fips-0.9.8f-dev/ssl/s3_clnt.c.dtls-fixes	2007-03-22 01:39:14.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/s3_clnt.c	2008-07-15 21:08:43.000000000 +0200
+@@ -1847,6 +1847,13 @@ int ssl3_send_client_key_exchange(SSL *s
  			{
- 			if (version != s->version)
- 				{
-diff -up openssl-0.9.8b/ssl/s23_srvr.c.dtls-fixes openssl-0.9.8b/ssl/s23_srvr.c
---- openssl-0.9.8b/ssl/s23_srvr.c.dtls-fixes	2005-12-05 18:32:19.000000000 +0100
-+++ openssl-0.9.8b/ssl/s23_srvr.c	2007-10-08 17:55:22.000000000 +0200
-@@ -565,7 +565,6 @@ int ssl23_get_client_hello(SSL *s)
- 	s->init_num=0;
+ 			DH *dh_srvr,*dh_clnt;
  
- 	if (buf != buf_space) OPENSSL_free(buf);
--	s->first_packet=1;
- 	return(SSL_accept(s));
- err:
- 	if (buf != buf_space) OPENSSL_free(buf);
-diff -up openssl-0.9.8b/ssl/s23_clnt.c.dtls-fixes openssl-0.9.8b/ssl/s23_clnt.c
---- openssl-0.9.8b/ssl/s23_clnt.c.dtls-fixes	2005-12-05 18:32:19.000000000 +0100
-+++ openssl-0.9.8b/ssl/s23_clnt.c	2007-10-08 17:55:22.000000000 +0200
-@@ -574,7 +574,6 @@ static int ssl23_get_server_hello(SSL *s
- 	if (!ssl_get_new_session(s,0))
- 		goto err;
- 
--	s->first_packet=1;
- 	return(SSL_connect(s));
- err:
- 	return(-1);
-diff -up openssl-0.9.8b/ssl/s3_lib.c.dtls-fixes openssl-0.9.8b/ssl/s3_lib.c
---- openssl-0.9.8b/ssl/s3_lib.c.dtls-fixes	2006-01-15 08:14:38.000000000 +0100
-+++ openssl-0.9.8b/ssl/s3_lib.c	2007-10-08 17:55:22.000000000 +0200
-@@ -903,7 +903,8 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]
- 	},
- 
- #if TLS1_ALLOW_EXPERIMENTAL_CIPHERSUITES
--	/* New TLS Export CipherSuites */
-+	/* New TLS Export CipherSuites from expired ID */
-+#if 0
- 	/* Cipher 60 */
- 	    {
- 	    1,
-@@ -930,6 +931,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]
- 	    SSL_ALL_CIPHERS,
- 	    SSL_ALL_STRENGTHS,
- 	    },
-+#endif
- 	/* Cipher 62 */
- 	    {
- 	    1,
-diff -up openssl-0.9.8b/ssl/s2_lib.c.dtls-fixes openssl-0.9.8b/ssl/s2_lib.c
---- openssl-0.9.8b/ssl/s2_lib.c.dtls-fixes	2005-08-27 14:05:23.000000000 +0200
-+++ openssl-0.9.8b/ssl/s2_lib.c	2007-10-08 17:55:22.000000000 +0200
-@@ -178,7 +178,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]
- 	SSL_ALL_STRENGTHS,
- 	},
- /* RC4_64_WITH_MD5 */
--#if 1
-+#if 0
- 	{
- 	1,
- 	SSL2_TXT_RC4_64_WITH_MD5,
-diff -up openssl-0.9.8b/ssl/d1_both.c.dtls-fixes openssl-0.9.8b/ssl/d1_both.c
---- openssl-0.9.8b/ssl/d1_both.c.dtls-fixes	2005-08-29 01:20:52.000000000 +0200
-+++ openssl-0.9.8b/ssl/d1_both.c	2007-10-08 17:55:22.000000000 +0200
++                        if (s->session->sess_cert == NULL) 
++                                {
++                                ssl3_send_alert(s,SSL3_AL_FATAL,SSL_AD_UNEXPECTED_MESSAGE);
++                                SSLerr(SSL_F_SSL3_SEND_CLIENT_KEY_EXCHANGE,SSL_R_UNEXPECTED_MESSAGE);
++                                goto err;
++                                }
++
+ 			if (s->session->sess_cert->peer_dh_tmp != NULL)
+ 				dh_srvr=s->session->sess_cert->peer_dh_tmp;
+ 			else
+diff -up openssl-fips-0.9.8f-dev/ssl/d1_both.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/d1_both.c
+--- openssl-fips-0.9.8f-dev/ssl/d1_both.c.dtls-fixes	2007-06-22 14:17:52.000000000 +0200
++++ openssl-fips-0.9.8f-dev/ssl/d1_both.c	2008-07-15 21:01:29.000000000 +0200
 @@ -138,38 +138,40 @@ static void dtls1_set_message_header_int
  	unsigned long frag_len);
  static int dtls1_retransmit_buffered_messages(SSL *s);
@@ -1339,16 +1216,18 @@ diff -up openssl-0.9.8b/ssl/d1_both.c.dtls-fixes openssl-0.9.8b/ssl/d1_both.c
  		s->state=b;
  		}
  
-@@ -816,9 +778,14 @@ int dtls1_send_change_cipher_spec(SSL *s
+@@ -815,10 +777,15 @@ int dtls1_send_change_cipher_spec(SSL *s
+ 		p=(unsigned char *)s->init_buf->data;
  		*p++=SSL3_MT_CCS;
  		s->d1->handshake_write_seq = s->d1->next_handshake_write_seq;
- 		s->d1->next_handshake_write_seq++;
+-		s->d1->next_handshake_write_seq++;
 -		s2n(s->d1->handshake_write_seq,p);
 -
  		s->init_num=DTLS1_CCS_HEADER_LENGTH;
 +
 +		if (s->client_version == DTLS1_BAD_VER)
 +			{
++			s->d1->next_handshake_write_seq++;
 +			s2n(s->d1->handshake_write_seq,p);
 +			s->init_num+=2;
 +			}
@@ -1356,24 +1235,42 @@ diff -up openssl-0.9.8b/ssl/d1_both.c.dtls-fixes openssl-0.9.8b/ssl/d1_both.c
  		s->init_off=0;
  
  		dtls1_set_message_header_int(s, SSL3_MT_CCS, 0, 
-@@ -1056,7 +1023,7 @@ dtls1_buffer_message(SSL *s, int is_ccs)
+@@ -1044,6 +1011,7 @@ dtls1_buffer_message(SSL *s, int is_ccs)
+     pitem *item;
+     hm_fragment *frag;
+ 	PQ_64BIT seq64;
++	unsigned int epoch = s->d1->w_epoch;
+ 
+     /* this function is called immediately after a message has 
+      * been serialized */
+@@ -1056,7 +1024,8 @@ dtls1_buffer_message(SSL *s, int is_ccs)
      if ( is_ccs)
          {
          OPENSSL_assert(s->d1->w_msg_hdr.msg_len + 
 -            DTLS1_CCS_HEADER_LENGTH == (unsigned int)s->init_num);
 +            DTLS1_CCS_HEADER_LENGTH <= (unsigned int)s->init_num);
++	epoch++;
          }
      else
          {
-@@ -1259,5 +1226,4 @@ dtls1_get_ccs_header(unsigned char *data
+@@ -1072,7 +1041,7 @@ dtls1_buffer_message(SSL *s, int is_ccs)
+     frag->msg_header.is_ccs = is_ccs;
+ 
+     pq_64bit_init(&seq64);
+-    pq_64bit_assign_word(&seq64, frag->msg_header.seq);
++    pq_64bit_assign_word(&seq64, epoch<<16 | frag->msg_header.seq);
+ 
+     item = pitem_new(seq64, frag);
+     pq_64bit_free(&seq64);
+@@ -1259,5 +1228,4 @@ dtls1_get_ccs_header(unsigned char *data
      memset(ccs_hdr, 0x00, sizeof(struct ccs_header_st));
      
      ccs_hdr->type = *(data++);
 -    n2s(data, ccs_hdr->seq);
  }
-diff -up openssl-0.9.8b/ssl/d1_clnt.c.dtls-fixes openssl-0.9.8b/ssl/d1_clnt.c
---- openssl-0.9.8b/ssl/d1_clnt.c.dtls-fixes	2005-12-05 18:32:19.000000000 +0100
-+++ openssl-0.9.8b/ssl/d1_clnt.c	2007-10-08 17:55:22.000000000 +0200
+diff -up openssl-fips-0.9.8f-dev/ssl/d1_clnt.c.dtls-fixes openssl-fips-0.9.8f-dev/ssl/d1_clnt.c
+--- openssl-fips-0.9.8f-dev/ssl/d1_clnt.c.dtls-fixes	2005-12-05 18:32:19.000000000 +0100
++++ openssl-fips-0.9.8f-dev/ssl/d1_clnt.c	2008-07-15 21:01:29.000000000 +0200
 @@ -214,17 +214,21 @@ int dtls1_connect(SSL *s)
  
  			/* don't push the buffering BIO quite yet */
