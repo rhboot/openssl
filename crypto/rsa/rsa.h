@@ -226,7 +226,6 @@ struct rsa_st
                                                 * operations and results in faster RSA 
                                                 * private key operations.
                                                 */ 
-#ifndef OPENSSL_NO_DEPRECATED
 #define RSA_FLAG_NO_EXP_CONSTTIME RSA_FLAG_NO_CONSTTIME /* deprecated name for the flag*/
                                                 /* new with 0.9.7h; the built-in RSA
                                                 * implementation now uses constant time
@@ -235,7 +234,6 @@ struct rsa_st
                                                 * faster variable sliding window method to
                                                 * be used for all exponents.
                                                 */
-#endif
 
 
 #define RSA_PKCS1_PADDING	1
