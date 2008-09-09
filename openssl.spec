@@ -69,16 +69,6 @@ BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 BuildRequires: fipscheck-devel
 Requires: mktemp
 
-# Add generation of HMAC checksums for fipscheck
-%define __os_install_post  \
- /usr/lib/rpm/brp-compress \
- /usr/lib/rpm/brp-strip \
- /usr/lib/rpm/brp-strip-static-archive \
- /usr/lib/rpm/brp-strip-comment-note \
- /bin/fipshmac $RPM_BUILD_ROOT/%{_lib}/libcrypto.so.%{version} \
- ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{soversion}.hmac \
-%{nil}
-
 %description
 The OpenSSL toolkit provides support for secure communications between
 machines. OpenSSL includes a certificate management tool and shared
@@ -208,6 +198,16 @@ make -C test apps tests
 
 # Patch33 must be patched after tests otherwise they will fail
 patch -p1 -b -z .ca-dir < %{PATCH33}
+
+# Add generation of HMAC checksums for fipscheck
+%define __os_install_post  \
+ /usr/lib/rpm/brp-compress \
+ /usr/lib/rpm/brp-strip \
+ /usr/lib/rpm/brp-strip-static-archive \
+ /usr/lib/rpm/brp-strip-comment-note \
+ /bin/fipshmac $RPM_BUILD_ROOT/%{_lib}/libcrypto.so.%{version} \
+ ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{soversion}.hmac \
+%{nil}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
