@@ -198,6 +198,7 @@ extern "C" {
 
 typedef struct bio_st BIO;
 
+#ifdef OPENSSL_USE_NEW_FUNCTIONS
 void BIO_set_flags(BIO *b, int flags);
 int  BIO_test_flags(const BIO *b, int flags);
 void BIO_clear_flags(BIO *b, int flags);
@@ -222,6 +223,30 @@ void BIO_clear_flags(BIO *b, int flags);
 #define BIO_should_io_special(a)	BIO_test_flags(a, BIO_FLAGS_IO_SPECIAL)
 #define BIO_retry_type(a)		BIO_test_flags(a, BIO_FLAGS_RWS)
 #define BIO_should_retry(a)		BIO_test_flags(a, BIO_FLAGS_SHOULD_RETRY)
+#else
+#define BIO_set_flags(b,f) ((b)->flags|=(f))
+#define BIO_get_flags(b) ((b)->flags)
+#define BIO_set_retry_special(b) \
+		((b)->flags|=(BIO_FLAGS_IO_SPECIAL|BIO_FLAGS_SHOULD_RETRY))
+#define BIO_set_retry_read(b) \
+		((b)->flags|=(BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY))
+#define BIO_set_retry_write(b) \
+		((b)->flags|=(BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY))
+
+/* These are normally used internally in BIOs */
+#define BIO_clear_flags(b,f) ((b)->flags&= ~(f))
+#define BIO_clear_retry_flags(b) \
+		((b)->flags&= ~(BIO_FLAGS_RWS|BIO_FLAGS_SHOULD_RETRY))
+#define BIO_get_retry_flags(b) \
+		((b)->flags&(BIO_FLAGS_RWS|BIO_FLAGS_SHOULD_RETRY))
+
+/* These should be used by the application to tell why we should retry */
+#define BIO_should_read(a)		((a)->flags & BIO_FLAGS_READ)
+#define BIO_should_write(a)		((a)->flags & BIO_FLAGS_WRITE)
+#define BIO_should_io_special(a)	((a)->flags & BIO_FLAGS_IO_SPECIAL)
+#define BIO_retry_type(a)		((a)->flags & BIO_FLAGS_RWS)
+#define BIO_should_retry(a)		((a)->flags & BIO_FLAGS_SHOULD_RETRY)
+#endif
 
 /* The next three are used in conjunction with the
  * BIO_should_io_special() condition.  After this returns true,
@@ -250,6 +275,7 @@ void BIO_clear_flags(BIO *b, int flags);
 #define BIO_cb_pre(a)	(!((a)&BIO_CB_RETURN))
 #define BIO_cb_post(a)	((a)&BIO_CB_RETURN)
 
+#ifdef OPENSSL_USE_NEW_FUNCTIONS
 long (*BIO_get_callback(const BIO *b)) (struct bio_st *,int,const char *,int, long,long);
 void BIO_set_callback(BIO *b, 
 	long (*callback)(struct bio_st *,int,const char *,int, long,long));
@@ -258,6 +284,14 @@ void BIO_set_callback_arg(BIO *b, char *arg);
 
 const char * BIO_method_name(const BIO *b);
 int BIO_method_type(const BIO *b);
+#else
+#define BIO_set_callback(b,cb)		((b)->callback=(cb))
+#define BIO_set_callback_arg(b,arg)	((b)->cb_arg=(char *)(arg))
+#define BIO_get_callback_arg(b)		((b)->cb_arg)
+#define BIO_get_callback(b)		((b)->callback)
+#define BIO_method_name(b)		((b)->method->name)
+#define BIO_method_type(b)		((b)->method->type)
+#endif
 
 typedef void bio_info_cb(struct bio_st *, int, const char *, int, long, long);
 
