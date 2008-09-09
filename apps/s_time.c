@@ -476,12 +476,13 @@ int MAIN(int argc, char **argv)
 
 	SSL_load_error_strings();
 
-	if ((!SSL_CTX_load_verify_locations(tm_ctx,CAfile,CApath)) ||
-		(!SSL_CTX_set_default_verify_paths(tm_ctx)))
+	if (!SSL_CTX_load_verify_locations(tm_ctx,CAfile,CApath))
 		{
-		/* BIO_printf(bio_err,"error setting default verify locations\n"); */
 		ERR_print_errors(bio_err);
-		/* goto end; */
+		}
+	if (!SSL_CTX_set_default_verify_paths(tm_ctx))
+		{
+		ERR_print_errors(bio_err);
 		}
 
 	if (tm_cipher == NULL)
