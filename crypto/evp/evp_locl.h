@@ -60,6 +60,47 @@
 
 /* Wrapper functions for each cipher mode */
 
+#ifdef OPENSSL_FIPS
+#define BLOCK_CIPHER_ecb_loop() \
+	unsigned int i, bl; \
+	FIPS_selftest_check(); \
+	bl = ctx->cipher->block_size;\
+	if(inl < bl) return 1;\
+	inl -= bl; \
+	for(i=0; i <= inl; i+=bl) 
+
+#define BLOCK_CIPHER_func_ecb(cname, cprefix, kstruct, ksched) \
+static int cname##_ecb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+{\
+	BLOCK_CIPHER_ecb_loop() \
+		cprefix##_ecb_encrypt(in + i, out + i, &((kstruct *)ctx->cipher_data)->ksched, ctx->encrypt);\
+	return 1;\
+}
+
+#define BLOCK_CIPHER_func_ofb(cname, cprefix, cbits, kstruct, ksched) \
+static int cname##_ofb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+{\
+	FIPS_selftest_check(); \
+	cprefix##_ofb##cbits##_encrypt(in, out, (long)inl, &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num);\
+	return 1;\
+}
+
+#define BLOCK_CIPHER_func_cbc(cname, cprefix, kstruct, ksched) \
+static int cname##_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+{\
+	FIPS_selftest_check(); \
+	cprefix##_cbc_encrypt(in, out, (long)inl, &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, ctx->encrypt);\
+	return 1;\
+}
+
+#define BLOCK_CIPHER_func_cfb(cname, cprefix, cbits, kstruct, ksched) \
+static int cname##_cfb##cbits##_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+{\
+	FIPS_selftest_check(); \
+	cprefix##_cfb##cbits##_encrypt(in, out, (long)((cbits==1) && !(ctx->flags & EVP_CIPH_FLAG_LENGTH_BITS) ?inl*8:inl), &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num, ctx->encrypt);\
+	return 1;\
+}
+#else
 #define BLOCK_CIPHER_ecb_loop() \
 	unsigned int i, bl; \
 	bl = ctx->cipher->block_size;\
@@ -95,6 +136,7 @@ static int cname##_cfb##cbits##_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, 
 	cprefix##_cfb##cbits##_encrypt(in, out, (long)((cbits==1) && !(ctx->flags & EVP_CIPH_FLAG_LENGTH_BITS) ?inl*8:inl), &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num, ctx->encrypt);\
 	return 1;\
 }
+#endif
 
 #define BLOCK_CIPHER_all_funcs(cname, cprefix, cbits, kstruct, ksched) \
 	BLOCK_CIPHER_func_cbc(cname, cprefix, kstruct, ksched) \
