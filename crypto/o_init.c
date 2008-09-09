@@ -59,6 +59,45 @@
 #include <e_os.h>
 #include <openssl/err.h>
 
+#ifdef OPENSSL_FIPS
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <openssl/fips.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+
+#define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
+
+static void init_fips_mode(void)
+	{
+	char buf[2] = "0";
+	int fd;
+	
+	if (getenv("OPENSSL_FORCE_FIPS_MODE") != NULL)
+		{
+		buf[0] = '1';
+		}
+	else if ((fd = open(FIPS_MODE_SWITCH_FILE, O_RDONLY)) >= 0)
+		{
+		while (read(fd, buf, sizeof(buf)) < 0 && errno == EINTR);
+		close(fd);
+		}
+	/* Failure reading the fips mode switch file means just not
+	 * switching into FIPS mode. We would break too many things
+	 * otherwise. 
+	 */
+	
+	if (buf[0] == '1')
+		{
+		FIPS_mode_set(1);
+		}
+	}
+#endif
+
 /* Perform any essential OpenSSL initialization operations.
  * Currently only sets FIPS callbacks
  */
@@ -73,11 +112,10 @@ void OPENSSL_init(void)
 #ifdef CRYPTO_MDEBUG
 		CRYPTO_malloc_debug_init();
 #endif
-#ifdef OPENSSL_ENGINE
+		init_fips_mode();
 		int_EVP_MD_init_engine_callbacks();
 		int_EVP_CIPHER_init_engine_callbacks();
 		int_RAND_init_engine_callbacks();
-#endif
 		done = 1;
 		}
 #endif
