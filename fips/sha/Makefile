@@ -47,7 +47,7 @@ lib:	$(LIBOBJ)
 	@echo $(LIBOBJ) > lib
 
 ../fips_standalone_sha1$(EXE_EXT): fips_standalone_sha1.o
-	FIPS_SHA_ASM=""; for i in $(SHA1_ASM_OBJ) sha1dgst.o ; do FIPS_SHA_ASM="$$FIPS_SHA_ASM ../../crypto/sha/$$i" ; done; \
+	FIPS_SHA_ASM=""; for i in $(SHA1_ASM_OBJ) sha256.o ; do FIPS_SHA_ASM="$$FIPS_SHA_ASM ../../crypto/sha/$$i" ; done; \
 	$(CC) -o $@ $(CFLAGS) fips_standalone_sha1.o $$FIPS_SHA_ASM
 
 files:
