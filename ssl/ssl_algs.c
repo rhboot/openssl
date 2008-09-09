@@ -64,6 +64,8 @@
 int SSL_library_init(void)
 	{
 
+	OPENSSL_init();
+
 #ifndef OPENSSL_NO_DES
 	EVP_add_cipher(EVP_des_cbc());
 	EVP_add_cipher(EVP_des_ede3_cbc());
