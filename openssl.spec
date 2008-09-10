@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 2%{?dist}
+Release: 3%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -174,7 +174,7 @@ sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
 
 # Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
 # marked as not requiring an executable stack.
-RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wa,--noexecstack -DOPENSSL_USE_NEW_FUNCTIONS"
+RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wa,--noexecstack -DOPENSSL_USE_NEW_FUNCTIONS -fno-strict-aliasing"
 make depend
 make all
 
@@ -376,6 +376,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Sep  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-3
+- disable strict aliasing
+
 * Tue Sep  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-2
 - more changes for FIPS validation (#444800)
 - correctly initialize default CA paths (#450987)
