@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 3%{?dist}
+Release: 4%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -376,7 +376,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Wed Sep  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-3
+* Thu Oct  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-4
+- FIPS mode kernel flag is /proc/sys/crypto/fips_enabled
+
+* Wed Sep 10 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-3
 - disable strict aliasing
 
 * Tue Sep  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-2

@@ -14,7 +14,7 @@ diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto
 +#include <stdlib.h>
 +#include <openssl/fips.h>
 +
-+#define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips"
++#define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
 +
 +static void init_fips_mode(void)
 +	{
