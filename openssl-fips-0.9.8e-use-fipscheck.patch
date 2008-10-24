@@ -1,6 +1,6 @@
 diff -up openssl-fips-0.9.8e/test/Makefile.use-fipscheck openssl-fips-0.9.8e/test/Makefile
 --- openssl-fips-0.9.8e/test/Makefile.use-fipscheck	2007-08-26 16:57:41.000000000 +0200
-+++ openssl-fips-0.9.8e/test/Makefile	2008-10-23 23:58:28.000000000 +0200
++++ openssl-fips-0.9.8e/test/Makefile	2008-10-24 15:00:45.000000000 +0200
 @@ -395,7 +395,6 @@ FIPS_BUILD_CMD=shlib_target=; if [ -n "$
  	if [ "$(FIPSCANLIB)" = "libfips" ]; then \
  		LIBRARIES="-L$(TOP) -lfips"; \
@@ -21,7 +21,7 @@ diff -up openssl-fips-0.9.8e/test/Makefile.use-fipscheck openssl-fips-0.9.8e/tes
  		CC=$${CC} APPNAME=$$target$(EXE_EXT) OBJECTS="$$target.o" \
 diff -up openssl-fips-0.9.8e/apps/Makefile.use-fipscheck openssl-fips-0.9.8e/apps/Makefile
 --- openssl-fips-0.9.8e/apps/Makefile.use-fipscheck	2007-08-15 15:35:29.000000000 +0200
-+++ openssl-fips-0.9.8e/apps/Makefile	2008-10-23 23:58:28.000000000 +0200
++++ openssl-fips-0.9.8e/apps/Makefile	2008-10-24 15:00:45.000000000 +0200
 @@ -152,8 +152,6 @@ $(EXE): progs.h $(E_OBJ) $(PROGRAM).o $(
  	$(RM) $(EXE)
  	shlib_target=; if [ -n "$(SHARED_LIBS)" ]; then \
@@ -32,8 +32,8 @@ diff -up openssl-fips-0.9.8e/apps/Makefile.use-fipscheck openssl-fips-0.9.8e/app
  	LIBRARIES="$(LIBSSL) $(LIBKRB5) $(LIBCRYPTO)" ; \
  	[ "x$(FIPSCANLIB)" = "xlibfips" ] && LIBRARIES="$$LIBRARIES -lfips"; \
 diff -up openssl-fips-0.9.8e/Makefile.org.use-fipscheck openssl-fips-0.9.8e/Makefile.org
---- openssl-fips-0.9.8e/Makefile.org.use-fipscheck	2008-10-23 23:58:28.000000000 +0200
-+++ openssl-fips-0.9.8e/Makefile.org	2008-10-23 23:58:28.000000000 +0200
+--- openssl-fips-0.9.8e/Makefile.org.use-fipscheck	2008-10-24 15:00:45.000000000 +0200
++++ openssl-fips-0.9.8e/Makefile.org	2008-10-24 15:00:45.000000000 +0200
 @@ -355,10 +355,6 @@ libcrypto$(SHLIB_EXT): libcrypto.a $(SHA
  			$(MAKE) SHLIBDIRS='crypto' SHLIBDEPS='-lfips' build-shared; \
  			$(AR) libcrypto.a fips/fipscanister.o ; \
@@ -67,7 +67,7 @@ diff -up openssl-fips-0.9.8e/Makefile.org.use-fipscheck openssl-fips-0.9.8e/Make
  Makefile: Makefile.org Configure config
 diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/fips.c
 --- openssl-fips-0.9.8e/fips/fips.c.use-fipscheck	2007-08-26 16:57:10.000000000 +0200
-+++ openssl-fips-0.9.8e/fips/fips.c	2008-10-23 23:57:39.000000000 +0200
++++ openssl-fips-0.9.8e/fips/fips.c	2008-10-24 15:00:55.000000000 +0200
 @@ -47,6 +47,8 @@
   *
   */
@@ -95,7 +95,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/
  unsigned char              FIPS_signature [20] = { 0 };
  static const char          FIPS_hmac_key[]="etaonrishdlcupfm";
  
-@@ -241,6 +247,202 @@ int FIPS_check_incore_fingerprint(void)
+@@ -241,6 +247,206 @@ int FIPS_check_incore_fingerprint(void)
  
      return 1;
      }
@@ -219,6 +219,10 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/
 +	HMAC_Final(&c, rbuf, &hlen);
 +
 +	*buf = malloc(hlen);
++	if (*buf == NULL) {
++		goto end;
++	}
++
 +	*hmaclen = hlen;
 +
 +	memcpy(*buf, rbuf, hlen);
@@ -298,7 +302,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/
  
  int FIPS_mode_set(int onoff)
      {
-@@ -278,16 +480,9 @@ int FIPS_mode_set(int onoff)
+@@ -278,16 +484,9 @@ int FIPS_mode_set(int onoff)
  	    }
  #endif
  
@@ -317,7 +321,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/
  	    fips_selftest_fail = 1;
  	    ret = 0;
  	    goto end;
-@@ -403,11 +598,13 @@ int fips_clear_owning_thread(void)
+@@ -403,11 +602,13 @@ int fips_clear_owning_thread(void)
  	return ret;
  	}
  
@@ -333,7 +337,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.use-fipscheck openssl-fips-0.9.8e/fips/
   * supplied in tbs using mesage digest md and setting option digest
 diff -up openssl-fips-0.9.8e/fips/Makefile.use-fipscheck openssl-fips-0.9.8e/fips/Makefile
 --- openssl-fips-0.9.8e/fips/Makefile.use-fipscheck	2007-08-15 15:35:30.000000000 +0200
-+++ openssl-fips-0.9.8e/fips/Makefile	2008-10-23 23:58:28.000000000 +0200
++++ openssl-fips-0.9.8e/fips/Makefile	2008-10-24 15:00:45.000000000 +0200
 @@ -62,9 +62,9 @@ testapps:
  
  all:
@@ -376,7 +380,7 @@ diff -up openssl-fips-0.9.8e/fips/Makefile.use-fipscheck openssl-fips-0.9.8e/fip
  	@target=lint; $(RECURSIVE_MAKE)
 diff -up openssl-fips-0.9.8e/fips/fips_locl.h.use-fipscheck openssl-fips-0.9.8e/fips/fips_locl.h
 --- openssl-fips-0.9.8e/fips/fips_locl.h.use-fipscheck	2007-08-15 15:35:31.000000000 +0200
-+++ openssl-fips-0.9.8e/fips/fips_locl.h	2008-10-23 23:58:28.000000000 +0200
++++ openssl-fips-0.9.8e/fips/fips_locl.h	2008-10-24 15:00:45.000000000 +0200
 @@ -63,7 +63,9 @@ int fips_is_owning_thread(void);
  int fips_set_owning_thread(void);
  void fips_set_selftest_fail(void);
