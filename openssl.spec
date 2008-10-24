@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 4%{?dist}
+Release: 5%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -66,7 +66,7 @@ Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
-BuildRequires: fipscheck-devel
+BuildRequires: fipscheck
 Requires: mktemp
 
 %description
@@ -376,6 +376,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Oct 24 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-5
+- implement the integrity checking inside libcrypto so OpenSSL
+  can be used in FIPS mode by the fipscheck library
+
 * Thu Oct  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-4
 - FIPS mode kernel flag is /proc/sys/crypto/fips_enabled
 
