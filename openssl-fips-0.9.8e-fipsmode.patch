@@ -1,7 +1,7 @@
 diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto/o_init.c
 --- openssl-fips-0.9.8e/crypto/o_init.c.fipsmode	2007-07-01 02:07:22.000000000 +0200
-+++ openssl-fips-0.9.8e/crypto/o_init.c	2008-09-09 12:17:38.000000000 +0200
-@@ -59,6 +59,43 @@
++++ openssl-fips-0.9.8e/crypto/o_init.c	2008-10-30 18:59:46.000000000 +0100
+@@ -59,6 +59,45 @@
  #include <e_os.h>
  #include <openssl/err.h>
  
@@ -13,6 +13,8 @@ diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto
 +#include <errno.h>
 +#include <stdlib.h>
 +#include <openssl/fips.h>
++#include <openssl/evp.h>
++#include <openssl/rand.h>
 +
 +#define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
 +
@@ -45,11 +47,16 @@ diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto
  /* Perform any essential OpenSSL initialization operations.
   * Currently only sets FIPS callbacks
   */
-@@ -78,6 +115,7 @@ void OPENSSL_init(void)
+@@ -73,11 +112,10 @@ void OPENSSL_init(void)
+ #ifdef CRYPTO_MDEBUG
+ 		CRYPTO_malloc_debug_init();
+ #endif
+-#ifdef OPENSSL_ENGINE
++		init_fips_mode();
+ 		int_EVP_MD_init_engine_callbacks();
  		int_EVP_CIPHER_init_engine_callbacks();
  		int_RAND_init_engine_callbacks();
- #endif
-+		init_fips_mode();
+-#endif
  		done = 1;
  		}
  #endif

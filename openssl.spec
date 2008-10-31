@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 5%{?dist}
+Release: 6%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -376,6 +376,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Oct 31 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-6
+- allow lookup of algorithms in engine
+
 * Fri Oct 24 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-5
 - implement the integrity checking inside libcrypto so OpenSSL
   can be used in FIPS mode by the fipscheck library
