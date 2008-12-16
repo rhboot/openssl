@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 6%{?dist}
+Release: 7%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -60,6 +60,7 @@ Patch71: openssl-fips-0.9.8e-use-fipscheck.patch
 Patch72: openssl-fips-0.9.8e-env-nozlib.patch
 Patch73: openssl-fips-0.9.8e-default-paths.patch
 Patch74: openssl-fips-0.9.8e-evp-nonfips.patch
+Patch75: openssl-fips-0.9.8e-cve-2008-5077.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -129,6 +130,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch72 -p1 -b .env-nozlib
 %patch73 -p1 -b .default-paths
 %patch74 -p1 -b .nonfips
+%patch75 -p1 -b .verifysig
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -376,6 +378,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Dec 16 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-7
+- fix CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
+
 * Fri Oct 31 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-6
 - allow lookup of algorithms in engine
 
