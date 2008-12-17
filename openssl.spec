@@ -11,7 +11,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 33.24
+Release: 33.25
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -59,6 +59,7 @@ Patch53: openssl-0.9.8b-cve-2006-4343.patch
 Patch54: openssl-0.9.7a-ca-check.patch
 Patch58: openssl-0.9.7a-cve-2007-3108.patch
 Patch59: openssl-0.9.8b-cve-2007-5135.patch
+Patch60: openssl-0.9.7a-cve-2008-5077.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -164,6 +165,7 @@ popd
 %patch54 -p1 -b .ca-check
 %patch58 -p1 -b .no-branch
 %patch59 -p1 -b .shciphers
+%patch60 -p1 -b .verifysig
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -404,6 +406,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Dec 17 2008 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.25
+- CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
+
 * Tue Oct 16 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-33.24
 - CVE-2007-3108 remove conditionals in BN_div, BN_mod and final
   Montgomery reduction (#250579)
