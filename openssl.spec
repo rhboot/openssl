@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.18
+Release: 43.19
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -77,6 +77,7 @@ Patch56: openssl-0.9.7a-ssl-strict-matching.patch
 Patch57: openssl-0.9.7a-pkcs12-no-crash.patch
 Patch58: openssl-0.9.7a-cve-2007-3108.patch
 Patch59: openssl-0.9.8b-cve-2007-5135.patch
+Patch60: openssl-0.9.7a-cve-2008-5077.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -174,6 +175,7 @@ popd
 %patch57 -p1 -b .no-crash
 %patch58 -p1 -b .no-branch
 %patch59 -p1 -b .shciphers
+%patch60 -p1 -b .verifysig
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -433,6 +435,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Dec 17 2008 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.19
+- CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
+
 * Mon Oct 22 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.18
 - CVE-2007-5135 off by one buffer overflow in SSL_get_shared_ciphers (#309851)
 
