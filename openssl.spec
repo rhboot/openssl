@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8b
-Release: 10%{?dist}
+Release: 10%{?dist}.1
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -66,6 +66,7 @@ Patch63: openssl-0.9.8b-cve-2007-3108.patch
 Patch64: openssl-0.9.8b-cve-2007-4995.patch
 Patch65: openssl-0.9.8b-cve-2007-5135.patch
 Patch66: openssl-0.9.7a-ssl-strict-matching.patch
+Patch75: openssl-fips-0.9.8e-cve-2008-5077.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -141,6 +142,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch64 -p1 -b .dtls-fixes
 %patch65 -p1 -b .shciphers
 %patch66 -p1 -b .strict-matching
+%patch75 -p1 -b .verifysig
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -375,6 +377,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Dec 16 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8b-10.1
+- fix CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
+
 * Tue Jan 15 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8b-10
 - compile with -march=z900 on s390 for performance improvements (#250818)
 - make ssl session ID matching strict (#233599)
