@@ -508,22 +508,22 @@ int FIPS_mode_set(int onoff)
 	    goto end;
 	    }
 
+	/* now switch into FIPS mode */
+	fips_set_rand_check(FIPS_rand_method());
+	RAND_set_rand_method(FIPS_rand_method());
+
 	/* automagically seed PRNG if not already seeded */
 	if(!FIPS_rand_status())
 	    {
-	    if(RAND_bytes(buf,sizeof buf) <= 0)
+	    RAND_poll();
+	    if (!FIPS_rand_status())
 		{
 		fips_selftest_fail = 1;
 		ret = 0;
 		goto end;
 		}
-	    FIPS_rand_set_key(buf,32);
-	    FIPS_rand_seed(buf+32,16);
 	    }
 
-	/* now switch into FIPS mode */
-	fips_set_rand_check(FIPS_rand_method());
-	RAND_set_rand_method(FIPS_rand_method());
 	if(FIPS_selftest())
 	    fips_set_mode(1);
 	else
