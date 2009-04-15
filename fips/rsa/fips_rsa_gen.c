@@ -288,7 +288,7 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 	if (fips_rsa_pairwise_fail)
 		BN_add_word(rsa->n, 1);
 
-	if(!fips_check_rsa(rsa))
+	if(FIPS_mode() && !fips_check_rsa(rsa))
 	    goto err;
 
 	ok=1;
