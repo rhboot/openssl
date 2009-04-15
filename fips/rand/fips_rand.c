@@ -155,7 +155,18 @@ static int fips_set_prng_seed(FIPS_PRNG_CTX *ctx,
 	{
 	int i;
 	if (!ctx->keyed)
-		return 0;
+		{
+		FIPS_RAND_SIZE_T keylen = 16;
+
+		if (seedlen - keylen < AES_BLOCK_LENGTH)
+			return 0;
+		if (seedlen - keylen - 8 >= AES_BLOCK_LENGTH)
+			keylen += 8;
+		if (seedlen - keylen - 8 >= AES_BLOCK_LENGTH)
+			keylen += 8;
+		seedlen -= keylen;
+		fips_set_prng_key(ctx, seed+seedlen, keylen);
+		}
 	/* In test mode seed is just supplied data */
 	if (ctx->test_mode)
 		{
@@ -276,6 +287,7 @@ static int fips_rand(FIPS_PRNG_CTX *ctx,
 	unsigned char R[AES_BLOCK_LENGTH], I[AES_BLOCK_LENGTH];
 	unsigned char tmp[AES_BLOCK_LENGTH];
 	int i;
+	FIPS_selftest_check();
 	if (ctx->error)
 		{
 		RANDerr(RAND_F_FIPS_RAND,RAND_R_PRNG_ERROR);
