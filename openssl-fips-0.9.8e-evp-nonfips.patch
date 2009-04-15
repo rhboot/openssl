@@ -1,6 +1,33 @@
+diff -up openssl-fips-0.9.8e/crypto/engine/eng_all.c.nonfips openssl-fips-0.9.8e/crypto/engine/eng_all.c
+--- openssl-fips-0.9.8e/crypto/engine/eng_all.c.nonfips	2009-04-15 14:26:12.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/engine/eng_all.c	2009-04-15 14:24:20.000000000 +0200
+@@ -58,9 +58,23 @@
+ 
+ #include "cryptlib.h"
+ #include "eng_int.h"
++#ifdef OPENSSL_FIPS
++#include <openssl/fips.h>
++#endif
+ 
+ void ENGINE_load_builtin_engines(void)
+ 	{
++#ifdef OPENSSL_FIPS
++	OPENSSL_init();
++	if (FIPS_mode()) {
++		/* We allow loading dynamic engine as a third party
++		   engine might be FIPS validated.
++		   User is disallowed to load non-validated engines
++		   by security policy. */
++		ENGINE_load_dynamic();
++		return;
++	}
++#endif
+ 	/* There's no longer any need for an "openssl" ENGINE unless, one day,
+ 	 * it is the *only* way for standard builtin implementations to be be
+ 	 * accessed (ie. it would be possible to statically link binaries with
 diff -up openssl-fips-0.9.8e/crypto/evp/c_allc.c.nonfips openssl-fips-0.9.8e/crypto/evp/c_allc.c
 --- openssl-fips-0.9.8e/crypto/evp/c_allc.c.nonfips	2007-04-24 13:30:34.000000000 +0200
-+++ openssl-fips-0.9.8e/crypto/evp/c_allc.c	2008-09-08 18:04:12.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/c_allc.c	2009-04-15 13:48:51.000000000 +0200
 @@ -65,6 +65,11 @@
  void OpenSSL_add_all_ciphers(void)
  	{
@@ -79,7 +106,7 @@ diff -up openssl-fips-0.9.8e/crypto/evp/c_allc.c.nonfips openssl-fips-0.9.8e/cry
  	PKCS5_PBE_add();
 diff -up openssl-fips-0.9.8e/crypto/evp/c_alld.c.nonfips openssl-fips-0.9.8e/crypto/evp/c_alld.c
 --- openssl-fips-0.9.8e/crypto/evp/c_alld.c.nonfips	2005-04-30 23:51:40.000000000 +0200
-+++ openssl-fips-0.9.8e/crypto/evp/c_alld.c	2008-09-08 18:28:24.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/c_alld.c	2009-04-15 13:48:51.000000000 +0200
 @@ -64,6 +64,11 @@
  
  void OpenSSL_add_all_digests(void)

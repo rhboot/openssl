@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 7%{?dist}
+Release: 8%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -61,13 +61,17 @@ Patch72: openssl-fips-0.9.8e-env-nozlib.patch
 Patch73: openssl-fips-0.9.8e-default-paths.patch
 Patch74: openssl-fips-0.9.8e-evp-nonfips.patch
 Patch75: openssl-fips-0.9.8e-cve-2008-5077.patch
+Patch76: openssl-fips-0.9.8e-multi-crl.patch
+Patch77: openssl-fips-0.9.8e-no-pairwise.patch
+Patch78: openssl-fips-0.9.8e-rng-seed.patch
+Patch79: openssl-fips-0.9.8e-bad-mime.patch
+Patch80: openssl-fips-0.9.8e-cve-2009-0590.patch
 
 License: BSDish
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
-BuildRequires: fipscheck
 Requires: mktemp
 
 %description
@@ -131,6 +135,11 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch73 -p1 -b .default-paths
 %patch74 -p1 -b .nonfips
 %patch75 -p1 -b .verifysig
+%patch76 -p1 -b .multi-crl
+%patch77 -p1 -b .no-pairwise
+%patch78 -p1 -b .rng-seed
+%patch79 -p1 -b .bad-mime
+%patch80 -p1 -b .bad-string
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -201,14 +210,15 @@ make -C test apps tests
 # Patch33 must be patched after tests otherwise they will fail
 patch -p1 -b -z .ca-dir < %{PATCH33}
 
-# Add generation of HMAC checksums for fipscheck
-%define __os_install_post  \
- /usr/lib/rpm/brp-compress \
- /usr/lib/rpm/brp-strip \
- /usr/lib/rpm/brp-strip-static-archive \
- /usr/lib/rpm/brp-strip-comment-note \
- /bin/fipshmac $RPM_BUILD_ROOT/%{_lib}/libcrypto.so.%{version} \
- ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{soversion}.hmac \
+# Add generation of HMAC checksum of the final stripped library
+%define __spec_install_post \
+    %{?__debug_package:%{__debug_install_post}} \
+    %{__arch_install_post} \
+    %{__os_install_post} \
+    fips/fips_standalone_sha1 $RPM_BUILD_ROOT/%{_lib}/libcrypto.so.%{version} >$RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{version}.hmac \
+    ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{soversion}.hmac \
+    fips/fips_standalone_sha1 $RPM_BUILD_ROOT/%{_lib}/libssl.so.%{version} >$RPM_BUILD_ROOT/%{_lib}/.libssl.so.%{version}.hmac \
+    ln -sf .libssl.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libssl.so.%{soversion}.hmac \
 %{nil}
 
 %install
@@ -350,6 +360,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
 %attr(0755,root,root) /%{_lib}/*.so.%{soversion}
 %attr(0644,root,root) /%{_lib}/.libcrypto.so.*.hmac
+%attr(0644,root,root) /%{_lib}/.libssl.so.*.hmac
 %dir %{_libdir}/openssl
 %attr(0755,root,root) %{_libdir}/openssl/engines
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
@@ -378,6 +389,14 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Apr 15 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-8
+- support multiple CRLs with same subject in a store (#457134)
+- fix CVE-2009-0590 - reject incorrectly encoded ASN.1 strings (#492304)
+- seed FIPS rng directly from kernel random device
+- do not require fipscheck to build the package (#475798)
+- call pairwise key tests in FIPS mode only (#479817)
+- do not crash when parsing bad mime data (#472440)
+
 * Tue Dec 16 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-7
 - fix CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
 

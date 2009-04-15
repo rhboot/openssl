@@ -1,6 +1,6 @@
 diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto/o_init.c
 --- openssl-fips-0.9.8e/crypto/o_init.c.fipsmode	2007-07-01 02:07:22.000000000 +0200
-+++ openssl-fips-0.9.8e/crypto/o_init.c	2008-10-30 18:59:46.000000000 +0100
++++ openssl-fips-0.9.8e/crypto/o_init.c	2009-04-15 13:48:51.000000000 +0200
 @@ -59,6 +59,45 @@
  #include <e_os.h>
  #include <openssl/err.h>
@@ -60,3 +60,15 @@ diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto
  		done = 1;
  		}
  #endif
+diff -up openssl-fips-0.9.8e/ssl/ssl_algs.c.fipsmode openssl-fips-0.9.8e/ssl/ssl_algs.c
+--- openssl-fips-0.9.8e/ssl/ssl_algs.c.fipsmode	2007-04-24 13:30:48.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/ssl_algs.c	2009-04-15 14:09:42.000000000 +0200
+@@ -64,6 +64,8 @@
+ int SSL_library_init(void)
+ 	{
+ 
++	OPENSSL_init();
++
+ #ifndef OPENSSL_NO_DES
+ 	EVP_add_cipher(EVP_des_cbc());
+ 	EVP_add_cipher(EVP_des_ede3_cbc());
