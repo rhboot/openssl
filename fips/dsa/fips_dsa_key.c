@@ -154,7 +154,7 @@ static int dsa_builtin_keygen(DSA *dsa)
 	dsa->pub_key=pub_key;
 	if (fips_dsa_pairwise_fail)
 		BN_add_word(dsa->pub_key, 1);
-	if(!fips_check_dsa(dsa))
+	if(FIPS_mode() && !fips_check_dsa(dsa))
 	    goto err;
 	ok=1;
 
