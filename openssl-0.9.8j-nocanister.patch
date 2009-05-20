@@ -1,0 +1,31 @@
+Do not create a fipscanister.o, add the objects directly.
+diff -up openssl-0.9.8j/fips/Makefile.nocanister openssl-0.9.8j/fips/Makefile
+--- openssl-0.9.8j/fips/Makefile.nocanister	2009-01-13 18:26:15.000000000 +0100
++++ openssl-0.9.8j/fips/Makefile	2009-01-13 21:43:43.000000000 +0100
+@@ -142,8 +142,24 @@ lib:	$(LIB)
+ 	if [ "$(FIPSCANISTERINTERNAL)" = "n" -a -n "$(FIPSCANLOC)" ]; then $(AR) ../$(FIPSCANLIB).a $(FIPSCANLOC); fi
+ 	@touch lib
+ 
+-$(LIB):	$(FIPSLIBDIR)fipscanister.o
+-	$(AR) $(LIB) $(FIPSLIBDIR)fipscanister.o
++$(LIB):	$(LIBOBJ) $(FIPS_OBJ_LISTS)
++	FIPS_ASM=""; \
++	list="$(BN_ASM)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/bn/$$i" ; done; \
++	list="$(AES_ASM_OBJ)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/aes/$$i" ; done; \
++	list="$(DES_ENC)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/des/$$i" ; done; \
++	list="$(SHA1_ASM_OBJ)"; for i in $$list; do FIPS_ASM="$$FIPS_ASM ../crypto/sha/$$i" ; done; \
++	if [ -n "$(CPUID_OBJ)" ]; then \
++		CPUID=../crypto/$(CPUID_OBJ) ; \
++	else \
++		CPUID="" ; \
++	fi ; \
++	objs="$(LIBOBJ) $(FIPS_EX_OBJ) $$CPUID $$FIPS_ASM"; \
++	for i in $(FIPS_OBJ_LISTS); do \
++		dir=`dirname $$i`; script="s|^|$$dir/|;s| | $$dir/|g"; \
++		objs="$$objs `sed "$$script" $$i`"; \
++	done; \
++	objs="$$objs" ; \
++	$(AR) $(LIB) $$objs 
+ 	$(RANLIB) $(LIB) || echo Never mind.
+ 
+ $(FIPSCANLIB):	$(FIPSCANLOC)

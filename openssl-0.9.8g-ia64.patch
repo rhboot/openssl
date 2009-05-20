@@ -1,8 +1,9 @@
---- openssl/crypto/bn/bn_lcl.h	2002-12-17 16:04:42.000000000 -0500
-+++ openssl/crypto/bn/bn_lcl.h	2002-12-17 16:12:59.000000000 -0500
-@@ -245,6 +245,15 @@
- 		: "a"(a),"g"(b)		\
- 		: "cc");
+diff -up openssl-0.9.8g/crypto/bn/bn_lcl.h.ia64 openssl-0.9.8g/crypto/bn/bn_lcl.h
+--- openssl-0.9.8g/crypto/bn/bn_lcl.h.ia64	2008-08-10 22:23:55.000000000 +0200
++++ openssl-0.9.8g/crypto/bn/bn_lcl.h	2008-08-10 22:23:55.000000000 +0200
+@@ -279,6 +279,15 @@ extern "C" {
+ #   define BN_UMULT_HIGH(a,b)		__umulh((a),(b))
+ #   define BN_UMULT_LOHI(low,high,a,b)	((low)=_umul128((a),(b),&(high)))
  #  endif
 +# elif defined(__ia64) && defined(SIXTY_FOUR_BIT_LONG)
 +#  if defined(__GNUC__)

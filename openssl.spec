@@ -6,70 +6,74 @@
 # 0.9.7a soversion = 4
 # 0.9.7ef soversion = 5
 # 0.9.8ab soversion = 6
-%define soversion 6
+# 0.9.8g soversion = 7
+# 0.9.8jk + EAP-FAST soversion = 8
+%define soversion 8
 
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
 
 # Arches on which we need to prevent arch conflicts on opensslconf.h, must
 # also be handled in opensslconf-new.h.
-%define multilib_arches %{ix86} ia64 ppc ppc64 s390 s390x x86_64
+%define multilib_arches %{ix86} ia64 ppc ppc64 s390 s390x sparcv9 sparc64 x86_64
 
 # Arches for which we don't build subpackages.
 %define optimize_arches i686
 
-Summary: The OpenSSL toolkit
+Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
-Version: 0.9.8b
-Release: 12%{?dist}
+Version: 0.9.8k
+Release: 1%{?dist}
+# We remove certain patented algorithms from the openssl source tarball
+# with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
-Source3: ca-bundle.crt
-Source4: https://rhn.redhat.com/help/RHNS-CA-CERT
-Source5: https://rhn.redhat.com/help/RHNS-CA-CERT.asc
 Source6: make-dummy-cert
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 # Build changes
-Patch0: openssl-0.9.8a-redhat.patch
+Patch0: openssl-0.9.8j-redhat.patch
 Patch1: openssl-0.9.8a-defaults.patch
 Patch2: openssl-0.9.8a-link-krb5.patch
-Patch3: openssl-0.9.8b-soversion.patch
-Patch4: openssl-0.9.8a-enginesdir.patch
+Patch3: openssl-0.9.8j-soversion.patch
+Patch4: openssl-0.9.8j-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
-Patch24: openssl-0.9.8a-padlock.patch
+Patch6: openssl-0.9.8b-test-use-localhost.patch
+Patch7: openssl-0.9.8j-shlib-version.patch
+# Bug fixes
+Patch21: openssl-0.9.8b-aliasing-bug.patch
+Patch22: openssl-0.9.8k-x509-name-cmp.patch
+Patch23: openssl-0.9.8g-default-paths.patch
+Patch24: openssl-0.9.8g-no-extssl.patch
 # Functionality changes
-Patch32: openssl-0.9.7-beta6-ia64.patch
-Patch33: openssl-0.9.7f-ca-dir.patch
+Patch32: openssl-0.9.8g-ia64.patch
+Patch33: openssl-0.9.8j-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
-Patch35: openssl-0.9.7-beta5-version-add-engines.patch
-Patch36: openssl-0.9.8a-use-poll.patch
+Patch35: openssl-0.9.8j-version-add-engines.patch
 Patch38: openssl-0.9.8a-reuse-cipher-change.patch
-Patch39: openssl-0.9.8b-ipv6-apps.patch
-Patch40: openssl-0.9.8b-enc-bufsize.patch
+Patch39: openssl-0.9.8g-ipv6-apps.patch
+Patch40: openssl-0.9.8j-nocanister.patch
+Patch41: openssl-0.9.8k-use-fipscheck.patch
+Patch42: openssl-0.9.8k-fipscheck-hmac.patch
+Patch43: openssl-0.9.8j-evp-nonfips.patch
+Patch44: openssl-0.9.8j-kernel-fipsmode.patch
+Patch45: openssl-0.9.8j-env-nozlib.patch
+Patch46: openssl-0.9.8j-eap-fast.patch
+Patch47: openssl-0.9.8j-readme-warning.patch
+Patch48: openssl-0.9.8j-bad-mime.patch
+Patch49: openssl-0.9.8j-fips-no-pairwise.patch
+Patch50: openssl-0.9.8j-fips-rng-seed.patch
 # Backported fixes including security fixes
-Patch51: openssl-0.9.8b-block-padding.patch
-Patch52: openssl-0.9.8b-pkcs12-fix.patch
-Patch53: openssl-0.9.8b-bn-threadsafety.patch
-Patch54: openssl-0.9.8b-aes-cachecol.patch
-Patch55: openssl-0.9.8b-pkcs7-leak.patch
-Patch56: openssl-0.9.8b-cve-2006-4339.patch
-Patch57: openssl-0.9.8b-cve-2006-2937.patch
-Patch58: openssl-0.9.8b-cve-2006-2940.patch
-Patch59: openssl-0.9.8b-cve-2006-3738.patch
-Patch60: openssl-0.9.8b-cve-2006-4343.patch
-Patch61: openssl-0.9.8b-aliasing-bug.patch
-Patch62: openssl-0.9.8b-x509-name-cmp.patch
-Patch63: openssl-0.9.8b-x509-add-dir.patch
 
-License: BSDish
+License: OpenSSL
 Group: System Environment/Libraries
 URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
-Requires: mktemp
+BuildRequires: /usr/bin/rename
+Requires: mktemp, ca-certificates >= 2008-5
 
 %description
 The OpenSSL toolkit provides support for secure communications between
@@ -81,10 +85,21 @@ protocols.
 Summary: Files for development of applications which will use OpenSSL
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}, krb5-devel, zlib-devel
+Requires: pkgconfig
 
 %description devel
 OpenSSL is a toolkit for supporting cryptography. The openssl-devel
-package contains static libraries and include files needed to develop
+package contains include files needed to develop applications which
+support various cryptographic algorithms and protocols.
+
+%package static
+Summary:  Libraries for static linking of applications which will use OpenSSL
+Group: Development/Libraries
+Requires: %{name}-devel = %{version}-%{release}
+
+%description static
+OpenSSL is a toolkit for supporting cryptography. The openssl-static
+package contains static libraries needed for static linking of
 applications which support various cryptographic algorithms and
 protocols.
 
@@ -110,31 +125,31 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch3 -p1 -b .soversion
 %patch4 -p1 -b .enginesdir
 %patch5 -p1 -b .no-rpath
+%patch6 -p1 -b .use-localhost
+%patch7 -p1 -b .shlib-version
 
-%patch24 -p1 -b .padlock
+%patch21 -p1 -b .aliasing-bug
+%patch22 -p1 -b .name-cmp
+%patch23 -p1 -b .default-paths
+%patch24 -p1 -b .no-extssl
 
 %patch32 -p1 -b .ia64
-#patch33 is applied after make test
+%patch33 -p1 -b .ca-dir
 %patch34 -p1 -b .x509
 %patch35 -p1 -b .version-add-engines
-%patch36 -p1 -b .use-poll
 %patch38 -p1 -b .cipher-change
 %patch39 -p1 -b .ipv6-apps
-%patch40 -p1 -b .enc-bufsize
-
-%patch51 -p1 -b .block-padding
-%patch52 -p1 -b .pkcs12-fix
-%patch53 -p1 -b .bn-threadsafety
-%patch54 -p1 -b .cachecol
-%patch55 -p1 -b .pkcs7-leak
-%patch56 -p1 -b .short-padding
-%patch57 -p1 -b .asn1-error
-%patch58 -p0 -b .parasitic
-%patch59 -p0 -b .shared-ciphers
-%patch60 -p0 -b .client-dos
-%patch61 -p1 -b .aliasing-bug
-%patch62 -p1 -b .name-cmp
-%patch63 -p1 -b .add-dir
+%patch40 -p1 -b .nocanister
+%patch41 -p1 -b .use-fipscheck
+%patch42 -p1 -b .fipscheck-hmac
+%patch43 -p1 -b .evp-nonfips
+%patch44 -p1 -b .fipsmode
+%patch45 -p1 -b .env-nozlib
+%patch46 -p1 -b .eap-fast
+%patch47 -p1 -b .warning
+%patch48 -p1 -b .bad-mime
+%patch49 -p1 -b .no-pairwise
+%patch50 -p1 -b .rng-seed
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -153,41 +168,52 @@ if ! echo %{_target} | grep -q i686 ; then
 	sslflags="no-asm 386"
 fi
 %endif
-%ifarch sparc
+%ifarch sparcv9
 sslarch=linux-sparcv9
 sslflags=no-asm
 %endif
-%ifarch alpha
+%ifarch sparc64
+sslarch=linux64-sparcv9
+sslflags=no-asm
+%endif
+%ifarch alpha alphaev56 alphaev6 alphaev67
 sslarch=linux-alpha-gcc
 %endif
-%ifarch s390
-# The -fno-regmove is a workaround for bug #199604
-sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM -fno-regmove"
+%ifarch s390 sh3eb sh4eb
+sslarch="linux-generic32 -DB_ENDIAN"
 %endif
 %ifarch s390x
-sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
+sslarch="linux-generic64 -DB_ENDIAN"
+%endif
+%ifarch %{arm} sh3 sh4
+sslarch=linux-generic32
 %endif
 # ia64, x86_64, ppc, ppc64 are OK by default
 # Configure the build tree.  Override OpenSSL defaults with known-good defaults
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
 ./Configure \
-	--prefix=%{_prefix} --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
-	zlib no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa shared \
+	--prefix=/usr --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
+	zlib enable-camellia enable-seed enable-tlsext enable-rfc3779 \
+	enable-cms no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa shared \
 	--with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
-	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib} \
-	${sslarch}
+	--with-krb5-dir=/usr ${sslarch} fipscanisterbuild
 
 # Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
 # marked as not requiring an executable stack.
 RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wa,--noexecstack"
 make depend
-make all build-shared
+make all
 
 # Generate hashes for the included certs.
-make rehash build-shared
+make rehash
 
+%check
 # Verify that what was compiled actually works.
+
+# We must revert patch33 before tests otherwise they will fail
+patch -p1 -R < %{PATCH33}
+
 LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 export LD_LIBRARY_PATH
 make -C test apps tests
@@ -202,26 +228,34 @@ make -C test apps tests
 	-lpthread -lz -ldl
 ./openssl-thread-test --threads %{thread_test_threads}
 
-# Patch33 must be patched after tests otherwise they will fail
-patch -p1 -b -z .ca-dir < %{PATCH33}
+# Add generation of HMAC checksum of the final stripped library
+%define __spec_install_post \
+    %{?__debug_package:%{__debug_install_post}} \
+    %{__arch_install_post} \
+    %{__os_install_post} \
+    fips/fips_standalone_sha1 $RPM_BUILD_ROOT%{_libdir}/libcrypto.so.%{version} >$RPM_BUILD_ROOT%{_libdir}/.libcrypto.so.%{version}.hmac \
+    ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT%{_libdir}/.libcrypto.so.%{soversion}.hmac \
+    fips/fips_standalone_sha1 $RPM_BUILD_ROOT%{_libdir}/libssl.so.%{version} >$RPM_BUILD_ROOT%{_libdir}/.libssl.so.%{version}.hmac \
+    ln -sf .libssl.so.%{version}.hmac $RPM_BUILD_ROOT%{_libdir}/.libssl.so.%{soversion}.hmac \
+%{nil}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 # Install OpenSSL.
-install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir},%{_libdir}/openssl}
-make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
-# OpenSSL install doesn't use correct _libdir
-mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{soversion} $RPM_BUILD_ROOT/%{_lib}/
-mv $RPM_BUILD_ROOT/usr/lib/engines $RPM_BUILD_ROOT/%{_libdir}/openssl
+install -d $RPM_BUILD_ROOT{%{_bindir},%{_includedir},%{_libdir},%{_mandir},%{_libdir}/openssl}
+make INSTALL_PREFIX=$RPM_BUILD_ROOT install
+make INSTALL_PREFIX=$RPM_BUILD_ROOT install_docs
+# OpenSSL install doesn't use correct _libdir on 64 bit archs
+[ "%{_libdir}" != /usr/lib ] && mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{soversion} $RPM_BUILD_ROOT%{_libdir}/
+mv $RPM_BUILD_ROOT/usr/lib/engines $RPM_BUILD_ROOT%{_libdir}/openssl
 mv $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man/* $RPM_BUILD_ROOT%{_mandir}/
 rmdir $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man
 mv $RPM_BUILD_ROOT/usr/lib/* $RPM_BUILD_ROOT%{_libdir}/ || :
-rename so.%{soversion} so.%{version} $RPM_BUILD_ROOT/%{_lib}/*.so.%{soversion}
-for lib in $RPM_BUILD_ROOT/%{_lib}/*.so.%{version} ; do
+rename so.%{soversion} so.%{version} $RPM_BUILD_ROOT%{_libdir}/*.so.%{soversion}
+for lib in $RPM_BUILD_ROOT%{_libdir}/*.so.%{version} ; do
 	chmod 755 ${lib}
-	ln -s -f ../../%{_lib}/`basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
-	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT/%{_lib}/`basename ${lib} .%{version}`.%{soversion}
-	rm -f $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
+	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
+	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
 done
 
 # Install a makefile for generating keys and self-signed certs, and a script
@@ -261,21 +295,15 @@ popd
 mkdir -m700 $RPM_BUILD_ROOT%{_sysconfdir}/pki/CA
 mkdir -m700 $RPM_BUILD_ROOT%{_sysconfdir}/pki/CA/private
 
-# Install root CA stuffs.
-cat << EOF > RHNS-blurb.txt
-#
-#  RHNS CA certificate.  Appended to the ca-bundle at package build-time.
-#
-EOF
-cat %{SOURCE3} RHNS-blurb.txt %{SOURCE4} > ca-bundle.crt
-install -m644 ca-bundle.crt $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/
-ln -s certs/ca-bundle.crt $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/cert.pem
+# Ensure the openssl.cnf timestamp is identical across builds to avoid
+# mulitlib conflicts and unnecessary renames on upgrade
+touch -r %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/openssl.cnf
 
 # Fix libdir.
 pushd $RPM_BUILD_ROOT/%{_libdir}/pkgconfig
 for i in *.pc ; do
 	sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
-	    $i >$i.tmp && \
+		$i >$i.tmp && \
 	cat $i.tmp >$i && \
 	rm -f $i.tmp
 done
@@ -286,17 +314,23 @@ basearch=%{_arch}
 %ifarch %{ix86}
 basearch=i386
 %endif
+%ifarch sparcv9
+basearch=sparc
+%endif
+%ifarch sparc64
+basearch=sparc64
+%endif
 
 %ifarch %{multilib_arches}
 # Do an opensslconf.h switcheroo to avoid file conflicts on systems where you
 # can have both a 32- and 64-bit version of the library, and they each need
 # their own correct-but-different versions of opensslconf.h to be usable.
 install -m644 %{SOURCE10} \
-   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
+	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 cat $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h >> \
-   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
+	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 install -m644 %{SOURCE9} \
-   $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
+	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
 %endif
 
 %ifarch %{optimize_arches}
@@ -312,8 +346,10 @@ rm -rf $RPM_BUILD_ROOT/%{_mandir}/man1*/*.pl*
 rm -rf $RPM_BUILD_ROOT/%{_sysconfdir}/pki/tls/misc/*.pl
 %endif
 
-# Remove fips fingerprint script 
+# Remove unused files from upstream fips support
 rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
+rm -rf $RPM_BUILD_ROOT/%{_libdir}/fips_premain.*
+rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -321,14 +357,13 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %files 
 %defattr(-,root,root)
 %doc FAQ LICENSE CHANGES NEWS INSTALL README
-%doc doc/README doc/c-indentation.el doc/openssl.txt
+%doc doc/c-indentation.el doc/openssl.txt
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
 %dir %{_sysconfdir}/pki/tls
 %dir %{_sysconfdir}/pki/tls/certs
 %{_sysconfdir}/pki/tls/certs/make-dummy-cert
 %{_sysconfdir}/pki/tls/certs/Makefile
-%{_sysconfdir}/pki/tls/cert.pem
 %dir %{_sysconfdir}/pki/tls/misc
 %{_sysconfdir}/pki/tls/misc/CA
 %dir %{_sysconfdir}/pki/CA
@@ -337,11 +372,12 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %{_sysconfdir}/pki/tls/private
 
 %config(noreplace) %{_sysconfdir}/pki/tls/openssl.cnf
-%config(noreplace) %{_sysconfdir}/pki/tls/certs/ca-bundle.crt
 
 %attr(0755,root,root) %{_bindir}/openssl
-%attr(0755,root,root) /%{_lib}/*.so.%{version}
-%attr(0755,root,root) /%{_lib}/*.so.%{soversion}
+%attr(0755,root,root) %{_libdir}/*.so.%{version}
+%attr(0755,root,root) %{_libdir}/*.so.%{soversion}
+%attr(0644,root,root) %{_libdir}/.libcrypto.so.*.hmac
+%attr(0644,root,root) %{_libdir}/.libssl.so.*.hmac
 %attr(0755,root,root) %{_libdir}/openssl
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
@@ -351,10 +387,13 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
-%attr(0644,root,root) %{_libdir}/*.a
 %attr(0755,root,root) %{_libdir}/*.so
 %attr(0644,root,root) %{_mandir}/man3*/*
 %attr(0644,root,root) %{_libdir}/pkgconfig/*.pc
+
+%files static
+%defattr(-,root,root)
+%attr(0644,root,root) %{_libdir}/*.a
 
 %files perl
 %defattr(-,root,root)
@@ -369,6 +408,110 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Mar 25 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-1
+- update to new upstream release (minor bug fixes, security
+  fixes and machine code optimizations only)
+
+* Thu Mar 19 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-10
+- move libraries to /usr/lib (#239375)
+
+* Fri Mar 13 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-9
+- add a static subpackage
+
+* Thu Feb 26 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.9.8j-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
+
+* Mon Feb  2 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-7
+- must also verify checksum of libssl.so in the FIPS mode
+- obtain the seed for FIPS rng directly from the kernel device
+- drop the temporary symlinks
+
+* Mon Jan 26 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-6
+- drop the temporary triggerpostun and symlinking in post
+- fix the pkgconfig files and drop the unnecessary buildrequires
+  on pkgconfig as it is a rpmbuild dependency (#481419)
+
+* Sat Jan 16 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-5
+- add temporary triggerpostun to reinstate the symlinks
+
+* Sat Jan 16 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-4
+- no pairwise key tests in non-fips mode (#479817)
+
+* Fri Jan 16 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-3
+- even more robust test for the temporary symlinks
+
+* Fri Jan 16 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-2
+- try to ensure the temporary symlinks exist
+
+* Thu Jan 15 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8j-1
+- new upstream version with necessary soname bump (#455753)
+- temporarily provide symlink to old soname to make it possible to rebuild
+  the dependent packages in rawhide
+- add eap-fast support (#428181)
+- add possibility to disable zlib by setting 
+- add fips mode support for testing purposes
+- do not null dereference on some invalid smime files
+- add buildrequires pkgconfig (#479493)
+
+* Sun Aug 10 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8g-11
+- do not add tls extensions to server hello for SSLv3 either
+
+* Mon Jun  2 2008 Joe Orton <jorton@redhat.com> 0.9.8g-10
+- move root CA bundle to ca-certificates package
+
+* Wed May 28 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8g-9
+- fix CVE-2008-0891 - server name extension crash (#448492)
+- fix CVE-2008-1672 - server key exchange message omit crash (#448495)
+
+* Tue May 27 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8g-8
+- super-H arch support
+- drop workaround for bug 199604 as it should be fixed in gcc-4.3
+
+* Mon May 19 2008 Tom "spot" Callaway <tcallawa@redhat.com> 0.9.8g-7
+- sparc handling
+
+* Mon Mar 10 2008 Joe Orton <jorton@redhat.com> 0.9.8g-6
+- update to new root CA bundle from mozilla.org (r1.45)
+
+* Wed Feb 20 2008 Fedora Release Engineering <rel-eng@fedoraproject.org> - 0.9.8g-5
+- Autorebuild for GCC 4.3
+
+* Thu Jan 24 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8g-4
+- merge review fixes (#226220)
+- adjust the SHLIB_VERSION_NUMBER to reflect library name (#429846)
+
+* Thu Dec 13 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8g-3
+- set default paths when no explicit paths are set (#418771)
+- do not add tls extensions to client hello for SSLv3 (#422081)
+
+* Tue Dec  4 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8g-2
+- enable some new crypto algorithms and features
+- add some more important bug fixes from openssl CVS
+
+* Mon Dec  3 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8g-1
+- update to latest upstream release, SONAME bumped to 7
+
+* Mon Oct 15 2007 Joe Orton <jorton@redhat.com> 0.9.8b-17
+- update to new CA bundle from mozilla.org
+
+* Fri Oct 12 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-16
+- fix CVE-2007-5135 - off-by-one in SSL_get_shared_ciphers (#309801)
+- fix CVE-2007-4995 - out of order DTLS fragments buffer overflow (#321191)
+- add alpha sub-archs (#296031)
+
+* Tue Aug 21 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-15
+- rebuild
+
+* Fri Aug  3 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-14
+- use localhost in testsuite, hopefully fixes slow build in koji
+- CVE-2007-3108 - fix side channel attack on private keys (#250577)
+- make ssl session cache id matching strict (#233599)
+
+* Wed Jul 25 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-13
+- allow building on ARM architectures (#245417)
+- use reference timestamps to prevent multilib conflicts (#218064)
+- -devel package must require pkgconfig (#241031)
+
 * Mon Dec 11 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-12
 - detect duplicates in add_dir properly (#206346)
 
@@ -793,7 +936,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 - add backport of Ben Laurie's patches for OpenSSL 0.9.6d
 
 * Wed Jul 17 2002 Nalin Dahyabhai <nalin@redhat.com> 0.9.6b-23
-- own %{_datadir}/ssl/misc
+- own {_datadir}/ssl/misc
 
 * Fri Jun 21 2002 Tim Powers <timp@redhat.com>
 - automated rebuild

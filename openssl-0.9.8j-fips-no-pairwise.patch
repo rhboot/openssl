@@ -1,0 +1,24 @@
+diff -up openssl-0.9.8j/fips/rsa/fips_rsa_gen.c.no-pairwise openssl-0.9.8j/fips/rsa/fips_rsa_gen.c
+--- openssl-0.9.8j/fips/rsa/fips_rsa_gen.c.no-pairwise	2009-01-17 20:27:37.000000000 +0100
++++ openssl-0.9.8j/fips/rsa/fips_rsa_gen.c	2009-01-17 20:27:28.000000000 +0100
+@@ -288,7 +288,7 @@ static int rsa_builtin_keygen(RSA *rsa, 
+ 	if (fips_rsa_pairwise_fail)
+ 		BN_add_word(rsa->n, 1);
+ 
+-	if(!fips_check_rsa(rsa))
++	if(FIPS_mode() && !fips_check_rsa(rsa))
+ 	    goto err;
+ 
+ 	ok=1;
+diff -up openssl-0.9.8j/fips/dsa/fips_dsa_key.c.no-pairwise openssl-0.9.8j/fips/dsa/fips_dsa_key.c
+--- openssl-0.9.8j/fips/dsa/fips_dsa_key.c.no-pairwise	2008-09-16 12:12:15.000000000 +0200
++++ openssl-0.9.8j/fips/dsa/fips_dsa_key.c	2009-01-17 20:26:20.000000000 +0100
+@@ -154,7 +154,7 @@ static int dsa_builtin_keygen(DSA *dsa)
+ 	dsa->pub_key=pub_key;
+ 	if (fips_dsa_pairwise_fail)
+ 		BN_add_word(dsa->pub_key, 1);
+-	if(!fips_check_dsa(dsa))
++	if(FIPS_mode() && !fips_check_dsa(dsa))
+ 	    goto err;
+ 	ok=1;
+ 

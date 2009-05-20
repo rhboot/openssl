@@ -21,6 +21,10 @@
 #include "opensslconf-s390x.h"
 #elif defined(__s390__)
 #include "opensslconf-s390.h"
+#elif defined(__sparc__) && defined(__arch64__)
+#include "opensslconf-sparc64.h"
+#elif defined(__sparc__)
+#include "opensslconf-sparc.h"
 #elif defined(__x86_64__)
 #include "opensslconf-x86_64.h"
 #else
