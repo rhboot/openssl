@@ -280,6 +280,15 @@ extern "C" {
 #   define BN_UMULT_HIGH(a,b)		__umulh((a),(b))
 #   define BN_UMULT_LOHI(low,high,a,b)	((low)=_umul128((a),(b),&(high)))
 #  endif
+# elif defined(__ia64) && defined(SIXTY_FOUR_BIT_LONG)
+#  if defined(__GNUC__)
+#   define BN_UMULT_HIGH(a,b) ({      \
+      register BN_ULONG ret;          \
+      asm ("xmpy.hu %0 = %1, %2"      \
+           : "=f"(ret)                \
+           : "f"(a), "f"(b));         \
+      ret;                    })
+#  endif      /* compiler */
 # endif		/* cpu */
 #endif		/* OPENSSL_NO_ASM */
 
