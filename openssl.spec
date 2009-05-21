@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 8%{?dist}
+Release: 9%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -66,6 +66,7 @@ Patch77: openssl-fips-0.9.8e-no-pairwise.patch
 Patch78: openssl-fips-0.9.8e-rng-seed.patch
 Patch79: openssl-fips-0.9.8e-bad-mime.patch
 Patch80: openssl-fips-0.9.8e-cve-2009-0590.patch
+Patch81: openssl-fips-0.9.8e-dtls-dos.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -140,6 +141,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch78 -p1 -b .rng-seed
 %patch79 -p1 -b .bad-mime
 %patch80 -p1 -b .bad-string
+%patch81 -p1 -b .dtls-dos
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -389,6 +391,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-9
+- fix CVE-2009-1377 CVE-2009-1378 CVE-2009-1379
+  (DTLS DoS problems) (#501253, #501254, #501572)
+
 * Wed Apr 15 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-8
 - support multiple CRLs with same subject in a store (#457134)
 - fix CVE-2009-0590 - reject incorrectly encoded ASN.1 strings (#492304)
