@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 9%{?dist}
+Release: 10%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -391,6 +391,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-10
+- fix CVE-2009-1386 CVE-2009-1387 (DTLS DoS problems)
+  (#503685, #503688)
+
 * Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-9
 - fix CVE-2009-1377 CVE-2009-1378 CVE-2009-1379
   (DTLS DoS problems) (#501253, #501254, #501572)
