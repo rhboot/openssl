@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 11%{?dist}
+Release: 12%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -196,6 +196,9 @@ make all
 
 # Generate hashes for the included certs.
 make rehash
+
+# Overwrite FIPS README
+cp -f %{SOURCE11} .
 
 # Verify that what was compiled actually works.
 LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
@@ -395,7 +398,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Mon Jun 29 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-11
+* Mon Jun 29 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12
 - abort if selftests failed and random number generator is polled
 - mention EVP_aes and EVP_sha2xx routines in the manpages
 - add README.FIPS
