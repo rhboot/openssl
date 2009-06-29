@@ -1,7 +1,7 @@
 Seed the FIPS rng directly from the kernel random device.
 diff -up openssl-fips-0.9.8e/crypto/rand/rand_lcl.h.rng-seed openssl-fips-0.9.8e/crypto/rand/rand_lcl.h
---- openssl-fips-0.9.8e/crypto/rand/rand_lcl.h.rng-seed	2009-03-26 15:15:39.000000000 +0100
-+++ openssl-fips-0.9.8e/crypto/rand/rand_lcl.h	2009-04-15 12:00:09.000000000 +0200
+--- openssl-fips-0.9.8e/crypto/rand/rand_lcl.h.rng-seed	2009-04-15 13:48:50.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/rand/rand_lcl.h	2009-04-15 13:48:51.000000000 +0200
 @@ -112,7 +112,7 @@
  #ifndef HEADER_RAND_LCL_H
  #define HEADER_RAND_LCL_H
@@ -12,8 +12,8 @@ diff -up openssl-fips-0.9.8e/crypto/rand/rand_lcl.h.rng-seed openssl-fips-0.9.8e
  
  #if !defined(USE_MD5_RAND) && !defined(USE_SHA1_RAND) && !defined(USE_MDC2_RAND) && !defined(USE_MD2_RAND)
 diff -up openssl-fips-0.9.8e/fips/fips.c.rng-seed openssl-fips-0.9.8e/fips/fips.c
---- openssl-fips-0.9.8e/fips/fips.c.rng-seed	2009-04-15 11:43:59.000000000 +0200
-+++ openssl-fips-0.9.8e/fips/fips.c	2009-04-15 12:02:43.000000000 +0200
+--- openssl-fips-0.9.8e/fips/fips.c.rng-seed	2009-04-15 13:48:51.000000000 +0200
++++ openssl-fips-0.9.8e/fips/fips.c	2009-04-15 13:48:51.000000000 +0200
 @@ -508,22 +508,22 @@ int FIPS_mode_set(int onoff)
  	    goto end;
  	    }
@@ -45,7 +45,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.rng-seed openssl-fips-0.9.8e/fips/fips.
  	else
 diff -up openssl-fips-0.9.8e/fips/rand/fips_rand.c.rng-seed openssl-fips-0.9.8e/fips/rand/fips_rand.c
 --- openssl-fips-0.9.8e/fips/rand/fips_rand.c.rng-seed	2007-09-12 19:46:05.000000000 +0200
-+++ openssl-fips-0.9.8e/fips/rand/fips_rand.c	2009-04-15 12:01:46.000000000 +0200
++++ openssl-fips-0.9.8e/fips/rand/fips_rand.c	2009-06-29 18:34:00.000000000 +0200
 @@ -155,7 +155,18 @@ static int fips_set_prng_seed(FIPS_PRNG_
  	{
  	int i;
@@ -66,3 +66,11 @@ diff -up openssl-fips-0.9.8e/fips/rand/fips_rand.c.rng-seed openssl-fips-0.9.8e/
  	/* In test mode seed is just supplied data */
  	if (ctx->test_mode)
  		{
+@@ -276,6 +287,7 @@ static int fips_rand(FIPS_PRNG_CTX *ctx,
+ 	unsigned char R[AES_BLOCK_LENGTH], I[AES_BLOCK_LENGTH];
+ 	unsigned char tmp[AES_BLOCK_LENGTH];
+ 	int i;
++	FIPS_selftest_check();
+ 	if (ctx->error)
+ 		{
+ 		RANDerr(RAND_F_FIPS_RAND,RAND_R_PRNG_ERROR);

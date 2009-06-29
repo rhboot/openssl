@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 10%{?dist}
+Release: 11%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -67,6 +67,7 @@ Patch78: openssl-fips-0.9.8e-rng-seed.patch
 Patch79: openssl-fips-0.9.8e-bad-mime.patch
 Patch80: openssl-fips-0.9.8e-cve-2009-0590.patch
 Patch81: openssl-fips-0.9.8e-dtls-dos.patch
+Patch82: openssl-fips-0.9.8e-algo-doc.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -142,6 +143,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch79 -p1 -b .bad-mime
 %patch80 -p1 -b .bad-string
 %patch81 -p1 -b .dtls-dos
+%patch82 -p1 -b .algo-doc
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -391,6 +393,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Jun 29 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-11
+- abort if selftests failed and random number generator is polled
+- mention EVP_aes and EVP_sha2xx routines in the manpages
+
 * Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-10
 - fix CVE-2009-1386 CVE-2009-1387 (DTLS DoS problems)
   (#503685, #503688)
