@@ -33,6 +33,7 @@ Source6: make-dummy-cert
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
+Source11: README.FIPS
 # Build changes
 Patch0: openssl-fips-0.9.8e-redhat.patch
 Patch1: openssl-0.9.8a-defaults.patch
@@ -345,6 +346,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %doc doc/c-indentation.el doc/openssl.txt
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
+%doc README.FIPS
 %dir %{_sysconfdir}/pki/tls
 %dir %{_sysconfdir}/pki/tls/certs
 %{_sysconfdir}/pki/tls/certs/make-dummy-cert
@@ -396,6 +398,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 * Mon Jun 29 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-11
 - abort if selftests failed and random number generator is polled
 - mention EVP_aes and EVP_sha2xx routines in the manpages
+- add README.FIPS
 
 * Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-10
 - fix CVE-2009-1386 CVE-2009-1387 (DTLS DoS problems)
