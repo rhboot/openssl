@@ -6,7 +6,7 @@ diff -up openssl-0.9.8j/apps/openssl.cnf.ca-dir openssl-0.9.8j/apps/openssl.cnf
  [ CA_default ]
  
 -dir		= ./demoCA		# Where everything is kept
-+dir		= ../../CA		# Where everything is kept
++dir		= /etc/pki/CA		# Where everything is kept
  certs		= $dir/certs		# Where the issued certs are kept
  crl_dir		= $dir/crl		# Where the issued crl are kept
  database	= $dir/index.txt	# database index file.
@@ -18,7 +18,7 @@ diff -up openssl-0.9.8j/apps/CA.sh.ca-dir openssl-0.9.8j/apps/CA.sh
  X509="$OPENSSL x509"
  
 -CATOP=./demoCA
-+CATOP=../../CA
++CATOP=/etc/pki/CA
  CAKEY=./cakey.pem
  CAREQ=./careq.pem
  CACERT=./cacert.pem
@@ -30,7 +30,7 @@ diff -up openssl-0.9.8j/apps/CA.pl.in.ca-dir openssl-0.9.8j/apps/CA.pl.in
  $PKCS12="$openssl pkcs12";
  
 -$CATOP="./demoCA";
-+$CATOP="../../CA";
++$CATOP="/etc/pki/CA";
  $CAKEY="cakey.pem";
  $CAREQ="careq.pem";
  $CACERT="cacert.pem";

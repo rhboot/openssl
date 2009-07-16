@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 0.9.8k
-Release: 1%{?dist}
+Release: 6%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -33,6 +33,7 @@ Source6: make-dummy-cert
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
+Source11: README.FIPS
 # Build changes
 Patch0: openssl-0.9.8j-redhat.patch
 Patch1: openssl-0.9.8a-defaults.patch
@@ -41,7 +42,7 @@ Patch3: openssl-0.9.8j-soversion.patch
 Patch4: openssl-0.9.8j-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
-Patch7: openssl-0.9.8j-shlib-version.patch
+Patch7: openssl-0.9.8k-shlib-version.patch
 # Bug fixes
 Patch21: openssl-0.9.8b-aliasing-bug.patch
 Patch22: openssl-0.9.8k-x509-name-cmp.patch
@@ -57,14 +58,17 @@ Patch39: openssl-0.9.8g-ipv6-apps.patch
 Patch40: openssl-0.9.8j-nocanister.patch
 Patch41: openssl-0.9.8k-use-fipscheck.patch
 Patch42: openssl-0.9.8k-fipscheck-hmac.patch
-Patch43: openssl-0.9.8j-evp-nonfips.patch
-Patch44: openssl-0.9.8j-kernel-fipsmode.patch
+Patch44: openssl-0.9.8k-kernel-fipsmode.patch
 Patch45: openssl-0.9.8j-env-nozlib.patch
 Patch46: openssl-0.9.8j-eap-fast.patch
 Patch47: openssl-0.9.8j-readme-warning.patch
 Patch48: openssl-0.9.8j-bad-mime.patch
 Patch49: openssl-0.9.8j-fips-no-pairwise.patch
-Patch50: openssl-0.9.8j-fips-rng-seed.patch
+Patch50: openssl-0.9.8k-fips-rng-seed.patch
+Patch51: openssl-0.9.8k-multi-crl.patch
+Patch52: openssl-0.9.8k-dtls-compat.patch
+Patch53: openssl-0.9.8k-dtls-dos.patch
+Patch54: openssl-0.9.8k-algo-doc.patch
 # Backported fixes including security fixes
 
 License: OpenSSL
@@ -142,7 +146,6 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch40 -p1 -b .nocanister
 %patch41 -p1 -b .use-fipscheck
 %patch42 -p1 -b .fipscheck-hmac
-%patch43 -p1 -b .evp-nonfips
 %patch44 -p1 -b .fipsmode
 %patch45 -p1 -b .env-nozlib
 %patch46 -p1 -b .eap-fast
@@ -150,6 +153,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch48 -p1 -b .bad-mime
 %patch49 -p1 -b .no-pairwise
 %patch50 -p1 -b .rng-seed
+%patch51 -p1 -b .multi-crl
+%patch52 -p1 -b .dtls-compat
+%patch53 -p1 -b .dtls-dos
+%patch54 -p1 -b .algo-doc
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -207,6 +214,9 @@ make all
 
 # Generate hashes for the included certs.
 make rehash
+
+# Overwrite FIPS README
+cp -f %{SOURCE11} .
 
 %check
 # Verify that what was compiled actually works.
@@ -360,6 +370,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %doc doc/c-indentation.el doc/openssl.txt
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
+%doc README.FIPS
 %dir %{_sysconfdir}/pki/tls
 %dir %{_sysconfdir}/pki/tls/certs
 %{_sysconfdir}/pki/tls/certs/make-dummy-cert
@@ -408,6 +419,27 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Jun 30 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-6
+- abort if selftests failed and random number generator is polled
+- mention EVP_aes and EVP_sha2xx routines in the manpages
+- add README.FIPS
+- make CA dir absolute path (#445344)
+- change default length for RSA key generation to 2048 (#484101)
+
+* Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-5
+- fix CVE-2009-1377 CVE-2009-1378 CVE-2009-1379
+  (DTLS DoS problems) (#501253, #501254, #501572)
+
+* Tue Apr 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-4
+- support compatibility DTLS mode for CISCO AnyConnect (#464629)
+
+* Fri Apr 17 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-3
+- correct the SHLIB_VERSION define
+
+* Wed Apr 15 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-2
+- add support for multiple CRLs with same subject
+- load only dynamic engine support in FIPS mode
+
 * Thu Mar 25 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-1
 - update to new upstream release (minor bug fixes, security
   fixes and machine code optimizations only)

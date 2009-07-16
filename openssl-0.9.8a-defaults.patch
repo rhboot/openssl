@@ -1,9 +1,11 @@
 --- openssl-0.9.8a/apps/openssl.cnf.defaults	2005-09-16 14:20:24.000000000 +0200
 +++ openssl-0.9.8a/apps/openssl.cnf	2005-11-04 11:00:37.000000000 +0100
-@@ -99,6 +99,7 @@
+@@ -98,7 +98,8 @@
+ 
  ####################################################################
  [ req ]
- default_bits		= 1024
+-default_bits		= 1024
++default_bits		= 2048
 +default_md		= sha1
  default_keyfile 	= privkey.pem
  distinguished_name	= req_distinguished_name
