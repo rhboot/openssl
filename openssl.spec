@@ -17,13 +17,10 @@
 # also be handled in opensslconf-new.h.
 %define multilib_arches %{ix86} ia64 ppc ppc64 s390 s390x sparcv9 sparc64 x86_64
 
-# Arches for which we don't build subpackages.
-%define optimize_arches i686
-
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 0.9.8k
-Release: 6%{?dist}
+Release: 7%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -343,19 +340,6 @@ install -m644 %{SOURCE9} \
 	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
 %endif
 
-%ifarch %{optimize_arches}
-# Remove bits which belong in subpackages.
-rm -rf $RPM_BUILD_ROOT/%{_prefix}/include/openssl
-rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.a
-rm -rf $RPM_BUILD_ROOT/%{_libdir}/*.so
-rm -rf $RPM_BUILD_ROOT/%{_libdir}/pkgconfig
-rm -rf $RPM_BUILD_ROOT/%{_mandir}/man3/*
-
-rm -rf $RPM_BUILD_ROOT/%{_bindir}/c_rehash
-rm -rf $RPM_BUILD_ROOT/%{_mandir}/man1*/*.pl*
-rm -rf $RPM_BUILD_ROOT/%{_sysconfdir}/pki/tls/misc/*.pl
-%endif
-
 # Remove unused files from upstream fips support
 rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/fips_premain.*
@@ -394,7 +378,6 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 
-%ifnarch %{optimize_arches}
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
@@ -412,13 +395,19 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %attr(0644,root,root) %{_mandir}/man1*/*.pl*
 %dir %{_sysconfdir}/pki/tls/misc
 %{_sysconfdir}/pki/tls/misc/*.pl
-%endif
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
 %changelog
+* Sat Jul 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.9.8k-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
+* Wed Jul 22 2009 Bill Nottingham <notting@redhat.com>
+- do not build special 'optimized' versions for i686, as that's the base
+  arch in Fedora now
+
 * Tue Jun 30 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8k-6
 - abort if selftests failed and random number generator is polled
 - mention EVP_aes and EVP_sha2xx routines in the manpages
