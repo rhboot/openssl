@@ -8,7 +8,10 @@
 # 0.9.8ab soversion = 6
 # 0.9.8g soversion = 7
 # 0.9.8jk + EAP-FAST soversion = 8
-%define soversion 8
+# 1.0.0 soversion = 10
+%define soversion 10
+
+%define beta beta3
 
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
@@ -19,11 +22,11 @@
 
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
-Version: 0.9.8k
-Release: 7%{?dist}
+Version: 1.0.0
+Release: 0.8.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
-Source: openssl-%{version}-usa.tar.bz2
+Source: openssl-%{version}-%{beta}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
 Source6: make-dummy-cert
@@ -32,41 +35,38 @@ Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 Source11: README.FIPS
 # Build changes
-Patch0: openssl-0.9.8j-redhat.patch
-Patch1: openssl-0.9.8a-defaults.patch
-Patch2: openssl-0.9.8a-link-krb5.patch
-Patch3: openssl-0.9.8j-soversion.patch
-Patch4: openssl-0.9.8j-enginesdir.patch
+Patch0: openssl-1.0.0-beta3-redhat.patch
+Patch1: openssl-1.0.0-beta3-defaults.patch
+Patch2: openssl-1.0.0-beta3-krb5.patch
+Patch3: openssl-1.0.0-beta3-soversion.patch
+Patch4: openssl-1.0.0-beta3-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
-Patch7: openssl-0.9.8k-shlib-version.patch
 # Bug fixes
 Patch21: openssl-0.9.8b-aliasing-bug.patch
-Patch22: openssl-0.9.8k-x509-name-cmp.patch
-Patch23: openssl-0.9.8g-default-paths.patch
-Patch24: openssl-0.9.8g-no-extssl.patch
+Patch23: openssl-1.0.0-beta3-default-paths.patch
 # Functionality changes
 Patch32: openssl-0.9.8g-ia64.patch
 Patch33: openssl-0.9.8j-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.8j-version-add-engines.patch
-Patch38: openssl-0.9.8a-reuse-cipher-change.patch
-Patch39: openssl-0.9.8g-ipv6-apps.patch
-Patch40: openssl-0.9.8j-nocanister.patch
-Patch41: openssl-0.9.8k-use-fipscheck.patch
-Patch42: openssl-0.9.8k-fipscheck-hmac.patch
-Patch44: openssl-0.9.8k-kernel-fipsmode.patch
+Patch38: openssl-1.0.0-beta3-cipher-change.patch
+Patch39: openssl-1.0.0-beta3-ipv6-apps.patch
+Patch40: openssl-1.0.0-beta3-fips.patch
+Patch41: openssl-1.0.0-beta3-fipscheck.patch
+Patch43: openssl-1.0.0-beta3-fipsmode.patch
+Patch44: openssl-1.0.0-beta3-fipsrng.patch
 Patch45: openssl-0.9.8j-env-nozlib.patch
-Patch46: openssl-0.9.8j-eap-fast.patch
 Patch47: openssl-0.9.8j-readme-warning.patch
 Patch48: openssl-0.9.8j-bad-mime.patch
-Patch49: openssl-0.9.8j-fips-no-pairwise.patch
-Patch50: openssl-0.9.8k-fips-rng-seed.patch
-Patch51: openssl-0.9.8k-multi-crl.patch
-Patch52: openssl-0.9.8k-dtls-compat.patch
-Patch53: openssl-0.9.8k-dtls-dos.patch
-Patch54: openssl-0.9.8k-algo-doc.patch
+Patch49: openssl-0.9.8k-algo-doc.patch
+Patch50: openssl-1.0.0-beta3-curl.patch
+Patch51: openssl-1.0.0-beta3-const.patch
+Patch52: openssl-1.0.0-beta3-dss1.patch
 # Backported fixes including security fixes
+Patch60: openssl-1.0.0-beta3-namingstr.patch
+Patch61: openssl-1.0.0-beta3-namingblk.patch
+Patch62: openssl-1.0.0-beta3-camellia-rounds.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -116,7 +116,7 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}-%{beta}
 
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
@@ -127,12 +127,9 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch4 -p1 -b .enginesdir
 %patch5 -p1 -b .no-rpath
 %patch6 -p1 -b .use-localhost
-%patch7 -p1 -b .shlib-version
 
 %patch21 -p1 -b .aliasing-bug
-%patch22 -p1 -b .name-cmp
 %patch23 -p1 -b .default-paths
-%patch24 -p1 -b .no-extssl
 
 %patch32 -p1 -b .ia64
 %patch33 -p1 -b .ca-dir
@@ -140,20 +137,20 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch35 -p1 -b .version-add-engines
 %patch38 -p1 -b .cipher-change
 %patch39 -p1 -b .ipv6-apps
-%patch40 -p1 -b .nocanister
-%patch41 -p1 -b .use-fipscheck
-%patch42 -p1 -b .fipscheck-hmac
-%patch44 -p1 -b .fipsmode
+%patch40 -p1 -b .fips
+%patch41 -p1 -b .fipscheck
+%patch43 -p1 -b .fipsmode
+%patch44 -p1 -b .fipsrng
 %patch45 -p1 -b .env-nozlib
-%patch46 -p1 -b .eap-fast
 %patch47 -p1 -b .warning
 %patch48 -p1 -b .bad-mime
-%patch49 -p1 -b .no-pairwise
-%patch50 -p1 -b .rng-seed
-%patch51 -p1 -b .multi-crl
-%patch52 -p1 -b .dtls-compat
-%patch53 -p1 -b .dtls-dos
-%patch54 -p1 -b .algo-doc
+%patch49 -p1 -b .algo-doc
+%patch50 -p1 -b .curl
+%patch51 -p1 -b .const
+%patch52 -p1 -b .dss1
+%patch60 -p1 -b .namingstr
+%patch61 -p1 -b .namingblk
+%patch62 -p1 -b .cmll-rounds
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -199,9 +196,9 @@ sslarch=linux-generic32
 ./Configure \
 	--prefix=/usr --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
 	zlib enable-camellia enable-seed enable-tlsext enable-rfc3779 \
-	enable-cms no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa shared \
+	enable-cms enable-md2 no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa \
 	--with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
-	--with-krb5-dir=/usr ${sslarch} fipscanisterbuild
+	--with-krb5-dir=/usr shared  ${sslarch} fips
 
 # Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
 # marked as not requiring an executable stack.
@@ -240,9 +237,9 @@ make -C test apps tests
     %{?__debug_package:%{__debug_install_post}} \
     %{__arch_install_post} \
     %{__os_install_post} \
-    fips/fips_standalone_sha1 $RPM_BUILD_ROOT%{_libdir}/libcrypto.so.%{version} >$RPM_BUILD_ROOT%{_libdir}/.libcrypto.so.%{version}.hmac \
+    crypto/fips/fips_standalone_sha1 $RPM_BUILD_ROOT%{_libdir}/libcrypto.so.%{version} >$RPM_BUILD_ROOT%{_libdir}/.libcrypto.so.%{version}.hmac \
     ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT%{_libdir}/.libcrypto.so.%{soversion}.hmac \
-    fips/fips_standalone_sha1 $RPM_BUILD_ROOT%{_libdir}/libssl.so.%{version} >$RPM_BUILD_ROOT%{_libdir}/.libssl.so.%{version}.hmac \
+    crypto/fips/fips_standalone_sha1 $RPM_BUILD_ROOT%{_libdir}/libssl.so.%{version} >$RPM_BUILD_ROOT%{_libdir}/.libssl.so.%{version}.hmac \
     ln -sf .libssl.so.%{version}.hmac $RPM_BUILD_ROOT%{_libdir}/.libssl.so.%{soversion}.hmac \
 %{nil}
 
@@ -263,6 +260,7 @@ for lib in $RPM_BUILD_ROOT%{_libdir}/*.so.%{version} ; do
 	chmod 755 ${lib}
 	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
 	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
+
 done
 
 # Install a makefile for generating keys and self-signed certs, and a script
@@ -393,14 +391,39 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %defattr(-,root,root)
 %attr(0755,root,root) %{_bindir}/c_rehash
 %attr(0644,root,root) %{_mandir}/man1*/*.pl*
-%dir %{_sysconfdir}/pki/tls/misc
 %{_sysconfdir}/pki/tls/misc/*.pl
+%{_sysconfdir}/pki/tls/misc/tsget
 
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Sep 30 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.8.beta3
+- fix RSA and DSA FIPS selftests
+- reenable fixed x86_64 camellia assembler code (#521127)
+
+* Fri Sep  4 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.7.beta3
+- temporarily disable x86_64 camellia assembler code (#521127)
+
+* Mon Aug 31 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.6.beta3
+- fix openssl dgst -dss1 (#520152)
+
+* Wed Aug 26 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.5.beta3
+- drop the compat symlink hacks
+
+* Sat Aug 22 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.4.beta3
+- constify SSL_CIPHER_description()
+
+* Fri Aug 21 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.3.beta3
+- fix WWW:Curl:Easy reference in tsget
+
+* Fri Aug 21 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.2.beta3
+- enable MD-2
+
+* Thu Aug 20 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.1.beta3
+- update to new major upstream release
+
 * Sat Jul 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.9.8k-7
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
 

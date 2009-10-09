@@ -69,3 +69,7 @@ To query whether the module is in the error state:
 
 - int FIPS_selftest_failed(void) - returns 1 if the module is in the error
 state, 0 otherwise.
+
+To zeroize the FIPS RNG key and internal state the application calls:
+
+- void RAND_cleanup(void)

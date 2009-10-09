@@ -1,0 +1,52 @@
+diff -up openssl-1.0.0-beta3/Configure.enginesdir openssl-1.0.0-beta3/Configure
+--- openssl-1.0.0-beta3/Configure.enginesdir	2009-08-10 19:46:32.000000000 +0200
++++ openssl-1.0.0-beta3/Configure	2009-08-10 19:46:32.000000000 +0200
+@@ -616,6 +616,7 @@ my $idx_multilib = $idx++;
+ 
+ my $prefix="";
+ my $openssldir="";
++my $enginesdir="";
+ my $exe_ext="";
+ my $install_prefix="";
+ my $cross_compile_prefix="";
+@@ -820,6 +821,10 @@ PROCESS_ARGS:
+ 				{
+ 				$openssldir=$1;
+ 				}
++			elsif (/^--enginesdir=(.*)$/)
++				{
++				$enginesdir=$1;
++				}
+ 			elsif (/^--install.prefix=(.*)$/)
+ 				{
+ 				$install_prefix=$1;
+@@ -1037,7 +1042,7 @@ chop $prefix if $prefix =~ /.\/$/;
+ 
+ $openssldir=$prefix . "/ssl" if $openssldir eq "";
+ $openssldir=$prefix . "/" . $openssldir if $openssldir !~ /(^\/|^[a-zA-Z]:[\\\/])/;
+-
++$enginesdir="$prefix/lib/engines" if $enginesdir eq "";
+ 
+ print "IsMK1MF=$IsMK1MF\n";
+ 
+@@ -1645,7 +1650,7 @@ while (<IN>)
+ 		# $foo is to become "$prefix/lib$multilib/engines";
+ 		# as Makefile.org and engines/Makefile are adapted for
+ 		# $multilib suffix.
+-		my $foo = "$prefix/lib/engines";
++		my $foo = "$enginesdir";
+ 		$foo =~ s/\\/\\\\/g;
+ 		print OUT "#define ENGINESDIR \"$foo\"\n";
+ 		}
+diff -up openssl-1.0.0-beta3/engines/Makefile.enginesdir openssl-1.0.0-beta3/engines/Makefile
+--- openssl-1.0.0-beta3/engines/Makefile.enginesdir	2009-06-14 04:37:22.000000000 +0200
++++ openssl-1.0.0-beta3/engines/Makefile	2009-08-10 19:46:48.000000000 +0200
+@@ -123,7 +123,7 @@ install:
+ 				sfx=".so"; \
+ 				cp cyg$$l.dll $(INSTALL_PREFIX)$(INSTALLTOP)/lib/engines/$$pfx$$l$$sfx.new; \
+ 			  fi; \
+-			  chmod 555 $(INSTALL_PREFIX)$(INSTALLTOP)/lib/engines/$$pfx$$l$$sfx.new; \
++			  chmod 755 $(INSTALL_PREFIX)$(INSTALLTOP)/lib/engines/$$pfx$$l$$sfx.new; \
+ 			  mv -f $(INSTALL_PREFIX)$(INSTALLTOP)/lib/engines/$$pfx$$l$$sfx.new $(INSTALL_PREFIX)$(INSTALLTOP)/lib/engines/$$pfx$$l$$sfx ); \
+ 		done; \
+ 	fi

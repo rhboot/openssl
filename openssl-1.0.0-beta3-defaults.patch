@@ -1,6 +1,7 @@
---- openssl-0.9.8a/apps/openssl.cnf.defaults	2005-09-16 14:20:24.000000000 +0200
-+++ openssl-0.9.8a/apps/openssl.cnf	2005-11-04 11:00:37.000000000 +0100
-@@ -98,7 +98,8 @@
+diff -up openssl-1.0.0-beta3/apps/openssl.cnf.defaults openssl-1.0.0-beta3/apps/openssl.cnf
+--- openssl-1.0.0-beta3/apps/openssl.cnf.defaults	2009-04-04 20:09:43.000000000 +0200
++++ openssl-1.0.0-beta3/apps/openssl.cnf	2009-08-04 22:57:16.000000000 +0200
+@@ -103,7 +103,8 @@ emailAddress		= optional
  
  ####################################################################
  [ req ]
@@ -10,38 +11,29 @@
  default_keyfile 	= privkey.pem
  distinguished_name	= req_distinguished_name
  attributes		= req_attributes
-@@ -116,23 +117,26 @@
- # MASK:XXXX a literal mask value.
- # WARNING: current versions of Netscape crash on BMPStrings or UTF8Strings
- # so use this option with caution!
--string_mask = nombstr
-+# we use PrintableString+UTF8String mask so if pure ASCII texts are used
-+# the resulting certificates are compatible with Netscape
-+string_mask = MASK:0x2002
- 
- # req_extensions = v3_req # The extensions to add to a certificate request
+@@ -126,17 +127,18 @@ string_mask = utf8only
  
  [ req_distinguished_name ]
  countryName			= Country Name (2 letter code)
 -countryName_default		= AU
-+countryName_default		= GB
++countryName_default		= XX
  countryName_min			= 2
  countryName_max			= 2
  
  stateOrProvinceName		= State or Province Name (full name)
 -stateOrProvinceName_default	= Some-State
-+stateOrProvinceName_default	= Berkshire
++#stateOrProvinceName_default	= Default Province
  
  localityName			= Locality Name (eg, city)
-+localityName_default		= Newbury
++localityName_default	= Default City
  
  0.organizationName		= Organization Name (eg, company)
 -0.organizationName_default	= Internet Widgits Pty Ltd
-+0.organizationName_default	= My Company Ltd
++0.organizationName_default	= Default Company Ltd
  
  # we can do this but it is not needed normally :-)
  #1.organizationName		= Second Organization Name (eg, company)
-@@ -141,7 +145,7 @@
+@@ -145,7 +147,7 @@ localityName			= Locality Name (eg, city
  organizationalUnitName		= Organizational Unit Name (eg, section)
  #organizationalUnitName_default	=
  
