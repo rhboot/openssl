@@ -16,6 +16,9 @@ GENERAL=Makefile
 TEST=fips_test_suite.c fips_randtest.c
 APPS=
 
+PROGRAM= fips_standalone_sha1
+EXE= $(PROGRAM)$(EXE_EXT)
+
 LIB=$(TOP)/libcrypto.a
 LIBSRC=fips_aes_selftest.c fips_des_selftest.c fips_hmac_selftest.c fips_rand_selftest.c \
     fips_rsa_selftest.c fips_sha1_selftest.c fips.c fips_dsa_selftest.c  fips_rand.c \
@@ -24,6 +27,8 @@ LIBSRC=fips_aes_selftest.c fips_des_selftest.c fips_hmac_selftest.c fips_rand_se
 LIBOBJ=fips_aes_selftest.o fips_des_selftest.o fips_hmac_selftest.o fips_rand_selftest.o \
     fips_rsa_selftest.o fips_sha1_selftest.o fips.o fips_dsa_selftest.o  fips_rand.o \
     fips_rsa_x931g.o
+
+LIBCRYPTO=-L.. -lcrypto
 
 SRC= $(LIBSRC) fips_standalone_sha1.c
 
@@ -35,12 +40,14 @@ ALL=    $(GENERAL) $(SRC) $(HEADER)
 top:
 	(cd ../..; $(MAKE) DIRS=crypto SDIRS=$(DIR) sub_all)
 
-all:	lib
+all:	lib exe
 
 lib:	$(LIBOBJ)
 	$(AR) $(LIB) $(LIBOBJ)
 	$(RANLIB) $(LIB) || echo Never mind.
 	@touch lib
+
+exe:	$(EXE)
 
 files:
 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
@@ -76,6 +83,10 @@ dclean:
 
 clean:
 	rm -f *.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+
+$(EXE): $(PROGRAM).o
+	FIPS_SHA_ASM=""; for i in $(SHA1_ASM_OBJ) sha256.o ; do FIPS_SHA_ASM="$$FIPS_SHA_ASM ../sha/$$i" ; done; \
+	$(CC) -o $@ $(CFLAGS) $(PROGRAM).o $$FIPS_SHA_ASM
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
