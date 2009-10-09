@@ -62,7 +62,7 @@ void OPENSSL_cleanse(void *p,size_t len) {}
 
 #ifdef OPENSSL_FIPS
 
-static void hmac_init(SHA_CTX *md_ctx,SHA_CTX *o_ctx,
+static void hmac_init(SHA256_CTX *md_ctx,SHA256_CTX *o_ctx,
 		      const char *key)
     {
     size_t len=strlen(key);
@@ -72,10 +72,10 @@ static void hmac_init(SHA_CTX *md_ctx,SHA_CTX *o_ctx,
 
     if (len > SHA_CBLOCK)
 	{
-	SHA1_Init(md_ctx);
-	SHA1_Update(md_ctx,key,len);
-	SHA1_Final(keymd,md_ctx);
-	len=20;
+	SHA256_Init(md_ctx);
+	SHA256_Update(md_ctx,key,len);
+	SHA256_Final(keymd,md_ctx);
+	len=SHA256_DIGEST_LENGTH;
 	}
     else
 	memcpy(keymd,key,len);
@@ -83,22 +83,22 @@ static void hmac_init(SHA_CTX *md_ctx,SHA_CTX *o_ctx,
 
     for(i=0 ; i < HMAC_MAX_MD_CBLOCK ; i++)
 	pad[i]=0x36^keymd[i];
-    SHA1_Init(md_ctx);
-    SHA1_Update(md_ctx,pad,SHA_CBLOCK);
+    SHA256_Init(md_ctx);
+    SHA256_Update(md_ctx,pad,SHA256_CBLOCK);
 
     for(i=0 ; i < HMAC_MAX_MD_CBLOCK ; i++)
 	pad[i]=0x5c^keymd[i];
-    SHA1_Init(o_ctx);
-    SHA1_Update(o_ctx,pad,SHA_CBLOCK);
+    SHA256_Init(o_ctx);
+    SHA256_Update(o_ctx,pad,SHA256_CBLOCK);
     }
 
-static void hmac_final(unsigned char *md,SHA_CTX *md_ctx,SHA_CTX *o_ctx)
+static void hmac_final(unsigned char *md,SHA256_CTX *md_ctx,SHA256_CTX *o_ctx)
     {
-    unsigned char buf[20];
+    unsigned char buf[SHA256_DIGEST_LENGTH];
 
-    SHA1_Final(buf,md_ctx);
-    SHA1_Update(o_ctx,buf,sizeof buf);
-    SHA1_Final(md,o_ctx);
+    SHA256_Final(buf,md_ctx);
+    SHA256_Update(o_ctx,buf,sizeof buf);
+    SHA256_Final(md,o_ctx);
     }
 
 #endif
@@ -106,7 +106,7 @@ static void hmac_final(unsigned char *md,SHA_CTX *md_ctx,SHA_CTX *o_ctx)
 int main(int argc,char **argv)
     {
 #ifdef OPENSSL_FIPS
-    static char key[]="etaonrishdlcupfm";
+    static char key[]="orboDeJITITejsirpADONivirpUkvarP";
     int n,binary=0;
 
     if(argc < 2)
@@ -125,8 +125,8 @@ int main(int argc,char **argv)
     for(; n < argc ; ++n)
 	{
 	FILE *f=fopen(argv[n],"rb");
-	SHA_CTX md_ctx,o_ctx;
-	unsigned char md[20];
+	SHA256_CTX md_ctx,o_ctx;
+	unsigned char md[SHA256_DIGEST_LENGTH];
 	int i;
 
 	if(!f)
@@ -151,18 +151,18 @@ int main(int argc,char **argv)
 		else
 		    break;
 		}
-	    SHA1_Update(&md_ctx,buf,l);
+	    SHA256_Update(&md_ctx,buf,l);
 	    }
 	hmac_final(md,&md_ctx,&o_ctx);
 
 	if (binary)
 	    {
-	    fwrite(md,20,1,stdout);
+	    fwrite(md,SHA256_DIGEST_LENGTH,1,stdout);
 	    break;	/* ... for single(!) file */
 	    }
 
-	printf("HMAC-SHA1(%s)= ",argv[n]);
-	for(i=0 ; i < 20 ; ++i)
+/*	printf("HMAC-SHA1(%s)= ",argv[n]); */
+	for(i=0 ; i < SHA256_DIGEST_LENGTH ; ++i)
 	    printf("%02x",md[i]);
 	printf("\n");
 	}
