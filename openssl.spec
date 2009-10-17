@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.9.%{beta}%{?dist}
+Release: 0.10.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -69,6 +69,7 @@ Patch61: openssl-1.0.0-beta3-namingblk.patch
 Patch62: openssl-1.0.0-beta3-camellia-rounds.patch
 Patch63: openssl-1.0.0-beta3-dtls1-fix.patch
 Patch64: openssl-1.0.0-beta3-ssl-session.patch
+Patch65: openssl-1.0.0-beta3-ssl-free.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -155,6 +156,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch62 -p1 -b .cmll-rounds
 %patch63 -p1 -b .dtls1-fix
 %patch64 -p1 -b .ssl-session
+%patch65 -p1 -b .ssl-free
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -403,6 +405,10 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Oct 16 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.10.beta3
+- fix use of freed memory if SSL_CTX_free() is called before
+  SSL_free() (#521342)
+
 * Thu Oct  8 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.9.beta3
 - fix typo in DTLS1 code (#527015)
 - fix leak in error handling of d2i_SSL_SESSION()
