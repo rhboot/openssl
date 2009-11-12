@@ -11,7 +11,7 @@
 # 1.0.0 soversion = 10
 %define soversion 10
 
-%define beta beta3
+%define beta beta4
 
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.10.%{beta}%{?dist}
+Release: 0.11.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -35,41 +35,33 @@ Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 Source11: README.FIPS
 # Build changes
-Patch0: openssl-1.0.0-beta3-redhat.patch
+Patch0: openssl-1.0.0-beta4-redhat.patch
 Patch1: openssl-1.0.0-beta3-defaults.patch
-Patch2: openssl-1.0.0-beta3-krb5.patch
 Patch3: openssl-1.0.0-beta3-soversion.patch
-Patch4: openssl-1.0.0-beta3-enginesdir.patch
+Patch4: openssl-1.0.0-beta4-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
 # Bug fixes
-Patch21: openssl-0.9.8b-aliasing-bug.patch
-Patch23: openssl-1.0.0-beta3-default-paths.patch
+Patch23: openssl-1.0.0-beta4-default-paths.patch
+Patch24: openssl-1.0.0-beta4-binutils.patch
 # Functionality changes
 Patch32: openssl-0.9.8g-ia64.patch
-Patch33: openssl-0.9.8j-ca-dir.patch
+Patch33: openssl-1.0.0-beta4-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.8j-version-add-engines.patch
 Patch38: openssl-1.0.0-beta3-cipher-change.patch
 Patch39: openssl-1.0.0-beta3-ipv6-apps.patch
-Patch40: openssl-1.0.0-beta3-fips.patch
+Patch40: openssl-1.0.0-beta4-fips.patch
 Patch41: openssl-1.0.0-beta3-fipscheck.patch
 Patch43: openssl-1.0.0-beta3-fipsmode.patch
 Patch44: openssl-1.0.0-beta3-fipsrng.patch
 Patch45: openssl-0.9.8j-env-nozlib.patch
 Patch47: openssl-0.9.8j-readme-warning.patch
 Patch48: openssl-0.9.8j-bad-mime.patch
-Patch49: openssl-0.9.8k-algo-doc.patch
-Patch50: openssl-1.0.0-beta3-curl.patch
-Patch51: openssl-1.0.0-beta3-const.patch
-Patch52: openssl-1.0.0-beta3-dss1.patch
+Patch49: openssl-1.0.0-beta4-algo-doc.patch
+Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
 # Backported fixes including security fixes
-Patch60: openssl-1.0.0-beta3-namingstr.patch
-Patch61: openssl-1.0.0-beta3-namingblk.patch
-Patch62: openssl-1.0.0-beta3-camellia-rounds.patch
-Patch63: openssl-1.0.0-beta3-dtls1-fix.patch
-Patch64: openssl-1.0.0-beta3-ssl-session.patch
-Patch65: openssl-1.0.0-beta3-ssl-free.patch
+Patch60: openssl-1.0.0-beta4-reneg.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -124,15 +116,13 @@ from other formats to the formats used by the OpenSSL toolkit.
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .defaults
-# Fix link line for libssl (bug #111154).
-%patch2 -p1 -b .krb5
 %patch3 -p1 -b .soversion
 %patch4 -p1 -b .enginesdir
 %patch5 -p1 -b .no-rpath
 %patch6 -p1 -b .use-localhost
 
-%patch21 -p1 -b .aliasing-bug
 %patch23 -p1 -b .default-paths
+%patch24 -p1 -b .binutils
 
 %patch32 -p1 -b .ia64
 %patch33 -p1 -b .ca-dir
@@ -148,15 +138,9 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch47 -p1 -b .warning
 %patch48 -p1 -b .bad-mime
 %patch49 -p1 -b .algo-doc
-%patch50 -p1 -b .curl
-%patch51 -p1 -b .const
-%patch52 -p1 -b .dss1
-%patch60 -p1 -b .namingstr
-%patch61 -p1 -b .namingblk
-%patch62 -p1 -b .cmll-rounds
-%patch63 -p1 -b .dtls1-fix
-%patch64 -p1 -b .ssl-session
-%patch65 -p1 -b .ssl-free
+%patch50 -p1 -b .dtls1-abi
+
+%patch60 -p1 -b .reneg
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -405,6 +389,12 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Nov 12 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.11.beta4
+- update to new upstream version, no soname bump needed 
+- fix CVE-2009-3555 - note that the fix is bypassed if SSL_OP_ALL is used
+  so the compatibility with unfixed clients is not broken. The
+  protocol extension is also not final.
+
 * Fri Oct 16 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.10.beta3
 - fix use of freed memory if SSL_CTX_free() is called before
   SSL_free() (#521342)

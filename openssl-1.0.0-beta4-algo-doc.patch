@@ -1,6 +1,6 @@
-diff -up openssl-0.9.8k/doc/crypto/EVP_DigestInit.pod.algo-doc openssl-0.9.8k/doc/crypto/EVP_DigestInit.pod
---- openssl-0.9.8k/doc/crypto/EVP_DigestInit.pod.algo-doc	2004-05-20 23:39:50.000000000 +0200
-+++ openssl-0.9.8k/doc/crypto/EVP_DigestInit.pod	2009-06-30 12:04:47.000000000 +0200
+diff -up openssl-1.0.0-beta4/doc/crypto/EVP_DigestInit.pod.algo-doc openssl-1.0.0-beta4/doc/crypto/EVP_DigestInit.pod
+--- openssl-1.0.0-beta4/doc/crypto/EVP_DigestInit.pod.algo-doc	2009-10-16 17:29:34.000000000 +0200
++++ openssl-1.0.0-beta4/doc/crypto/EVP_DigestInit.pod	2009-11-12 14:13:21.000000000 +0100
 @@ -6,7 +6,8 @@ EVP_MD_CTX_init, EVP_MD_CTX_create, EVP_
  EVP_DigestFinal_ex, EVP_MD_CTX_cleanup, EVP_MD_CTX_destroy, EVP_MAX_MD_SIZE,
  EVP_MD_CTX_copy_ex, EVP_MD_CTX_copy, EVP_MD_type, EVP_MD_pkey_type, EVP_MD_size,
@@ -45,8 +45,8 @@ diff -up openssl-0.9.8k/doc/crypto/EVP_DigestInit.pod.algo-doc openssl-0.9.8k/do
 +signature algorithm is RSA in each case.
  
  EVP_dss() and EVP_dss1() return B<EVP_MD> structures for SHA and SHA1 digest
- algorithms but using DSS (DSA) for the signature algorithm.
-@@ -156,7 +163,8 @@ EVP_MD_size(), EVP_MD_block_size(), EVP_
+ algorithms but using DSS (DSA) for the signature algorithm. Note: there is 
+@@ -158,7 +165,8 @@ EVP_MD_size(), EVP_MD_block_size(), EVP_
  EVP_MD_CTX_block_size()	and EVP_MD_block_size() return the digest or block
  size in bytes.
  
@@ -56,9 +56,9 @@ diff -up openssl-0.9.8k/doc/crypto/EVP_DigestInit.pod.algo-doc openssl-0.9.8k/do
  EVP_dss1(), EVP_mdc2() and EVP_ripemd160() return pointers to the
  corresponding EVP_MD structures.
  
-diff -up openssl-0.9.8k/doc/crypto/EVP_EncryptInit.pod.algo-doc openssl-0.9.8k/doc/crypto/EVP_EncryptInit.pod
---- openssl-0.9.8k/doc/crypto/EVP_EncryptInit.pod.algo-doc	2005-04-15 18:01:35.000000000 +0200
-+++ openssl-0.9.8k/doc/crypto/EVP_EncryptInit.pod	2009-06-30 12:04:47.000000000 +0200
+diff -up openssl-1.0.0-beta4/doc/crypto/EVP_EncryptInit.pod.algo-doc openssl-1.0.0-beta4/doc/crypto/EVP_EncryptInit.pod
+--- openssl-1.0.0-beta4/doc/crypto/EVP_EncryptInit.pod.algo-doc	2005-04-15 18:01:35.000000000 +0200
++++ openssl-1.0.0-beta4/doc/crypto/EVP_EncryptInit.pod	2009-11-12 14:11:03.000000000 +0100
 @@ -91,6 +91,32 @@ EVP_CIPHER_CTX_set_padding - EVP cipher 
   int EVP_CIPHER_param_to_asn1(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
   int EVP_CIPHER_asn1_to_param(EVP_CIPHER_CTX *c, ASN1_TYPE *type);

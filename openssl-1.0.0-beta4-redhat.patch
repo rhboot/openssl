@@ -1,7 +1,7 @@
-diff -up openssl-1.0.0-beta3/Configure.redhat openssl-1.0.0-beta3/Configure
---- openssl-1.0.0-beta3/Configure.redhat	2009-07-08 10:50:52.000000000 +0200
-+++ openssl-1.0.0-beta3/Configure	2009-08-04 22:46:59.000000000 +0200
-@@ -331,32 +331,32 @@ my %table=(
+diff -up openssl-1.0.0-beta4/Configure.redhat openssl-1.0.0-beta4/Configure
+--- openssl-1.0.0-beta4/Configure.redhat	2009-11-09 15:11:13.000000000 +0100
++++ openssl-1.0.0-beta4/Configure	2009-11-12 12:15:27.000000000 +0100
+@@ -336,32 +336,32 @@ my %table=(
  ####
  # *-generic* is endian-neutral target, but ./config is free to
  # throw in -D[BL]_ENDIAN, whichever appropriate...
@@ -27,9 +27,9 @@ diff -up openssl-1.0.0-beta3/Configure.redhat openssl-1.0.0-beta3/Configure
 +"linux-ia64",	"gcc:-DL_ENDIAN -DTERMIO -Wall \$(RPM_OPT_FLAGS)::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_UNROLL DES_INT:${ia64_asm}:dlfcn:linux-shared:-fPIC:\$(RPM_OPT_FLAGS):.so.\$(SHLIB_SONAMEVER)",
  "linux-ia64-ecc","ecc:-DL_ENDIAN -DTERMIO -O2 -Wall -no_cpprt::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT:${ia64_asm}:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
  "linux-ia64-icc","icc:-DL_ENDIAN -DTERMIO -O2 -Wall -no_cpprt::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_RISC1 DES_INT:${ia64_asm}:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
--"linux-x86_64",	"gcc:-m64 -DL_ENDIAN -DTERMIO -O3 -Wall -DMD32_REG_T=int::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK BF_PTR2 DES_INT DES_UNROLL:${x86_64_asm}:elf:dlfcn:linux-shared:-fPIC:-m64:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR):::64",
+-"linux-x86_64",	"gcc:-m64 -DL_ENDIAN -DTERMIO -O3 -Wall -DMD32_REG_T=int::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_UNROLL:${x86_64_asm}:elf:dlfcn:linux-shared:-fPIC:-m64:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR):::64",
 -"linux-s390x",	"gcc:-m64 -DB_ENDIAN -DTERMIO -O3 -Wall::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_UNROLL:${s390x_asm}:dlfcn:linux-shared:-fPIC:-m64:.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR):::64",
-+"linux-x86_64",	"gcc:-m64 -DL_ENDIAN -DTERMIO -Wall \$(RPM_OPT_FLAGS) -DMD32_REG_T=int::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK BF_PTR2 DES_INT DES_UNROLL:${x86_64_asm}:elf:dlfcn:linux-shared:-fPIC:-m64 \$(RPM_OPT_FLAGS):.so.\$(SHLIB_SONAMEVER):::64",
++"linux-x86_64",	"gcc:-m64 -DL_ENDIAN -DTERMIO -Wall \$(RPM_OPT_FLAGS) -DMD32_REG_T=int::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_UNROLL:${x86_64_asm}:elf:dlfcn:linux-shared:-fPIC:-m64 \$(RPM_OPT_FLAGS):.so.\$(SHLIB_SONAMEVER):::64",
 +"linux-s390x",	"gcc:-m64 -DB_ENDIAN -DTERMIO -Wall \$(RPM_OPT_FLAGS)::-D_REENTRANT::-ldl:SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_UNROLL:${s390x_asm}:dlfcn:linux-shared:-fPIC:-m64 \$(RPM_OPT_FLAGS):.so.\$(SHLIB_SONAMEVER):::64",
  #### SPARC Linux setups
  # Ray Miller <ray.miller@computing-services.oxford.ac.uk> has patiently
@@ -46,7 +46,7 @@ diff -up openssl-1.0.0-beta3/Configure.redhat openssl-1.0.0-beta3/Configure
  #### Alpha Linux with GNU C and Compaq C setups
  # Special notes:
  # - linux-alpha+bwx-gcc is ment to be used from ./config only. If you
-@@ -370,8 +370,8 @@ my %table=(
+@@ -375,8 +375,8 @@ my %table=(
  #
  #					<appro@fy.chalmers.se>
  #

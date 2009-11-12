@@ -1,7 +1,7 @@
-diff -up openssl-1.0.0-beta3/Configure.fips openssl-1.0.0-beta3/Configure
---- openssl-1.0.0-beta3/Configure.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/Configure	2009-09-30 13:25:58.000000000 +0200
-@@ -654,6 +654,7 @@ my $cmll_enc="camellia.o cmll_misc.o cml
+diff -up openssl-1.0.0-beta4/Configure.fips openssl-1.0.0-beta4/Configure
+--- openssl-1.0.0-beta4/Configure.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/Configure	2009-11-12 12:36:50.000000000 +0100
+@@ -660,6 +660,7 @@ my $cmll_enc="camellia.o cmll_misc.o cml
  my $processor="";
  my $default_ranlib;
  my $perl;
@@ -9,7 +9,7 @@ diff -up openssl-1.0.0-beta3/Configure.fips openssl-1.0.0-beta3/Configure
  
  
  # All of the following is disabled by default (RC5 was enabled before 0.9.8):
-@@ -797,6 +798,10 @@ PROCESS_ARGS:
+@@ -806,6 +807,10 @@ PROCESS_ARGS:
  			}
  		elsif (/^386$/)
  			{ $processor=386; }
@@ -20,7 +20,7 @@ diff -up openssl-1.0.0-beta3/Configure.fips openssl-1.0.0-beta3/Configure
  		elsif (/^rsaref$/)
  			{
  			# No RSAref support any more since it's not needed.
-@@ -1349,6 +1354,11 @@ $cflags.=" -DOPENSSL_IA32_SSE2" if (!$no
+@@ -1368,6 +1373,11 @@ $cflags.=" -DOPENSSL_IA32_SSE2" if (!$no
  
  $cflags.=" -DOPENSSL_BN_ASM_MONT" if ($bn_obj =~ /-mont/);
  
@@ -32,7 +32,7 @@ diff -up openssl-1.0.0-beta3/Configure.fips openssl-1.0.0-beta3/Configure
  $cpuid_obj="mem_clr.o"	unless ($cpuid_obj =~ /\.o$/);
  $des_obj=$des_enc	unless ($des_obj =~ /\.o$/);
  $bf_obj=$bf_enc		unless ($bf_obj =~ /\.o$/);
-@@ -1504,6 +1514,10 @@ while (<IN>)
+@@ -1535,6 +1545,10 @@ while (<IN>)
  	s/^LIBKRB5=.*/LIBKRB5=$withargs{"krb5-lib"}/;
  	s/^LIBZLIB=.*/LIBZLIB=$withargs{"zlib-lib"}/;
  	s/^ZLIB_INCLUDE=.*/ZLIB_INCLUDE=$withargs{"zlib-include"}/;
@@ -43,9 +43,9 @@ diff -up openssl-1.0.0-beta3/Configure.fips openssl-1.0.0-beta3/Configure
  	s/^SHLIB_TARGET=.*/SHLIB_TARGET=$shared_target/;
  	s/^SHLIB_MARK=.*/SHLIB_MARK=$shared_mark/;
  	s/^SHARED_LIBS=.*/SHARED_LIBS=\$(SHARED_CRYPTO) \$(SHARED_SSL)/ if (!$no_shared);
-diff -up openssl-1.0.0-beta3/crypto/bf/bf_skey.c.fips openssl-1.0.0-beta3/crypto/bf/bf_skey.c
---- openssl-1.0.0-beta3/crypto/bf/bf_skey.c.fips	2008-11-12 04:57:52.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/bf/bf_skey.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/bf/bf_skey.c.fips openssl-1.0.0-beta4/crypto/bf/bf_skey.c
+--- openssl-1.0.0-beta4/crypto/bf/bf_skey.c.fips	2008-11-12 04:57:52.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/bf/bf_skey.c	2009-11-12 12:36:50.000000000 +0100
 @@ -59,10 +59,15 @@
  #include <stdio.h>
  #include <string.h>
@@ -63,9 +63,9 @@ diff -up openssl-1.0.0-beta3/crypto/bf/bf_skey.c.fips openssl-1.0.0-beta3/crypto
  	{
  	int i;
  	BF_LONG *p,ri,in[2];
-diff -up openssl-1.0.0-beta3/crypto/bf/blowfish.h.fips openssl-1.0.0-beta3/crypto/bf/blowfish.h
---- openssl-1.0.0-beta3/crypto/bf/blowfish.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/bf/blowfish.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/bf/blowfish.h.fips openssl-1.0.0-beta4/crypto/bf/blowfish.h
+--- openssl-1.0.0-beta4/crypto/bf/blowfish.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/bf/blowfish.h	2009-11-12 12:36:50.000000000 +0100
 @@ -104,7 +104,9 @@ typedef struct bf_key_st
  	BF_LONG S[4*256];
  	} BF_KEY;
@@ -77,9 +77,9 @@ diff -up openssl-1.0.0-beta3/crypto/bf/blowfish.h.fips openssl-1.0.0-beta3/crypt
  void BF_set_key(BF_KEY *key, int len, const unsigned char *data);
  
  void BF_encrypt(BF_LONG *data,const BF_KEY *key);
-diff -up openssl-1.0.0-beta3/crypto/bn/bn.h.fips openssl-1.0.0-beta3/crypto/bn/bn.h
---- openssl-1.0.0-beta3/crypto/bn/bn.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/bn/bn.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/bn/bn.h.fips openssl-1.0.0-beta4/crypto/bn/bn.h
+--- openssl-1.0.0-beta4/crypto/bn/bn.h.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/bn/bn.h	2009-11-12 12:36:50.000000000 +0100
 @@ -540,6 +540,17 @@ int	BN_is_prime_ex(const BIGNUM *p,int n
  int	BN_is_prime_fasttest_ex(const BIGNUM *p,int nchecks, BN_CTX *ctx,
  		int do_trial_division, BN_GENCB *cb);
@@ -98,9 +98,9 @@ diff -up openssl-1.0.0-beta3/crypto/bn/bn.h.fips openssl-1.0.0-beta3/crypto/bn/b
  BN_MONT_CTX *BN_MONT_CTX_new(void );
  void BN_MONT_CTX_init(BN_MONT_CTX *ctx);
  int BN_mod_mul_montgomery(BIGNUM *r,const BIGNUM *a,const BIGNUM *b,
-diff -up /dev/null openssl-1.0.0-beta3/crypto/bn/bn_x931p.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/bn/bn_x931p.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/bn/bn_x931p.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/bn/bn_x931p.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,272 @@
 +/* bn_x931p.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -374,9 +374,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/bn/bn_x931p.c
 +
 +	}
 +
-diff -up openssl-1.0.0-beta3/crypto/bn/Makefile.fips openssl-1.0.0-beta3/crypto/bn/Makefile
---- openssl-1.0.0-beta3/crypto/bn/Makefile.fips	2008-11-12 09:19:02.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/bn/Makefile	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/bn/Makefile.fips openssl-1.0.0-beta4/crypto/bn/Makefile
+--- openssl-1.0.0-beta4/crypto/bn/Makefile.fips	2008-11-12 09:19:02.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/bn/Makefile	2009-11-12 12:36:50.000000000 +0100
 @@ -26,13 +26,13 @@ LIBSRC=	bn_add.c bn_div.c bn_exp.c bn_li
  	bn_print.c bn_rand.c bn_shift.c bn_word.c bn_blind.c \
  	bn_kron.c bn_sqrt.c bn_gcd.c bn_prime.c bn_err.c bn_sqr.c bn_asm.c \
@@ -393,9 +393,9 @@ diff -up openssl-1.0.0-beta3/crypto/bn/Makefile.fips openssl-1.0.0-beta3/crypto/
  
  SRC= $(LIBSRC)
  
-diff -up openssl-1.0.0-beta3/crypto/camellia/asm/cmll-x86.pl.fips openssl-1.0.0-beta3/crypto/camellia/asm/cmll-x86.pl
---- openssl-1.0.0-beta3/crypto/camellia/asm/cmll-x86.pl.fips	2009-04-06 16:25:02.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/camellia/asm/cmll-x86.pl	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/camellia/asm/cmll-x86.pl.fips openssl-1.0.0-beta4/crypto/camellia/asm/cmll-x86.pl
+--- openssl-1.0.0-beta4/crypto/camellia/asm/cmll-x86.pl.fips	2009-04-06 16:25:02.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/camellia/asm/cmll-x86.pl	2009-11-12 12:36:50.000000000 +0100
 @@ -722,12 +722,15 @@ my $bias=int(@T[0])?shift(@T):0;
  }
  &function_end("Camellia_Ekeygen");
@@ -422,9 +422,9 @@ diff -up openssl-1.0.0-beta3/crypto/camellia/asm/cmll-x86.pl.fips openssl-1.0.0-
  }
  
  @SBOX=(
-diff -up openssl-1.0.0-beta3/crypto/camellia/camellia.h.fips openssl-1.0.0-beta3/crypto/camellia/camellia.h
---- openssl-1.0.0-beta3/crypto/camellia/camellia.h.fips	2009-09-30 13:25:56.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/camellia/camellia.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/camellia/camellia.h.fips openssl-1.0.0-beta4/crypto/camellia/camellia.h
+--- openssl-1.0.0-beta4/crypto/camellia/camellia.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/camellia/camellia.h	2009-11-12 12:36:50.000000000 +0100
 @@ -88,6 +88,11 @@ struct camellia_key_st 
  	};
  typedef struct camellia_key_st CAMELLIA_KEY;
@@ -437,9 +437,9 @@ diff -up openssl-1.0.0-beta3/crypto/camellia/camellia.h.fips openssl-1.0.0-beta3
  int Camellia_set_key(const unsigned char *userKey, const int bits,
  	CAMELLIA_KEY *key);
  
-diff -up /dev/null openssl-1.0.0-beta3/crypto/camellia/cmll_fblk.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/camellia/cmll_fblk.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/camellia/cmll_fblk.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/camellia/cmll_fblk.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,68 @@
 +/* crypto/camellia/camellia_misc.c -*- mode:C; c-file-style: "eay" -*- */
 +/* ====================================================================
@@ -509,9 +509,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/camellia/cmll_fblk.c
 +	return private_Camellia_set_key(userKey, bits, key);
 +	}
 +#endif
-diff -up openssl-1.0.0-beta3/crypto/camellia/cmll_misc.c.fips openssl-1.0.0-beta3/crypto/camellia/cmll_misc.c
---- openssl-1.0.0-beta3/crypto/camellia/cmll_misc.c.fips	2008-10-28 13:13:52.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/camellia/cmll_misc.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/camellia/cmll_misc.c.fips openssl-1.0.0-beta4/crypto/camellia/cmll_misc.c
+--- openssl-1.0.0-beta4/crypto/camellia/cmll_misc.c.fips	2008-10-28 13:13:52.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/camellia/cmll_misc.c	2009-11-12 12:36:50.000000000 +0100
 @@ -52,11 +52,20 @@
  #include <openssl/opensslv.h>
  #include <openssl/camellia.h>
@@ -533,9 +533,9 @@ diff -up openssl-1.0.0-beta3/crypto/camellia/cmll_misc.c.fips openssl-1.0.0-beta
  	{
  	if(!userKey || !key)
  		return -1;
-diff -up openssl-1.0.0-beta3/crypto/camellia/Makefile.fips openssl-1.0.0-beta3/crypto/camellia/Makefile
---- openssl-1.0.0-beta3/crypto/camellia/Makefile.fips	2008-12-23 12:33:00.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/camellia/Makefile	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/camellia/Makefile.fips openssl-1.0.0-beta4/crypto/camellia/Makefile
+--- openssl-1.0.0-beta4/crypto/camellia/Makefile.fips	2008-12-23 12:33:00.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/camellia/Makefile	2009-11-12 12:36:50.000000000 +0100
 @@ -23,9 +23,9 @@ APPS=
  
  LIB=$(TOP)/libcrypto.a
@@ -548,9 +548,9 @@ diff -up openssl-1.0.0-beta3/crypto/camellia/Makefile.fips openssl-1.0.0-beta3/c
  
  SRC= $(LIBSRC)
  
-diff -up openssl-1.0.0-beta3/crypto/cast/cast.h.fips openssl-1.0.0-beta3/crypto/cast/cast.h
---- openssl-1.0.0-beta3/crypto/cast/cast.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/cast/cast.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/cast/cast.h.fips openssl-1.0.0-beta4/crypto/cast/cast.h
+--- openssl-1.0.0-beta4/crypto/cast/cast.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/cast/cast.h	2009-11-12 12:36:50.000000000 +0100
 @@ -83,7 +83,9 @@ typedef struct cast_key_st
  	int short_key;	/* Use reduced rounds for short key */
  	} CAST_KEY;
@@ -562,9 +562,9 @@ diff -up openssl-1.0.0-beta3/crypto/cast/cast.h.fips openssl-1.0.0-beta3/crypto/
  void CAST_set_key(CAST_KEY *key, int len, const unsigned char *data);
  void CAST_ecb_encrypt(const unsigned char *in,unsigned char *out,CAST_KEY *key,
  		      int enc);
-diff -up openssl-1.0.0-beta3/crypto/cast/c_skey.c.fips openssl-1.0.0-beta3/crypto/cast/c_skey.c
---- openssl-1.0.0-beta3/crypto/cast/c_skey.c.fips	2000-06-03 16:13:35.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/cast/c_skey.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/cast/c_skey.c.fips openssl-1.0.0-beta4/crypto/cast/c_skey.c
+--- openssl-1.0.0-beta4/crypto/cast/c_skey.c.fips	2000-06-03 16:13:35.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/cast/c_skey.c	2009-11-12 12:36:50.000000000 +0100
 @@ -57,6 +57,11 @@
   */
  
@@ -586,9 +586,9 @@ diff -up openssl-1.0.0-beta3/crypto/cast/c_skey.c.fips openssl-1.0.0-beta3/crypt
  	{
  	CAST_LONG x[16];
  	CAST_LONG z[16];
-diff -up openssl-1.0.0-beta3/crypto/crypto.h.fips openssl-1.0.0-beta3/crypto/crypto.h
---- openssl-1.0.0-beta3/crypto/crypto.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/crypto.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/crypto.h.fips openssl-1.0.0-beta4/crypto/crypto.h
+--- openssl-1.0.0-beta4/crypto/crypto.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/crypto.h	2009-11-12 12:36:50.000000000 +0100
 @@ -546,12 +546,69 @@ void OpenSSLDie(const char *file,int lin
  unsigned long *OPENSSL_ia32cap_loc(void);
  #define OPENSSL_ia32cap (*(OPENSSL_ia32cap_loc()))
@@ -659,9 +659,9 @@ diff -up openssl-1.0.0-beta3/crypto/crypto.h.fips openssl-1.0.0-beta3/crypto/cry
  /* Error codes for the CRYPTO functions. */
  
  /* Function codes. */
-diff -up openssl-1.0.0-beta3/crypto/dh/dh_err.c.fips openssl-1.0.0-beta3/crypto/dh/dh_err.c
---- openssl-1.0.0-beta3/crypto/dh/dh_err.c.fips	2006-11-21 22:29:37.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/dh/dh_err.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dh/dh_err.c.fips openssl-1.0.0-beta4/crypto/dh/dh_err.c
+--- openssl-1.0.0-beta4/crypto/dh/dh_err.c.fips	2006-11-21 22:29:37.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/dh/dh_err.c	2009-11-12 12:36:50.000000000 +0100
 @@ -73,6 +73,8 @@ static ERR_STRING_DATA DH_str_functs[]=
  {ERR_FUNC(DH_F_COMPUTE_KEY),	"COMPUTE_KEY"},
  {ERR_FUNC(DH_F_DHPARAMS_PRINT_FP),	"DHparams_print_fp"},
@@ -679,9 +679,9 @@ diff -up openssl-1.0.0-beta3/crypto/dh/dh_err.c.fips openssl-1.0.0-beta3/crypto/
  {ERR_REASON(DH_R_KEYS_NOT_SET)           ,"keys not set"},
  {ERR_REASON(DH_R_MODULUS_TOO_LARGE)      ,"modulus too large"},
  {ERR_REASON(DH_R_NO_PARAMETERS_SET)      ,"no parameters set"},
-diff -up openssl-1.0.0-beta3/crypto/dh/dh_gen.c.fips openssl-1.0.0-beta3/crypto/dh/dh_gen.c
---- openssl-1.0.0-beta3/crypto/dh/dh_gen.c.fips	2005-04-26 20:53:15.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/dh/dh_gen.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dh/dh_gen.c.fips openssl-1.0.0-beta4/crypto/dh/dh_gen.c
+--- openssl-1.0.0-beta4/crypto/dh/dh_gen.c.fips	2005-04-26 20:53:15.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/dh/dh_gen.c	2009-11-12 12:36:50.000000000 +0100
 @@ -65,6 +65,10 @@
  #include "cryptlib.h"
  #include <openssl/bn.h>
@@ -714,9 +714,9 @@ diff -up openssl-1.0.0-beta3/crypto/dh/dh_gen.c.fips openssl-1.0.0-beta3/crypto/
  	ctx=BN_CTX_new();
  	if (ctx == NULL) goto err;
  	BN_CTX_start(ctx);
-diff -up openssl-1.0.0-beta3/crypto/dh/dh.h.fips openssl-1.0.0-beta3/crypto/dh/dh.h
---- openssl-1.0.0-beta3/crypto/dh/dh.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/dh/dh.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dh/dh.h.fips openssl-1.0.0-beta4/crypto/dh/dh.h
+--- openssl-1.0.0-beta4/crypto/dh/dh.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/dh/dh.h	2009-11-12 12:36:50.000000000 +0100
 @@ -77,6 +77,8 @@
  # define OPENSSL_DH_MAX_MODULUS_BITS	10000
  #endif
@@ -726,7 +726,7 @@ diff -up openssl-1.0.0-beta3/crypto/dh/dh.h.fips openssl-1.0.0-beta3/crypto/dh/d
  #define DH_FLAG_CACHE_MONT_P     0x01
  #define DH_FLAG_NO_EXP_CONSTTIME 0x02 /* new with 0.9.7h; the built-in DH
                                         * implementation now uses constant time
-@@ -240,6 +242,8 @@ void ERR_load_DH_strings(void);
+@@ -241,6 +243,8 @@ void ERR_load_DH_strings(void);
  #define DH_F_GENERATE_PARAMETERS			 104
  #define DH_F_PKEY_DH_DERIVE				 112
  #define DH_F_PKEY_DH_KEYGEN				 113
@@ -735,7 +735,7 @@ diff -up openssl-1.0.0-beta3/crypto/dh/dh.h.fips openssl-1.0.0-beta3/crypto/dh/d
  
  /* Reason codes. */
  #define DH_R_BAD_GENERATOR				 101
-@@ -252,6 +256,7 @@ void ERR_load_DH_strings(void);
+@@ -253,6 +257,7 @@ void ERR_load_DH_strings(void);
  #define DH_R_NO_PARAMETERS_SET				 107
  #define DH_R_NO_PRIVATE_VALUE				 100
  #define DH_R_PARAMETER_ENCODING_ERROR			 105
@@ -743,9 +743,9 @@ diff -up openssl-1.0.0-beta3/crypto/dh/dh.h.fips openssl-1.0.0-beta3/crypto/dh/d
  
  #ifdef  __cplusplus
  }
-diff -up openssl-1.0.0-beta3/crypto/dh/dh_key.c.fips openssl-1.0.0-beta3/crypto/dh/dh_key.c
---- openssl-1.0.0-beta3/crypto/dh/dh_key.c.fips	2007-03-28 02:15:23.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/dh/dh_key.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dh/dh_key.c.fips openssl-1.0.0-beta4/crypto/dh/dh_key.c
+--- openssl-1.0.0-beta4/crypto/dh/dh_key.c.fips	2007-03-28 02:15:23.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/dh/dh_key.c	2009-11-12 12:36:50.000000000 +0100
 @@ -61,6 +61,9 @@
  #include <openssl/bn.h>
  #include <openssl/rand.h>
@@ -795,9 +795,9 @@ diff -up openssl-1.0.0-beta3/crypto/dh/dh_key.c.fips openssl-1.0.0-beta3/crypto/
  	dh->flags |= DH_FLAG_CACHE_MONT_P;
  	return(1);
  	}
-diff -up openssl-1.0.0-beta3/crypto/dsa/dsa_gen.c.fips openssl-1.0.0-beta3/crypto/dsa/dsa_gen.c
---- openssl-1.0.0-beta3/crypto/dsa/dsa_gen.c.fips	2008-12-26 18:17:21.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/dsa/dsa_gen.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dsa/dsa_gen.c.fips openssl-1.0.0-beta4/crypto/dsa/dsa_gen.c
+--- openssl-1.0.0-beta4/crypto/dsa/dsa_gen.c.fips	2008-12-26 18:17:21.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/dsa/dsa_gen.c	2009-11-12 12:36:50.000000000 +0100
 @@ -77,8 +77,12 @@
  #include "cryptlib.h"
  #include <openssl/evp.h>
@@ -833,9 +833,9 @@ diff -up openssl-1.0.0-beta3/crypto/dsa/dsa_gen.c.fips openssl-1.0.0-beta3/crypt
  	if (qsize != SHA_DIGEST_LENGTH && qsize != SHA224_DIGEST_LENGTH &&
  	    qsize != SHA256_DIGEST_LENGTH)
  		/* invalid q size */
-diff -up openssl-1.0.0-beta3/crypto/dsa/dsa.h.fips openssl-1.0.0-beta3/crypto/dsa/dsa.h
---- openssl-1.0.0-beta3/crypto/dsa/dsa.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/dsa/dsa.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dsa/dsa.h.fips openssl-1.0.0-beta4/crypto/dsa/dsa.h
+--- openssl-1.0.0-beta4/crypto/dsa/dsa.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/dsa/dsa.h	2009-11-12 12:36:50.000000000 +0100
 @@ -88,6 +88,8 @@
  # define OPENSSL_DSA_MAX_MODULUS_BITS	10000
  #endif
@@ -892,9 +892,9 @@ diff -up openssl-1.0.0-beta3/crypto/dsa/dsa.h.fips openssl-1.0.0-beta3/crypto/ds
  #define DSA_R_PARAMETER_ENCODING_ERROR			 105
  
  #ifdef  __cplusplus
-diff -up openssl-1.0.0-beta3/crypto/dsa/dsa_key.c.fips openssl-1.0.0-beta3/crypto/dsa/dsa_key.c
---- openssl-1.0.0-beta3/crypto/dsa/dsa_key.c.fips	2007-03-28 02:15:25.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/dsa/dsa_key.c	2009-09-30 17:01:34.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dsa/dsa_key.c.fips openssl-1.0.0-beta4/crypto/dsa/dsa_key.c
+--- openssl-1.0.0-beta4/crypto/dsa/dsa_key.c.fips	2007-03-28 02:15:25.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/dsa/dsa_key.c	2009-11-12 12:36:50.000000000 +0100
 @@ -63,9 +63,53 @@
  #include <openssl/bn.h>
  #include <openssl/dsa.h>
@@ -980,9 +980,9 @@ diff -up openssl-1.0.0-beta3/crypto/dsa/dsa_key.c.fips openssl-1.0.0-beta3/crypt
  	ok=1;
  
  err:
-diff -up openssl-1.0.0-beta3/crypto/dsa/dsa_ossl.c.fips openssl-1.0.0-beta3/crypto/dsa/dsa_ossl.c
---- openssl-1.0.0-beta3/crypto/dsa/dsa_ossl.c.fips	2007-03-28 02:15:26.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/dsa/dsa_ossl.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/dsa/dsa_ossl.c.fips openssl-1.0.0-beta4/crypto/dsa/dsa_ossl.c
+--- openssl-1.0.0-beta4/crypto/dsa/dsa_ossl.c.fips	2007-03-28 02:15:26.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/dsa/dsa_ossl.c	2009-11-12 12:36:50.000000000 +0100
 @@ -65,6 +65,9 @@
  #include <openssl/dsa.h>
  #include <openssl/rand.h>
@@ -1054,9 +1054,9 @@ diff -up openssl-1.0.0-beta3/crypto/dsa/dsa_ossl.c.fips openssl-1.0.0-beta3/cryp
  	dsa->flags|=DSA_FLAG_CACHE_MONT_P;
  	return(1);
  }
-diff -up openssl-1.0.0-beta3/crypto/err/err_all.c.fips openssl-1.0.0-beta3/crypto/err/err_all.c
---- openssl-1.0.0-beta3/crypto/err/err_all.c.fips	2008-11-24 18:27:06.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/err/err_all.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/err/err_all.c.fips openssl-1.0.0-beta4/crypto/err/err_all.c
+--- openssl-1.0.0-beta4/crypto/err/err_all.c.fips	2009-08-09 16:58:05.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/err/err_all.c	2009-11-12 12:36:50.000000000 +0100
 @@ -96,6 +96,9 @@
  #include <openssl/ocsp.h>
  #include <openssl/err.h>
@@ -1067,7 +1067,7 @@ diff -up openssl-1.0.0-beta3/crypto/err/err_all.c.fips openssl-1.0.0-beta3/crypt
  #ifndef OPENSSL_NO_CMS
  #include <openssl/cms.h>
  #endif
-@@ -148,6 +151,9 @@ void ERR_load_crypto_strings(void)
+@@ -149,6 +152,9 @@ void ERR_load_crypto_strings(void)
  #endif
  	ERR_load_OCSP_strings();
  	ERR_load_UI_strings();
@@ -1077,9 +1077,9 @@ diff -up openssl-1.0.0-beta3/crypto/err/err_all.c.fips openssl-1.0.0-beta3/crypt
  #ifndef OPENSSL_NO_CMS
  	ERR_load_CMS_strings();
  #endif
-diff -up openssl-1.0.0-beta3/crypto/evp/digest.c.fips openssl-1.0.0-beta3/crypto/evp/digest.c
---- openssl-1.0.0-beta3/crypto/evp/digest.c.fips	2008-11-04 13:06:09.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/digest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/digest.c.fips openssl-1.0.0-beta4/crypto/evp/digest.c
+--- openssl-1.0.0-beta4/crypto/evp/digest.c.fips	2008-11-04 13:06:09.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/digest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -116,6 +116,7 @@
  #ifndef OPENSSL_NO_ENGINE
  #include <openssl/engine.h>
@@ -1178,9 +1178,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/digest.c.fips openssl-1.0.0-beta3/crypto
  
  	OPENSSL_assert(ctx->digest->md_size <= EVP_MAX_MD_SIZE);
  	ret=ctx->digest->final(ctx,md);
-diff -up openssl-1.0.0-beta3/crypto/evp/e_aes.c.fips openssl-1.0.0-beta3/crypto/evp/e_aes.c
---- openssl-1.0.0-beta3/crypto/evp/e_aes.c.fips	2004-01-28 20:05:33.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/e_aes.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/e_aes.c.fips openssl-1.0.0-beta4/crypto/evp/e_aes.c
+--- openssl-1.0.0-beta4/crypto/evp/e_aes.c.fips	2004-01-28 20:05:33.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/e_aes.c	2009-11-12 12:36:50.000000000 +0100
 @@ -69,32 +69,29 @@ typedef struct
  
  IMPLEMENT_BLOCK_CIPHER(aes_128, ks, AES, EVP_AES_KEY,
@@ -1233,9 +1233,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/e_aes.c.fips openssl-1.0.0-beta3/crypto/
  
  static int aes_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
  		   const unsigned char *iv, int enc)
-diff -up openssl-1.0.0-beta3/crypto/evp/e_camellia.c.fips openssl-1.0.0-beta3/crypto/evp/e_camellia.c
---- openssl-1.0.0-beta3/crypto/evp/e_camellia.c.fips	2006-08-31 22:56:20.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/e_camellia.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/e_camellia.c.fips openssl-1.0.0-beta4/crypto/evp/e_camellia.c
+--- openssl-1.0.0-beta4/crypto/evp/e_camellia.c.fips	2006-08-31 22:56:20.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/e_camellia.c	2009-11-12 12:36:50.000000000 +0100
 @@ -93,7 +93,7 @@ IMPLEMENT_BLOCK_CIPHER(camellia_256, ks,
  	EVP_CIPHER_get_asn1_iv,
  	NULL)
@@ -1245,9 +1245,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/e_camellia.c.fips openssl-1.0.0-beta3/cr
  
  IMPLEMENT_CAMELLIA_CFBR(128,1)
  IMPLEMENT_CAMELLIA_CFBR(192,1)
-diff -up openssl-1.0.0-beta3/crypto/evp/e_des3.c.fips openssl-1.0.0-beta3/crypto/evp/e_des3.c
---- openssl-1.0.0-beta3/crypto/evp/e_des3.c.fips	2008-12-29 13:35:47.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/e_des3.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/e_des3.c.fips openssl-1.0.0-beta4/crypto/evp/e_des3.c
+--- openssl-1.0.0-beta4/crypto/evp/e_des3.c.fips	2008-12-29 13:35:47.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/e_des3.c	2009-11-12 12:36:50.000000000 +0100
 @@ -206,9 +206,9 @@ static int des_ede3_cfb8_cipher(EVP_CIPH
      }
  
@@ -1292,9 +1292,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/e_des3.c.fips openssl-1.0.0-beta3/crypto
  		     des3_ctrl)
  
  static int des_ede_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
-diff -up openssl-1.0.0-beta3/crypto/evp/e_null.c.fips openssl-1.0.0-beta3/crypto/evp/e_null.c
---- openssl-1.0.0-beta3/crypto/evp/e_null.c.fips	2008-10-31 20:48:24.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/e_null.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/e_null.c.fips openssl-1.0.0-beta4/crypto/evp/e_null.c
+--- openssl-1.0.0-beta4/crypto/evp/e_null.c.fips	2008-10-31 20:48:24.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/e_null.c	2009-11-12 12:36:50.000000000 +0100
 @@ -69,7 +69,7 @@ static const EVP_CIPHER n_cipher=
  	{
  	NID_undef,
@@ -1304,9 +1304,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/e_null.c.fips openssl-1.0.0-beta3/crypto
  	null_init_key,
  	null_cipher,
  	NULL,
-diff -up openssl-1.0.0-beta3/crypto/evp/evp_enc.c.fips openssl-1.0.0-beta3/crypto/evp/evp_enc.c
---- openssl-1.0.0-beta3/crypto/evp/evp_enc.c.fips	2008-11-12 04:58:00.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/evp_enc.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/evp_enc.c.fips openssl-1.0.0-beta4/crypto/evp/evp_enc.c
+--- openssl-1.0.0-beta4/crypto/evp/evp_enc.c.fips	2008-11-12 04:58:00.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/evp_enc.c	2009-11-12 12:36:50.000000000 +0100
 @@ -68,8 +68,53 @@
  
  const char EVP_version[]="EVP" OPENSSL_VERSION_PTEXT;
@@ -1399,9 +1399,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/evp_enc.c.fips openssl-1.0.0-beta3/crypt
  	if(key || (ctx->cipher->flags & EVP_CIPH_ALWAYS_CALL_INIT)) {
  		if(!ctx->cipher->init(ctx,key,iv,enc)) return 0;
  	}
-diff -up openssl-1.0.0-beta3/crypto/evp/evp_err.c.fips openssl-1.0.0-beta3/crypto/evp/evp_err.c
---- openssl-1.0.0-beta3/crypto/evp/evp_err.c.fips	2008-12-29 17:11:54.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/evp_err.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/evp_err.c.fips openssl-1.0.0-beta4/crypto/evp/evp_err.c
+--- openssl-1.0.0-beta4/crypto/evp/evp_err.c.fips	2008-12-29 17:11:54.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/evp_err.c	2009-11-12 12:36:50.000000000 +0100
 @@ -154,6 +154,7 @@ static ERR_STRING_DATA EVP_str_reasons[]
  {ERR_REASON(EVP_R_DECODE_ERROR)          ,"decode error"},
  {ERR_REASON(EVP_R_DIFFERENT_KEY_TYPES)   ,"different key types"},
@@ -1410,9 +1410,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/evp_err.c.fips openssl-1.0.0-beta3/crypt
  {ERR_REASON(EVP_R_ENCODE_ERROR)          ,"encode error"},
  {ERR_REASON(EVP_R_EVP_PBE_CIPHERINIT_ERROR),"evp pbe cipherinit error"},
  {ERR_REASON(EVP_R_EXPECTING_AN_RSA_KEY)  ,"expecting an rsa key"},
-diff -up openssl-1.0.0-beta3/crypto/evp/evp.h.fips openssl-1.0.0-beta3/crypto/evp/evp.h
---- openssl-1.0.0-beta3/crypto/evp/evp.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/evp.h	2009-09-30 14:40:54.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/evp.h.fips openssl-1.0.0-beta4/crypto/evp/evp.h
+--- openssl-1.0.0-beta4/crypto/evp/evp.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/evp.h	2009-11-12 12:36:50.000000000 +0100
 @@ -75,6 +75,10 @@
  #include <openssl/bio.h>
  #endif
@@ -1489,9 +1489,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/evp.h.fips openssl-1.0.0-beta3/crypto/ev
  #define EVP_R_ENCODE_ERROR				 115
  #define EVP_R_EVP_PBE_CIPHERINIT_ERROR			 119
  #define EVP_R_EXPECTING_AN_RSA_KEY			 127
-diff -up openssl-1.0.0-beta3/crypto/evp/evp_lib.c.fips openssl-1.0.0-beta3/crypto/evp/evp_lib.c
---- openssl-1.0.0-beta3/crypto/evp/evp_lib.c.fips	2009-04-10 12:30:27.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/evp_lib.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/evp_lib.c.fips openssl-1.0.0-beta4/crypto/evp/evp_lib.c
+--- openssl-1.0.0-beta4/crypto/evp/evp_lib.c.fips	2009-04-10 12:30:27.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/evp_lib.c	2009-11-12 12:36:50.000000000 +0100
 @@ -67,6 +67,8 @@ int EVP_CIPHER_param_to_asn1(EVP_CIPHER_
  
  	if (c->cipher->set_asn1_parameters != NULL)
@@ -1539,9 +1539,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/evp_lib.c.fips openssl-1.0.0-beta3/crypt
 +	{
 +	return (ctx->flags & flags);
 +	}
-diff -up openssl-1.0.0-beta3/crypto/evp/evp_locl.h.fips openssl-1.0.0-beta3/crypto/evp/evp_locl.h
---- openssl-1.0.0-beta3/crypto/evp/evp_locl.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/evp_locl.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/evp_locl.h.fips openssl-1.0.0-beta4/crypto/evp/evp_locl.h
+--- openssl-1.0.0-beta4/crypto/evp/evp_locl.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/evp_locl.h	2009-11-12 12:36:50.000000000 +0100
 @@ -111,11 +111,11 @@ static int cname##_cbc_cipher(EVP_CIPHER
  static int cname##_cfb##cbits##_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, size_t inl) \
  {\
@@ -1591,9 +1591,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/evp_locl.h.fips openssl-1.0.0-beta3/cryp
  
  struct evp_pkey_ctx_st
  	{
-diff -up openssl-1.0.0-beta3/crypto/evp/m_dss.c.fips openssl-1.0.0-beta3/crypto/evp/m_dss.c
---- openssl-1.0.0-beta3/crypto/evp/m_dss.c.fips	2006-04-19 19:05:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/m_dss.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/m_dss.c.fips openssl-1.0.0-beta4/crypto/evp/m_dss.c
+--- openssl-1.0.0-beta4/crypto/evp/m_dss.c.fips	2006-04-19 19:05:57.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/m_dss.c	2009-11-12 12:36:50.000000000 +0100
 @@ -81,7 +81,7 @@ static const EVP_MD dsa_md=
  	NID_dsaWithSHA,
  	NID_dsaWithSHA,
@@ -1603,9 +1603,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/m_dss.c.fips openssl-1.0.0-beta3/crypto/
  	init,
  	update,
  	final,
-diff -up openssl-1.0.0-beta3/crypto/evp/m_dss1.c.fips openssl-1.0.0-beta3/crypto/evp/m_dss1.c
---- openssl-1.0.0-beta3/crypto/evp/m_dss1.c.fips	2006-04-19 19:05:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/m_dss1.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/m_dss1.c.fips openssl-1.0.0-beta4/crypto/evp/m_dss1.c
+--- openssl-1.0.0-beta4/crypto/evp/m_dss1.c.fips	2006-04-19 19:05:57.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/m_dss1.c	2009-11-12 12:36:50.000000000 +0100
 @@ -82,7 +82,7 @@ static const EVP_MD dss1_md=
  	NID_dsa,
  	NID_dsaWithSHA1,
@@ -1615,9 +1615,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/m_dss1.c.fips openssl-1.0.0-beta3/crypto
  	init,
  	update,
  	final,
-diff -up openssl-1.0.0-beta3/crypto/evp/m_sha1.c.fips openssl-1.0.0-beta3/crypto/evp/m_sha1.c
---- openssl-1.0.0-beta3/crypto/evp/m_sha1.c.fips	2008-03-12 22:14:24.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/m_sha1.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/m_sha1.c.fips openssl-1.0.0-beta4/crypto/evp/m_sha1.c
+--- openssl-1.0.0-beta4/crypto/evp/m_sha1.c.fips	2008-03-12 22:14:24.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/m_sha1.c	2009-11-12 12:36:50.000000000 +0100
 @@ -82,7 +82,8 @@ static const EVP_MD sha1_md=
  	NID_sha1,
  	NID_sha1WithRSAEncryption,
@@ -1668,9 +1668,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/m_sha1.c.fips openssl-1.0.0-beta3/crypto
  	init512,
  	update512,
  	final512,
-diff -up openssl-1.0.0-beta3/crypto/evp/names.c.fips openssl-1.0.0-beta3/crypto/evp/names.c
---- openssl-1.0.0-beta3/crypto/evp/names.c.fips	2009-04-10 12:30:27.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/names.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/names.c.fips openssl-1.0.0-beta4/crypto/evp/names.c
+--- openssl-1.0.0-beta4/crypto/evp/names.c.fips	2009-04-10 12:30:27.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/names.c	2009-11-12 12:36:50.000000000 +0100
 @@ -66,6 +66,10 @@ int EVP_add_cipher(const EVP_CIPHER *c)
  	{
  	int r;
@@ -1693,9 +1693,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/names.c.fips openssl-1.0.0-beta3/crypto/
  	name=OBJ_nid2sn(md->type);
  	r=OBJ_NAME_add(name,OBJ_NAME_TYPE_MD_METH,(const char *)md);
  	if (r == 0) return(0);
-diff -up openssl-1.0.0-beta3/crypto/evp/p_sign.c.fips openssl-1.0.0-beta3/crypto/evp/p_sign.c
---- openssl-1.0.0-beta3/crypto/evp/p_sign.c.fips	2006-05-24 15:29:30.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/evp/p_sign.c	2009-09-30 15:07:14.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/p_sign.c.fips openssl-1.0.0-beta4/crypto/evp/p_sign.c
+--- openssl-1.0.0-beta4/crypto/evp/p_sign.c.fips	2006-05-24 15:29:30.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/p_sign.c	2009-11-12 12:36:50.000000000 +0100
 @@ -61,6 +61,7 @@
  #include <openssl/evp.h>
  #include <openssl/objects.h>
@@ -1727,9 +1727,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/p_sign.c.fips openssl-1.0.0-beta3/crypto
  		if (EVP_PKEY_sign(pkctx, sigret, &sltmp, m, m_len) <= 0)
  			goto err;
  		*siglen = sltmp;
-diff -up openssl-1.0.0-beta3/crypto/evp/p_verify.c.fips openssl-1.0.0-beta3/crypto/evp/p_verify.c
---- openssl-1.0.0-beta3/crypto/evp/p_verify.c.fips	2008-11-12 04:58:01.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/evp/p_verify.c	2009-09-30 15:07:27.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/evp/p_verify.c.fips openssl-1.0.0-beta4/crypto/evp/p_verify.c
+--- openssl-1.0.0-beta4/crypto/evp/p_verify.c.fips	2008-11-12 04:58:01.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/evp/p_verify.c	2009-11-12 12:36:50.000000000 +0100
 @@ -61,6 +61,7 @@
  #include <openssl/evp.h>
  #include <openssl/objects.h>
@@ -1761,9 +1761,9 @@ diff -up openssl-1.0.0-beta3/crypto/evp/p_verify.c.fips openssl-1.0.0-beta3/cryp
  		i = EVP_PKEY_verify(pkctx, sigbuf, siglen, m, m_len);
  		err:
  		EVP_PKEY_CTX_free(pkctx);
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_aesavs.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_aesavs.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_aesavs.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_aesavs.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,939 @@
 +/* ====================================================================
 + * Copyright (c) 2004 The OpenSSL Project.  All rights reserved.
@@ -2704,9 +2704,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_aesavs.c
 +    }
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_desmovs.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_desmovs.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_desmovs.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_desmovs.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,702 @@
 +/* ====================================================================
 + * Copyright (c) 2004 The OpenSSL Project.  All rights reserved.
@@ -3410,9 +3410,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_desmovs.c
 +    }
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_dssvs.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_dssvs.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_dssvs.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_dssvs.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,537 @@
 +#include <openssl/opensslconf.h>
 +
@@ -3951,9 +3951,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_dssvs.c
 +    }
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rngvs.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_rngvs.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_rngvs.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_rngvs.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,230 @@
 +/*
 + * Crude test driver for processing the VST and MCT testvector files
@@ -4185,9 +4185,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rngvs.c
 +    return 0;
 +    }
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsagtest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsagtest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_rsagtest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_rsagtest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,390 @@
 +/* fips_rsagtest.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -4579,9 +4579,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsagtest.c
 +	}
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsastest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsastest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_rsastest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_rsastest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,370 @@
 +/* fips_rsastest.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -4953,9 +4953,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsastest.c
 +	return ret;
 +	}
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsavtest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsavtest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_rsavtest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_rsavtest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,377 @@
 +/* fips_rsavtest.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -5334,9 +5334,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_rsavtest.c
 +	return ret;
 +	}
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_shatest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_shatest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_shatest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_shatest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,388 @@
 +/* fips_shatest.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -5726,9 +5726,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_shatest.c
 +	}
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_utl.h
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/cavs/fips_utl.h	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/cavs/fips_utl.h
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/cavs/fips_utl.h	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,343 @@
 +/* ====================================================================
 + * Copyright (c) 2007 The OpenSSL Project.  All rights reserved.
@@ -6073,9 +6073,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/cavs/fips_utl.h
 +#endif
 +    }
 +
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips_err.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips_err.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips_err.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips_err.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,7 @@
 +#include <openssl/opensslconf.h>
 +
@@ -6084,9 +6084,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips_err.c
 +#else
 +static void *dummy=&dummy;
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips_err.h
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips_err.h	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips_err.h
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips_err.h	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,137 @@
 +/* crypto/fips_err.h */
 +/* ====================================================================
@@ -6225,9 +6225,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips_err.h
 +		}
 +#endif
 +	}
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_aes_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_aes_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_aes_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_aes_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,101 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -6330,9 +6330,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_aes_selftest.c
 +    return ret;
 +    }
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,419 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -6753,9 +6753,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips.c
 +
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_des_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_des_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_des_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_des_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,137 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -6894,9 +6894,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_des_selftest.c
 +    return ret;
 +    }
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_dsa_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_dsa_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_dsa_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_dsa_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,184 @@
 +/* crypto/dsa/dsatest.c */
 +/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
@@ -7082,9 +7082,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_dsa_selftest.c
 +    return ret;
 +    }
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips.h
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips.h	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips.h
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips.h	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,163 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -7249,9 +7249,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips.h
 +}
 +#endif
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_hmac_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_hmac_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_hmac_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_hmac_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,135 @@
 +/* ====================================================================
 + * Copyright (c) 2005 The OpenSSL Project.  All rights reserved.
@@ -7388,9 +7388,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_hmac_selftest.c
 +    return 1;
 +    }
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rand.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_rand.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_rand.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_rand.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,410 @@
 +/* ====================================================================
 + * Copyright (c) 2007 The OpenSSL Project.  All rights reserved.
@@ -7802,9 +7802,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rand.c
 +}
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rand.h
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_rand.h	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_rand.h
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_rand.h	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,77 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -7883,9 +7883,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rand.h
 +#endif
 +#endif
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rand_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_rand_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_rand_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_rand_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,371 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -8258,9 +8258,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rand_selftest.c
 +	}
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_randtest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_randtest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_randtest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_randtest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,248 @@
 +/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
 + * All rights reserved.
@@ -8510,9 +8510,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_randtest.c
 +	}
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rsa_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_rsa_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_rsa_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_rsa_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,439 @@
 +/* ====================================================================
 + * Copyright (c) 2003-2007 The OpenSSL Project.  All rights reserved.
@@ -8953,9 +8953,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rsa_selftest.c
 +	}
 +
 +#endif /* def OPENSSL_FIPS */
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rsa_x931g.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_rsa_x931g.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_rsa_x931g.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_rsa_x931g.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,281 @@
 +/* crypto/rsa/rsa_gen.c */
 +/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
@@ -9238,9 +9238,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_rsa_x931g.c
 +	return 0;
 +
 +	}
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_sha1_selftest.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_sha1_selftest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_sha1_selftest.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_sha1_selftest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,97 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -9339,9 +9339,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_sha1_selftest.c
 +    }
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_standalone_sha1.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_standalone_sha1.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_standalone_sha1.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_standalone_sha1.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,173 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -9516,9 +9516,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_standalone_sha1.c
 +    }
 +
 +
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_test_suite.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/fips_test_suite.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/fips_test_suite.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/fips_test_suite.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,588 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -10108,9 +10108,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/fips_test_suite.c
 +    }
 +
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips_locl.h
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips_locl.h	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips_locl.h
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips_locl.h	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,72 @@
 +/* ====================================================================
 + * Copyright (c) 2003 The OpenSSL Project.  All rights reserved.
@@ -10184,9 +10184,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips_locl.h
 +}
 +#endif
 +#endif
-diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/Makefile
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/fips/Makefile	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/fips/Makefile
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/fips/Makefile	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,81 @@
 +#
 +# OpenSSL/crypto/fips/Makefile
@@ -10269,9 +10269,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/fips/Makefile
 +
 +# DO NOT DELETE THIS LINE -- make depend depends on it.
 +
-diff -up openssl-1.0.0-beta3/crypto/hmac/hmac.c.fips openssl-1.0.0-beta3/crypto/hmac/hmac.c
---- openssl-1.0.0-beta3/crypto/hmac/hmac.c.fips	2008-11-12 04:58:02.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/hmac/hmac.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/hmac/hmac.c.fips openssl-1.0.0-beta4/crypto/hmac/hmac.c
+--- openssl-1.0.0-beta4/crypto/hmac/hmac.c.fips	2008-11-12 04:58:02.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/hmac/hmac.c	2009-11-12 12:36:50.000000000 +0100
 @@ -77,6 +77,13 @@ int HMAC_Init_ex(HMAC_CTX *ctx, const vo
  
  	if (key != NULL)
@@ -10297,9 +10297,9 @@ diff -up openssl-1.0.0-beta3/crypto/hmac/hmac.c.fips openssl-1.0.0-beta3/crypto/
 +	EVP_MD_CTX_set_flags(&ctx->md_ctx, flags);
 +	}
 +
-diff -up openssl-1.0.0-beta3/crypto/hmac/hmac.h.fips openssl-1.0.0-beta3/crypto/hmac/hmac.h
---- openssl-1.0.0-beta3/crypto/hmac/hmac.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/hmac/hmac.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/hmac/hmac.h.fips openssl-1.0.0-beta4/crypto/hmac/hmac.h
+--- openssl-1.0.0-beta4/crypto/hmac/hmac.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/hmac/hmac.h	2009-11-12 12:36:50.000000000 +0100
 @@ -101,6 +101,7 @@ unsigned char *HMAC(const EVP_MD *evp_md
  		    unsigned int *md_len);
  int HMAC_CTX_copy(HMAC_CTX *dctx, HMAC_CTX *sctx);
@@ -10308,9 +10308,9 @@ diff -up openssl-1.0.0-beta3/crypto/hmac/hmac.h.fips openssl-1.0.0-beta3/crypto/
  
  #ifdef  __cplusplus
  }
-diff -up openssl-1.0.0-beta3/crypto/Makefile.fips openssl-1.0.0-beta3/crypto/Makefile
---- openssl-1.0.0-beta3/crypto/Makefile.fips	2009-04-06 16:31:35.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/Makefile	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/Makefile.fips openssl-1.0.0-beta4/crypto/Makefile
+--- openssl-1.0.0-beta4/crypto/Makefile.fips	2009-04-06 16:31:35.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/Makefile	2009-11-12 12:36:50.000000000 +0100
 @@ -34,14 +34,14 @@ GENERAL=Makefile README crypto-lib.com i
  
  LIB= $(TOP)/libcrypto.a
@@ -10329,9 +10329,9 @@ diff -up openssl-1.0.0-beta3/crypto/Makefile.fips openssl-1.0.0-beta3/crypto/Mak
  
  ALL=    $(GENERAL) $(SRC) $(HEADER)
  
-diff -up openssl-1.0.0-beta3/crypto/mdc2/mdc2dgst.c.fips openssl-1.0.0-beta3/crypto/mdc2/mdc2dgst.c
---- openssl-1.0.0-beta3/crypto/mdc2/mdc2dgst.c.fips	2004-07-25 21:10:41.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/mdc2/mdc2dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/mdc2/mdc2dgst.c.fips openssl-1.0.0-beta4/crypto/mdc2/mdc2dgst.c
+--- openssl-1.0.0-beta4/crypto/mdc2/mdc2dgst.c.fips	2004-07-25 21:10:41.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/mdc2/mdc2dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -61,6 +61,11 @@
  #include <string.h>
  #include <openssl/des.h>
@@ -10353,9 +10353,9 @@ diff -up openssl-1.0.0-beta3/crypto/mdc2/mdc2dgst.c.fips openssl-1.0.0-beta3/cry
  	{
  	c->num=0;
  	c->pad_type=1;
-diff -up openssl-1.0.0-beta3/crypto/mdc2/mdc2.h.fips openssl-1.0.0-beta3/crypto/mdc2/mdc2.h
---- openssl-1.0.0-beta3/crypto/mdc2/mdc2.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/mdc2/mdc2.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/mdc2/mdc2.h.fips openssl-1.0.0-beta4/crypto/mdc2/mdc2.h
+--- openssl-1.0.0-beta4/crypto/mdc2/mdc2.h.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/mdc2/mdc2.h	2009-11-12 12:36:50.000000000 +0100
 @@ -80,7 +80,9 @@ typedef struct mdc2_ctx_st
  	int pad_type; /* either 1 or 2, default 1 */
  	} MDC2_CTX;
@@ -10367,9 +10367,9 @@ diff -up openssl-1.0.0-beta3/crypto/mdc2/mdc2.h.fips openssl-1.0.0-beta3/crypto/
  int MDC2_Init(MDC2_CTX *c);
  int MDC2_Update(MDC2_CTX *c, const unsigned char *data, size_t len);
  int MDC2_Final(unsigned char *md, MDC2_CTX *c);
-diff -up openssl-1.0.0-beta3/crypto/md2/md2_dgst.c.fips openssl-1.0.0-beta3/crypto/md2/md2_dgst.c
---- openssl-1.0.0-beta3/crypto/md2/md2_dgst.c.fips	2007-08-31 12:12:35.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/md2/md2_dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/md2/md2_dgst.c.fips openssl-1.0.0-beta4/crypto/md2/md2_dgst.c
+--- openssl-1.0.0-beta4/crypto/md2/md2_dgst.c.fips	2007-08-31 12:12:35.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/md2/md2_dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -62,6 +62,11 @@
  #include <openssl/md2.h>
  #include <openssl/opensslv.h>
@@ -10391,9 +10391,9 @@ diff -up openssl-1.0.0-beta3/crypto/md2/md2_dgst.c.fips openssl-1.0.0-beta3/cryp
  	{
  	c->num=0;
  	memset(c->state,0,sizeof c->state);
-diff -up openssl-1.0.0-beta3/crypto/md2/md2.h.fips openssl-1.0.0-beta3/crypto/md2/md2.h
---- openssl-1.0.0-beta3/crypto/md2/md2.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/md2/md2.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/md2/md2.h.fips openssl-1.0.0-beta4/crypto/md2/md2.h
+--- openssl-1.0.0-beta4/crypto/md2/md2.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/md2/md2.h	2009-11-12 12:36:50.000000000 +0100
 @@ -81,6 +81,9 @@ typedef struct MD2state_st
  	} MD2_CTX;
  
@@ -10404,9 +10404,9 @@ diff -up openssl-1.0.0-beta3/crypto/md2/md2.h.fips openssl-1.0.0-beta3/crypto/md
  int MD2_Init(MD2_CTX *c);
  int MD2_Update(MD2_CTX *c, const unsigned char *data, size_t len);
  int MD2_Final(unsigned char *md, MD2_CTX *c);
-diff -up openssl-1.0.0-beta3/crypto/md4/md4_dgst.c.fips openssl-1.0.0-beta3/crypto/md4/md4_dgst.c
---- openssl-1.0.0-beta3/crypto/md4/md4_dgst.c.fips	2007-01-21 14:07:11.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/md4/md4_dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/md4/md4_dgst.c.fips openssl-1.0.0-beta4/crypto/md4/md4_dgst.c
+--- openssl-1.0.0-beta4/crypto/md4/md4_dgst.c.fips	2007-01-21 14:07:11.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/md4/md4_dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -59,6 +59,11 @@
  #include <stdio.h>
  #include "md4_locl.h"
@@ -10428,9 +10428,9 @@ diff -up openssl-1.0.0-beta3/crypto/md4/md4_dgst.c.fips openssl-1.0.0-beta3/cryp
  	{
  	memset (c,0,sizeof(*c));
  	c->A=INIT_DATA_A;
-diff -up openssl-1.0.0-beta3/crypto/md4/md4.h.fips openssl-1.0.0-beta3/crypto/md4/md4.h
---- openssl-1.0.0-beta3/crypto/md4/md4.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/md4/md4.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/md4/md4.h.fips openssl-1.0.0-beta4/crypto/md4/md4.h
+--- openssl-1.0.0-beta4/crypto/md4/md4.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/md4/md4.h	2009-11-12 12:36:50.000000000 +0100
 @@ -105,6 +105,9 @@ typedef struct MD4state_st
  	unsigned int num;
  	} MD4_CTX;
@@ -10441,9 +10441,9 @@ diff -up openssl-1.0.0-beta3/crypto/md4/md4.h.fips openssl-1.0.0-beta3/crypto/md
  int MD4_Init(MD4_CTX *c);
  int MD4_Update(MD4_CTX *c, const void *data, size_t len);
  int MD4_Final(unsigned char *md, MD4_CTX *c);
-diff -up openssl-1.0.0-beta3/crypto/md5/md5_dgst.c.fips openssl-1.0.0-beta3/crypto/md5/md5_dgst.c
---- openssl-1.0.0-beta3/crypto/md5/md5_dgst.c.fips	2007-01-21 14:07:11.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/md5/md5_dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/md5/md5_dgst.c.fips openssl-1.0.0-beta4/crypto/md5/md5_dgst.c
+--- openssl-1.0.0-beta4/crypto/md5/md5_dgst.c.fips	2007-01-21 14:07:11.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/md5/md5_dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -59,6 +59,11 @@
  #include <stdio.h>
  #include "md5_locl.h"
@@ -10465,9 +10465,9 @@ diff -up openssl-1.0.0-beta3/crypto/md5/md5_dgst.c.fips openssl-1.0.0-beta3/cryp
  	{
  	memset (c,0,sizeof(*c));
  	c->A=INIT_DATA_A;
-diff -up openssl-1.0.0-beta3/crypto/md5/md5.h.fips openssl-1.0.0-beta3/crypto/md5/md5.h
---- openssl-1.0.0-beta3/crypto/md5/md5.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/md5/md5.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/md5/md5.h.fips openssl-1.0.0-beta4/crypto/md5/md5.h
+--- openssl-1.0.0-beta4/crypto/md5/md5.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/md5/md5.h	2009-11-12 12:36:50.000000000 +0100
 @@ -105,6 +105,9 @@ typedef struct MD5state_st
  	unsigned int num;
  	} MD5_CTX;
@@ -10478,9 +10478,9 @@ diff -up openssl-1.0.0-beta3/crypto/md5/md5.h.fips openssl-1.0.0-beta3/crypto/md
  int MD5_Init(MD5_CTX *c);
  int MD5_Update(MD5_CTX *c, const void *data, size_t len);
  int MD5_Final(unsigned char *md, MD5_CTX *c);
-diff -up openssl-1.0.0-beta3/crypto/mem.c.fips openssl-1.0.0-beta3/crypto/mem.c
---- openssl-1.0.0-beta3/crypto/mem.c.fips	2008-11-12 04:57:47.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/mem.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/mem.c.fips openssl-1.0.0-beta4/crypto/mem.c
+--- openssl-1.0.0-beta4/crypto/mem.c.fips	2008-11-12 04:57:47.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/mem.c	2009-11-12 12:36:50.000000000 +0100
 @@ -101,7 +101,7 @@ static void (*free_locked_func)(void *) 
  
  /* may be changed as long as 'allow_customize_debug' is set */
@@ -10490,9 +10490,9 @@ diff -up openssl-1.0.0-beta3/crypto/mem.c.fips openssl-1.0.0-beta3/crypto/mem.c
  /* use default functions from mem_dbg.c */
  static void (*malloc_debug_func)(void *,int,const char *,int,int)
  	= CRYPTO_dbg_malloc;
-diff -up /dev/null openssl-1.0.0-beta3/crypto/o_init.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/o_init.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/o_init.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/o_init.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,80 @@
 +/* o_init.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -10574,9 +10574,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/o_init.c
 +	}
 +		
 +
-diff -up openssl-1.0.0-beta3/crypto/opensslconf.h.in.fips openssl-1.0.0-beta3/crypto/opensslconf.h.in
---- openssl-1.0.0-beta3/crypto/opensslconf.h.in.fips	2005-12-16 11:37:23.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/opensslconf.h.in	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/opensslconf.h.in.fips openssl-1.0.0-beta4/crypto/opensslconf.h.in
+--- openssl-1.0.0-beta4/crypto/opensslconf.h.in.fips	2005-12-16 11:37:23.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/opensslconf.h.in	2009-11-12 12:36:50.000000000 +0100
 @@ -1,5 +1,20 @@
  /* crypto/opensslconf.h.in */
  
@@ -10598,9 +10598,9 @@ diff -up openssl-1.0.0-beta3/crypto/opensslconf.h.in.fips openssl-1.0.0-beta3/cr
  /* Generate 80386 code? */
  #undef I386_ONLY
  
-diff -up openssl-1.0.0-beta3/crypto/pkcs12/p12_crt.c.fips openssl-1.0.0-beta3/crypto/pkcs12/p12_crt.c
---- openssl-1.0.0-beta3/crypto/pkcs12/p12_crt.c.fips	2009-03-09 14:08:04.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/pkcs12/p12_crt.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/pkcs12/p12_crt.c.fips openssl-1.0.0-beta4/crypto/pkcs12/p12_crt.c
+--- openssl-1.0.0-beta4/crypto/pkcs12/p12_crt.c.fips	2009-03-09 14:08:04.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/pkcs12/p12_crt.c	2009-11-12 12:36:50.000000000 +0100
 @@ -59,6 +59,10 @@
  #include <stdio.h>
  #include "cryptlib.h"
@@ -10627,9 +10627,9 @@ diff -up openssl-1.0.0-beta3/crypto/pkcs12/p12_crt.c.fips openssl-1.0.0-beta3/cr
  	if (!nid_key)
  		nid_key = NID_pbe_WithSHA1And3_Key_TripleDES_CBC;
  	if (!iter)
-diff -up openssl-1.0.0-beta3/crypto/rand/md_rand.c.fips openssl-1.0.0-beta3/crypto/rand/md_rand.c
---- openssl-1.0.0-beta3/crypto/rand/md_rand.c.fips	2009-01-03 10:25:32.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rand/md_rand.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rand/md_rand.c.fips openssl-1.0.0-beta4/crypto/rand/md_rand.c
+--- openssl-1.0.0-beta4/crypto/rand/md_rand.c.fips	2009-01-03 10:25:32.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rand/md_rand.c	2009-11-12 12:36:50.000000000 +0100
 @@ -126,6 +126,10 @@
  
  #include <openssl/crypto.h>
@@ -10656,9 +10656,9 @@ diff -up openssl-1.0.0-beta3/crypto/rand/md_rand.c.fips openssl-1.0.0-beta3/cryp
  #ifdef PREDICT
  	if (rand_predictable)
  		{
-diff -up openssl-1.0.0-beta3/crypto/rand/rand_err.c.fips openssl-1.0.0-beta3/crypto/rand/rand_err.c
---- openssl-1.0.0-beta3/crypto/rand/rand_err.c.fips	2006-11-21 22:29:41.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rand/rand_err.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rand/rand_err.c.fips openssl-1.0.0-beta4/crypto/rand/rand_err.c
+--- openssl-1.0.0-beta4/crypto/rand/rand_err.c.fips	2006-11-21 22:29:41.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rand/rand_err.c	2009-11-12 12:36:50.000000000 +0100
 @@ -70,6 +70,13 @@
  
  static ERR_STRING_DATA RAND_str_functs[]=
@@ -10691,9 +10691,9 @@ diff -up openssl-1.0.0-beta3/crypto/rand/rand_err.c.fips openssl-1.0.0-beta3/cry
  {0,NULL}
  	};
  
-diff -up openssl-1.0.0-beta3/crypto/rand/rand.h.fips openssl-1.0.0-beta3/crypto/rand/rand.h
---- openssl-1.0.0-beta3/crypto/rand/rand.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rand/rand.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rand/rand.h.fips openssl-1.0.0-beta4/crypto/rand/rand.h
+--- openssl-1.0.0-beta4/crypto/rand/rand.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rand/rand.h	2009-11-12 12:36:50.000000000 +0100
 @@ -128,11 +128,28 @@ void ERR_load_RAND_strings(void);
  /* Error codes for the RAND functions. */
  
@@ -10723,9 +10723,9 @@ diff -up openssl-1.0.0-beta3/crypto/rand/rand.h.fips openssl-1.0.0-beta3/crypto/
  
  #ifdef  __cplusplus
  }
-diff -up openssl-1.0.0-beta3/crypto/rand/rand_lib.c.fips openssl-1.0.0-beta3/crypto/rand/rand_lib.c
---- openssl-1.0.0-beta3/crypto/rand/rand_lib.c.fips	2008-11-12 04:58:04.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rand/rand_lib.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rand/rand_lib.c.fips openssl-1.0.0-beta4/crypto/rand/rand_lib.c
+--- openssl-1.0.0-beta4/crypto/rand/rand_lib.c.fips	2008-11-12 04:58:04.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rand/rand_lib.c	2009-11-12 12:36:50.000000000 +0100
 @@ -60,6 +60,12 @@
  #include <time.h>
  #include "cryptlib.h"
@@ -10759,9 +10759,9 @@ diff -up openssl-1.0.0-beta3/crypto/rand/rand_lib.c.fips openssl-1.0.0-beta3/cry
  	return default_RAND_meth;
  	}
  
-diff -up openssl-1.0.0-beta3/crypto/rc2/rc2.h.fips openssl-1.0.0-beta3/crypto/rc2/rc2.h
---- openssl-1.0.0-beta3/crypto/rc2/rc2.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rc2/rc2.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc2/rc2.h.fips openssl-1.0.0-beta4/crypto/rc2/rc2.h
+--- openssl-1.0.0-beta4/crypto/rc2/rc2.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rc2/rc2.h	2009-11-12 12:36:50.000000000 +0100
 @@ -79,7 +79,9 @@ typedef struct rc2_key_st
  	RC2_INT data[64];
  	} RC2_KEY;
@@ -10773,9 +10773,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc2/rc2.h.fips openssl-1.0.0-beta3/crypto/rc
  void RC2_set_key(RC2_KEY *key, int len, const unsigned char *data,int bits);
  void RC2_ecb_encrypt(const unsigned char *in,unsigned char *out,RC2_KEY *key,
  		     int enc);
-diff -up openssl-1.0.0-beta3/crypto/rc2/rc2_skey.c.fips openssl-1.0.0-beta3/crypto/rc2/rc2_skey.c
---- openssl-1.0.0-beta3/crypto/rc2/rc2_skey.c.fips	2007-09-18 23:10:32.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rc2/rc2_skey.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc2/rc2_skey.c.fips openssl-1.0.0-beta4/crypto/rc2/rc2_skey.c
+--- openssl-1.0.0-beta4/crypto/rc2/rc2_skey.c.fips	2007-09-18 23:10:32.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/rc2/rc2_skey.c	2009-11-12 12:36:50.000000000 +0100
 @@ -57,6 +57,11 @@
   */
  
@@ -10809,9 +10809,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc2/rc2_skey.c.fips openssl-1.0.0-beta3/cryp
  	int i,j;
  	unsigned char *k;
  	RC2_INT *ki;
-diff -up openssl-1.0.0-beta3/crypto/rc4/asm/rc4-s390x.pl.fips openssl-1.0.0-beta3/crypto/rc4/asm/rc4-s390x.pl
---- openssl-1.0.0-beta3/crypto/rc4/asm/rc4-s390x.pl.fips	2009-02-12 15:48:49.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rc4/asm/rc4-s390x.pl	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc4/asm/rc4-s390x.pl.fips openssl-1.0.0-beta4/crypto/rc4/asm/rc4-s390x.pl
+--- openssl-1.0.0-beta4/crypto/rc4/asm/rc4-s390x.pl.fips	2009-02-12 15:48:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rc4/asm/rc4-s390x.pl	2009-11-12 12:36:50.000000000 +0100
 @@ -202,4 +202,6 @@ RC4_options:
  .string	"rc4(8x,char)"
  ___
@@ -10819,9 +10819,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc4/asm/rc4-s390x.pl.fips openssl-1.0.0-beta
 +$code =~ s/RC4_set_key/private_RC4_set_key/g if ($ENV{FIPS} ne "");
 +
  print $code;
-diff -up openssl-1.0.0-beta3/crypto/rc4/asm/rc4-x86_64.pl.fips openssl-1.0.0-beta3/crypto/rc4/asm/rc4-x86_64.pl
---- openssl-1.0.0-beta3/crypto/rc4/asm/rc4-x86_64.pl.fips	2009-04-27 21:31:04.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rc4/asm/rc4-x86_64.pl	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc4/asm/rc4-x86_64.pl.fips openssl-1.0.0-beta4/crypto/rc4/asm/rc4-x86_64.pl
+--- openssl-1.0.0-beta4/crypto/rc4/asm/rc4-x86_64.pl.fips	2009-04-27 21:31:04.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/rc4/asm/rc4-x86_64.pl	2009-11-12 12:36:50.000000000 +0100
 @@ -499,6 +499,8 @@ ___
  
  $code =~ s/#([bwd])/$1/gm;
@@ -10831,9 +10831,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc4/asm/rc4-x86_64.pl.fips openssl-1.0.0-bet
  print $code;
  
  close STDOUT;
-diff -up openssl-1.0.0-beta3/crypto/rc4/asm/rc4-586.pl.fips openssl-1.0.0-beta3/crypto/rc4/asm/rc4-586.pl
---- openssl-1.0.0-beta3/crypto/rc4/asm/rc4-586.pl.fips	2007-12-02 22:32:03.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rc4/asm/rc4-586.pl	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc4/asm/rc4-586.pl.fips openssl-1.0.0-beta4/crypto/rc4/asm/rc4-586.pl
+--- openssl-1.0.0-beta4/crypto/rc4/asm/rc4-586.pl.fips	2007-12-02 22:32:03.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rc4/asm/rc4-586.pl	2009-11-12 12:36:50.000000000 +0100
 @@ -166,8 +166,12 @@ $idx="edx";
  
  &external_label("OPENSSL_ia32cap_P");
@@ -10857,9 +10857,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc4/asm/rc4-586.pl.fips openssl-1.0.0-beta3/
  
  # const char *RC4_options(void);
  &function_begin_B("RC4_options");
-diff -up openssl-1.0.0-beta3/crypto/rc4/Makefile.fips openssl-1.0.0-beta3/crypto/rc4/Makefile
---- openssl-1.0.0-beta3/crypto/rc4/Makefile.fips	2009-02-11 11:01:36.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rc4/Makefile	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc4/Makefile.fips openssl-1.0.0-beta4/crypto/rc4/Makefile
+--- openssl-1.0.0-beta4/crypto/rc4/Makefile.fips	2009-02-11 11:01:36.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rc4/Makefile	2009-11-12 12:36:50.000000000 +0100
 @@ -21,8 +21,8 @@ TEST=rc4test.c
  APPS=
  
@@ -10871,9 +10871,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc4/Makefile.fips openssl-1.0.0-beta3/crypto
  
  SRC= $(LIBSRC)
  
-diff -up /dev/null openssl-1.0.0-beta3/crypto/rc4/rc4_fblk.c
---- /dev/null	2009-09-23 10:56:02.148001752 +0200
-+++ openssl-1.0.0-beta3/crypto/rc4/rc4_fblk.c	2009-09-30 13:25:58.000000000 +0200
+diff -up /dev/null openssl-1.0.0-beta4/crypto/rc4/rc4_fblk.c
+--- /dev/null	2009-11-04 12:00:58.801002276 +0100
++++ openssl-1.0.0-beta4/crypto/rc4/rc4_fblk.c	2009-11-12 12:36:50.000000000 +0100
 @@ -0,0 +1,75 @@
 +/* crypto/rc4/rc4_fblk.c */
 +/* Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL
@@ -10950,9 +10950,9 @@ diff -up /dev/null openssl-1.0.0-beta3/crypto/rc4/rc4_fblk.c
 +	}
 +#endif
 +
-diff -up openssl-1.0.0-beta3/crypto/rc4/rc4.h.fips openssl-1.0.0-beta3/crypto/rc4/rc4.h
---- openssl-1.0.0-beta3/crypto/rc4/rc4.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rc4/rc4.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc4/rc4.h.fips openssl-1.0.0-beta4/crypto/rc4/rc4.h
+--- openssl-1.0.0-beta4/crypto/rc4/rc4.h.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rc4/rc4.h	2009-11-12 12:36:50.000000000 +0100
 @@ -78,6 +78,9 @@ typedef struct rc4_key_st
  
   
@@ -10963,9 +10963,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc4/rc4.h.fips openssl-1.0.0-beta3/crypto/rc
  void RC4_set_key(RC4_KEY *key, int len, const unsigned char *data);
  void RC4(RC4_KEY *key, size_t len, const unsigned char *indata,
  		unsigned char *outdata);
-diff -up openssl-1.0.0-beta3/crypto/rc4/rc4_skey.c.fips openssl-1.0.0-beta3/crypto/rc4/rc4_skey.c
---- openssl-1.0.0-beta3/crypto/rc4/rc4_skey.c.fips	2007-01-21 14:07:13.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rc4/rc4_skey.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rc4/rc4_skey.c.fips openssl-1.0.0-beta4/crypto/rc4/rc4_skey.c
+--- openssl-1.0.0-beta4/crypto/rc4/rc4_skey.c.fips	2007-01-21 14:07:13.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rc4/rc4_skey.c	2009-11-12 12:36:50.000000000 +0100
 @@ -59,6 +59,11 @@
  #include <openssl/rc4.h>
  #include "rc4_locl.h"
@@ -11003,9 +11003,9 @@ diff -up openssl-1.0.0-beta3/crypto/rc4/rc4_skey.c.fips openssl-1.0.0-beta3/cryp
  			unsigned char *cp=(unsigned char *)d;
  
  			for (i=0;i<256;i++) cp[i]=i;
-diff -up openssl-1.0.0-beta3/crypto/ripemd/ripemd.h.fips openssl-1.0.0-beta3/crypto/ripemd/ripemd.h
---- openssl-1.0.0-beta3/crypto/ripemd/ripemd.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/ripemd/ripemd.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/ripemd/ripemd.h.fips openssl-1.0.0-beta4/crypto/ripemd/ripemd.h
+--- openssl-1.0.0-beta4/crypto/ripemd/ripemd.h.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/ripemd/ripemd.h	2009-11-12 12:36:50.000000000 +0100
 @@ -91,6 +91,9 @@ typedef struct RIPEMD160state_st
  	unsigned int   num;
  	} RIPEMD160_CTX;
@@ -11016,9 +11016,9 @@ diff -up openssl-1.0.0-beta3/crypto/ripemd/ripemd.h.fips openssl-1.0.0-beta3/cry
  int RIPEMD160_Init(RIPEMD160_CTX *c);
  int RIPEMD160_Update(RIPEMD160_CTX *c, const void *data, size_t len);
  int RIPEMD160_Final(unsigned char *md, RIPEMD160_CTX *c);
-diff -up openssl-1.0.0-beta3/crypto/ripemd/rmd_dgst.c.fips openssl-1.0.0-beta3/crypto/ripemd/rmd_dgst.c
---- openssl-1.0.0-beta3/crypto/ripemd/rmd_dgst.c.fips	2007-01-21 14:07:13.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/ripemd/rmd_dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/ripemd/rmd_dgst.c.fips openssl-1.0.0-beta4/crypto/ripemd/rmd_dgst.c
+--- openssl-1.0.0-beta4/crypto/ripemd/rmd_dgst.c.fips	2007-01-21 14:07:13.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/ripemd/rmd_dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -59,6 +59,11 @@
  #include <stdio.h>
  #include "rmd_locl.h"
@@ -11040,9 +11040,9 @@ diff -up openssl-1.0.0-beta3/crypto/ripemd/rmd_dgst.c.fips openssl-1.0.0-beta3/c
  	{
  	memset (c,0,sizeof(*c));
  	c->A=RIPEMD160_A;
-diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_eay.c.fips openssl-1.0.0-beta3/crypto/rsa/rsa_eay.c
---- openssl-1.0.0-beta3/crypto/rsa/rsa_eay.c.fips	2008-09-14 15:51:44.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rsa/rsa_eay.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rsa/rsa_eay.c.fips openssl-1.0.0-beta4/crypto/rsa/rsa_eay.c
+--- openssl-1.0.0-beta4/crypto/rsa/rsa_eay.c.fips	2008-09-14 15:51:44.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/rsa/rsa_eay.c	2009-11-12 12:36:50.000000000 +0100
 @@ -114,6 +114,8 @@
  #include <openssl/bn.h>
  #include <openssl/rsa.h>
@@ -11301,9 +11301,9 @@ diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_eay.c.fips openssl-1.0.0-beta3/crypt
  	rsa->flags|=RSA_FLAG_CACHE_PUBLIC|RSA_FLAG_CACHE_PRIVATE;
  	return(1);
  	}
-diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_err.c.fips openssl-1.0.0-beta3/crypto/rsa/rsa_err.c
---- openssl-1.0.0-beta3/crypto/rsa/rsa_err.c.fips	2008-12-29 17:11:56.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/rsa/rsa_err.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rsa/rsa_err.c.fips openssl-1.0.0-beta4/crypto/rsa/rsa_err.c
+--- openssl-1.0.0-beta4/crypto/rsa/rsa_err.c.fips	2008-12-29 17:11:56.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rsa/rsa_err.c	2009-11-12 12:36:50.000000000 +0100
 @@ -111,8 +111,12 @@ static ERR_STRING_DATA RSA_str_functs[]=
  {ERR_FUNC(RSA_F_RSA_PRINT_FP),	"RSA_print_fp"},
  {ERR_FUNC(RSA_F_RSA_PRIV_DECODE),	"RSA_PRIV_DECODE"},
@@ -11330,9 +11330,9 @@ diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_err.c.fips openssl-1.0.0-beta3/crypt
  {ERR_REASON(RSA_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE),"operation not supported for this keytype"},
  {ERR_REASON(RSA_R_PADDING_CHECK_FAILED)  ,"padding check failed"},
  {ERR_REASON(RSA_R_P_NOT_PRIME)           ,"p not prime"},
-diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_gen.c.fips openssl-1.0.0-beta3/crypto/rsa/rsa_gen.c
---- openssl-1.0.0-beta3/crypto/rsa/rsa_gen.c.fips	2007-03-28 02:15:27.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rsa/rsa_gen.c	2009-09-30 16:55:26.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rsa/rsa_gen.c.fips openssl-1.0.0-beta4/crypto/rsa/rsa_gen.c
+--- openssl-1.0.0-beta4/crypto/rsa/rsa_gen.c.fips	2007-03-28 02:15:27.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/rsa/rsa_gen.c	2009-11-12 12:36:50.000000000 +0100
 @@ -67,6 +67,82 @@
  #include "cryptlib.h"
  #include <openssl/bn.h>
@@ -11458,9 +11458,9 @@ diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_gen.c.fips openssl-1.0.0-beta3/crypt
  	ok=1;
  err:
  	if (ok == -1)
-diff -up openssl-1.0.0-beta3/crypto/rsa/rsa.h.fips openssl-1.0.0-beta3/crypto/rsa/rsa.h
---- openssl-1.0.0-beta3/crypto/rsa/rsa.h.fips	2009-09-30 13:25:56.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rsa/rsa.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rsa/rsa.h.fips openssl-1.0.0-beta4/crypto/rsa/rsa.h
+--- openssl-1.0.0-beta4/crypto/rsa/rsa.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/rsa/rsa.h	2009-11-12 12:36:50.000000000 +0100
 @@ -74,6 +74,21 @@
  #error RSA is disabled.
  #endif
@@ -11530,9 +11530,9 @@ diff -up openssl-1.0.0-beta3/crypto/rsa/rsa.h.fips openssl-1.0.0-beta3/crypto/rs
  #define RSA_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE	 148
  #define RSA_R_PADDING_CHECK_FAILED			 114
  #define RSA_R_P_NOT_PRIME				 128
-diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_lib.c.fips openssl-1.0.0-beta3/crypto/rsa/rsa_lib.c
---- openssl-1.0.0-beta3/crypto/rsa/rsa_lib.c.fips	2008-08-06 17:54:14.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rsa/rsa_lib.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rsa/rsa_lib.c.fips openssl-1.0.0-beta4/crypto/rsa/rsa_lib.c
+--- openssl-1.0.0-beta4/crypto/rsa/rsa_lib.c.fips	2009-08-05 17:04:16.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/rsa/rsa_lib.c	2009-11-12 12:36:50.000000000 +0100
 @@ -80,6 +80,13 @@ RSA *RSA_new(void)
  
  void RSA_set_default_method(const RSA_METHOD *meth)
@@ -11608,63 +11608,9 @@ diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_lib.c.fips openssl-1.0.0-beta3/crypt
  	return(rsa->meth->rsa_pub_dec(flen, from, to, rsa, padding));
  	}
  
-@@ -422,51 +462,8 @@ err:
- 	BN_CTX_end(ctx);
- 	if (in_ctx == NULL)
- 		BN_CTX_free(ctx);
-+	if(rsa->e == NULL)
-+		BN_free(e);
- 
- 	return ret;
- }
--
--int RSA_memory_lock(RSA *r)
--	{
--	int i,j,k,off;
--	char *p;
--	BIGNUM *bn,**t[6],*b;
--	BN_ULONG *ul;
--
--	if (r->d == NULL) return(1);
--	t[0]= &r->d;
--	t[1]= &r->p;
--	t[2]= &r->q;
--	t[3]= &r->dmp1;
--	t[4]= &r->dmq1;
--	t[5]= &r->iqmp;
--	k=sizeof(BIGNUM)*6;
--	off=k/sizeof(BN_ULONG)+1;
--	j=1;
--	for (i=0; i<6; i++)
--		j+= (*t[i])->top;
--	if ((p=OPENSSL_malloc_locked((off+j)*sizeof(BN_ULONG))) == NULL)
--		{
--		RSAerr(RSA_F_RSA_MEMORY_LOCK,ERR_R_MALLOC_FAILURE);
--		return(0);
--		}
--	bn=(BIGNUM *)p;
--	ul=(BN_ULONG *)&(p[off]);
--	for (i=0; i<6; i++)
--		{
--		b= *(t[i]);
--		*(t[i])= &(bn[i]);
--		memcpy((char *)&(bn[i]),(char *)b,sizeof(BIGNUM));
--		bn[i].flags=BN_FLG_STATIC_DATA;
--		bn[i].d=ul;
--		memcpy((char *)ul,b->d,sizeof(BN_ULONG)*b->top);
--		ul+=b->top;
--		BN_clear_free(b);
--		}
--	
--	/* I should fix this so it can still be done */
--	r->flags&= ~(RSA_FLAG_CACHE_PRIVATE|RSA_FLAG_CACHE_PUBLIC);
--
--	r->bignum_data=p;
--	return(1);
--	}
-diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_sign.c.fips openssl-1.0.0-beta3/crypto/rsa/rsa_sign.c
---- openssl-1.0.0-beta3/crypto/rsa/rsa_sign.c.fips	2007-04-24 03:05:42.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/rsa/rsa_sign.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/rsa/rsa_sign.c.fips openssl-1.0.0-beta4/crypto/rsa/rsa_sign.c
+--- openssl-1.0.0-beta4/crypto/rsa/rsa_sign.c.fips	2007-04-24 03:05:42.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/rsa/rsa_sign.c	2009-11-12 12:36:50.000000000 +0100
 @@ -130,7 +130,8 @@ int RSA_sign(int type, const unsigned ch
  		i2d_X509_SIG(&sig,&p);
  		s=tmps;
@@ -11696,9 +11642,9 @@ diff -up openssl-1.0.0-beta3/crypto/rsa/rsa_sign.c.fips openssl-1.0.0-beta3/cryp
  
  	if (i <= 0) goto err;
  
-diff -up openssl-1.0.0-beta3/crypto/sha/sha_dgst.c.fips openssl-1.0.0-beta3/crypto/sha/sha_dgst.c
---- openssl-1.0.0-beta3/crypto/sha/sha_dgst.c.fips	2007-01-21 14:07:14.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/sha/sha_dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/sha/sha_dgst.c.fips openssl-1.0.0-beta4/crypto/sha/sha_dgst.c
+--- openssl-1.0.0-beta4/crypto/sha/sha_dgst.c.fips	2007-01-21 14:07:14.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/sha/sha_dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -57,6 +57,12 @@
   */
  
@@ -11712,9 +11658,9 @@ diff -up openssl-1.0.0-beta3/crypto/sha/sha_dgst.c.fips openssl-1.0.0-beta3/cryp
  #if !defined(OPENSSL_NO_SHA0) && !defined(OPENSSL_NO_SHA)
  
  #undef  SHA_1
-diff -up openssl-1.0.0-beta3/crypto/sha/sha.h.fips openssl-1.0.0-beta3/crypto/sha/sha.h
---- openssl-1.0.0-beta3/crypto/sha/sha.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/sha/sha.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/sha/sha.h.fips openssl-1.0.0-beta4/crypto/sha/sha.h
+--- openssl-1.0.0-beta4/crypto/sha/sha.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/sha/sha.h	2009-11-12 12:36:50.000000000 +0100
 @@ -106,6 +106,9 @@ typedef struct SHAstate_st
  	} SHA_CTX;
  
@@ -11725,9 +11671,9 @@ diff -up openssl-1.0.0-beta3/crypto/sha/sha.h.fips openssl-1.0.0-beta3/crypto/sh
  int SHA_Init(SHA_CTX *c);
  int SHA_Update(SHA_CTX *c, const void *data, size_t len);
  int SHA_Final(unsigned char *md, SHA_CTX *c);
-diff -up openssl-1.0.0-beta3/crypto/sha/sha_locl.h.fips openssl-1.0.0-beta3/crypto/sha/sha_locl.h
---- openssl-1.0.0-beta3/crypto/sha/sha_locl.h.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/crypto/sha/sha_locl.h	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/sha/sha_locl.h.fips openssl-1.0.0-beta4/crypto/sha/sha_locl.h
+--- openssl-1.0.0-beta4/crypto/sha/sha_locl.h.fips	2009-11-12 12:36:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/sha/sha_locl.h	2009-11-12 12:36:50.000000000 +0100
 @@ -122,8 +122,15 @@ void sha1_block_data_order (SHA_CTX *c, 
  #define INIT_DATA_h3 0x10325476UL
  #define INIT_DATA_h4 0xc3d2e1f0UL
@@ -11744,9 +11690,9 @@ diff -up openssl-1.0.0-beta3/crypto/sha/sha_locl.h.fips openssl-1.0.0-beta3/cryp
  	memset (c,0,sizeof(*c));
  	c->h0=INIT_DATA_h0;
  	c->h1=INIT_DATA_h1;
-diff -up openssl-1.0.0-beta3/crypto/sha/sha1dgst.c.fips openssl-1.0.0-beta3/crypto/sha/sha1dgst.c
---- openssl-1.0.0-beta3/crypto/sha/sha1dgst.c.fips	2007-01-21 14:07:14.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/sha/sha1dgst.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/sha/sha1dgst.c.fips openssl-1.0.0-beta4/crypto/sha/sha1dgst.c
+--- openssl-1.0.0-beta4/crypto/sha/sha1dgst.c.fips	2007-01-21 14:07:14.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/sha/sha1dgst.c	2009-11-12 12:36:50.000000000 +0100
 @@ -63,6 +63,10 @@
  #define SHA_1
  
@@ -11758,9 +11704,9 @@ diff -up openssl-1.0.0-beta3/crypto/sha/sha1dgst.c.fips openssl-1.0.0-beta3/cryp
  
  const char SHA1_version[]="SHA1" OPENSSL_VERSION_PTEXT;
  
-diff -up openssl-1.0.0-beta3/crypto/sha/sha256.c.fips openssl-1.0.0-beta3/crypto/sha/sha256.c
---- openssl-1.0.0-beta3/crypto/sha/sha256.c.fips	2007-01-21 14:07:14.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/sha/sha256.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/sha/sha256.c.fips openssl-1.0.0-beta4/crypto/sha/sha256.c
+--- openssl-1.0.0-beta4/crypto/sha/sha256.c.fips	2007-01-21 14:07:14.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/sha/sha256.c	2009-11-12 12:36:50.000000000 +0100
 @@ -12,12 +12,19 @@
  
  #include <openssl/crypto.h>
@@ -11791,9 +11737,9 @@ diff -up openssl-1.0.0-beta3/crypto/sha/sha256.c.fips openssl-1.0.0-beta3/crypto
  	memset (c,0,sizeof(*c));
  	c->h[0]=0x6a09e667UL;	c->h[1]=0xbb67ae85UL;
  	c->h[2]=0x3c6ef372UL;	c->h[3]=0xa54ff53aUL;
-diff -up openssl-1.0.0-beta3/crypto/sha/sha512.c.fips openssl-1.0.0-beta3/crypto/sha/sha512.c
---- openssl-1.0.0-beta3/crypto/sha/sha512.c.fips	2008-12-29 13:35:48.000000000 +0100
-+++ openssl-1.0.0-beta3/crypto/sha/sha512.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/crypto/sha/sha512.c.fips openssl-1.0.0-beta4/crypto/sha/sha512.c
+--- openssl-1.0.0-beta4/crypto/sha/sha512.c.fips	2008-12-29 13:35:48.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/sha/sha512.c	2009-11-12 12:36:50.000000000 +0100
 @@ -5,6 +5,10 @@
   * ====================================================================
   */
@@ -11834,10 +11780,10 @@ diff -up openssl-1.0.0-beta3/crypto/sha/sha512.c.fips openssl-1.0.0-beta3/crypto
  				asm ("rotrdi %0,%1,%2"	\
  				: "=r"(ret)		\
  				: "r"(a),"K"(n)); ret;	})
-diff -up openssl-1.0.0-beta3/Makefile.org.fips openssl-1.0.0-beta3/Makefile.org
---- openssl-1.0.0-beta3/Makefile.org.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/Makefile.org	2009-09-30 13:25:58.000000000 +0200
-@@ -109,6 +109,9 @@ LIBKRB5=
+diff -up openssl-1.0.0-beta4/Makefile.org.fips openssl-1.0.0-beta4/Makefile.org
+--- openssl-1.0.0-beta4/Makefile.org.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/Makefile.org	2009-11-12 12:36:50.000000000 +0100
+@@ -110,6 +110,9 @@ LIBKRB5=
  ZLIB_INCLUDE=
  LIBZLIB=
  
@@ -11847,7 +11793,7 @@ diff -up openssl-1.0.0-beta3/Makefile.org.fips openssl-1.0.0-beta3/Makefile.org
  DIRS=   crypto ssl engines apps test tools
  ENGDIRS= ccgost
  SHLIBDIRS= crypto ssl
-@@ -121,7 +124,7 @@ SDIRS=  \
+@@ -122,7 +125,7 @@ SDIRS=  \
  	bn ec rsa dsa ecdsa dh ecdh dso engine \
  	buffer bio stack lhash rand err \
  	evp asn1 pem x509 x509v3 conf txt_db pkcs7 pkcs12 comp ocsp ui krb5 \
@@ -11856,7 +11802,7 @@ diff -up openssl-1.0.0-beta3/Makefile.org.fips openssl-1.0.0-beta3/Makefile.org
  # keep in mind that the above list is adjusted by ./Configure
  # according to no-xxx arguments...
  
-@@ -204,6 +207,7 @@ BUILDENV=	PLATFORM='$(PLATFORM)' PROCESS
+@@ -206,6 +209,7 @@ BUILDENV=	PLATFORM='$(PLATFORM)' PROCESS
  		RMD160_ASM_OBJ='$(RMD160_ASM_OBJ)'		\
  		WP_ASM_OBJ='$(WP_ASM_OBJ)'			\
  		PERLASM_SCHEME='$(PERLASM_SCHEME)'		\
@@ -11864,9 +11810,9 @@ diff -up openssl-1.0.0-beta3/Makefile.org.fips openssl-1.0.0-beta3/Makefile.org
  		THIS=$${THIS:-$@} MAKEFILE=Makefile MAKEOVERRIDES=
  # MAKEOVERRIDES= effectively "equalizes" GNU-ish and SysV-ish make flavors,
  # which in turn eliminates ambiguities in variable treatment with -e.
-diff -up openssl-1.0.0-beta3/ssl/ssl_ciph.c.fips openssl-1.0.0-beta3/ssl/ssl_ciph.c
---- openssl-1.0.0-beta3/ssl/ssl_ciph.c.fips	2009-04-07 14:10:59.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/ssl_ciph.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/ssl/ssl_ciph.c.fips openssl-1.0.0-beta4/ssl/ssl_ciph.c
+--- openssl-1.0.0-beta4/ssl/ssl_ciph.c.fips	2009-09-13 01:18:09.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/ssl_ciph.c	2009-11-12 12:36:50.000000000 +0100
 @@ -727,6 +727,9 @@ static void ssl_cipher_collect_ciphers(c
  		    !(c->algorithm_auth & disabled_auth) &&
  		    !(c->algorithm_enc & disabled_enc) &&
@@ -11889,10 +11835,10 @@ diff -up openssl-1.0.0-beta3/ssl/ssl_ciph.c.fips openssl-1.0.0-beta3/ssl/ssl_cip
  			{
  			sk_SSL_CIPHER_push(cipherstack, curr->cipher);
  #ifdef CIPHER_DEBUG
-diff -up openssl-1.0.0-beta3/ssl/ssl_lib.c.fips openssl-1.0.0-beta3/ssl/ssl_lib.c
---- openssl-1.0.0-beta3/ssl/ssl_lib.c.fips	2009-06-30 13:57:24.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/ssl_lib.c	2009-09-30 13:25:58.000000000 +0200
-@@ -1470,6 +1470,14 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *m
+diff -up openssl-1.0.0-beta4/ssl/ssl_lib.c.fips openssl-1.0.0-beta4/ssl/ssl_lib.c
+--- openssl-1.0.0-beta4/ssl/ssl_lib.c.fips	2009-10-16 15:41:52.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/ssl_lib.c	2009-11-12 12:36:50.000000000 +0100
+@@ -1471,6 +1471,14 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *m
  		return(NULL);
  		}
  
@@ -11907,9 +11853,9 @@ diff -up openssl-1.0.0-beta3/ssl/ssl_lib.c.fips openssl-1.0.0-beta3/ssl/ssl_lib.
  	if (SSL_get_ex_data_X509_STORE_CTX_idx() < 0)
  		{
  		SSLerr(SSL_F_SSL_CTX_NEW,SSL_R_X509_VERIFICATION_SETUP_PROBLEMS);
-diff -up openssl-1.0.0-beta3/ssl/ssltest.c.fips openssl-1.0.0-beta3/ssl/ssltest.c
---- openssl-1.0.0-beta3/ssl/ssltest.c.fips	2009-09-30 13:25:57.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/ssltest.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/ssl/ssltest.c.fips openssl-1.0.0-beta4/ssl/ssltest.c
+--- openssl-1.0.0-beta4/ssl/ssltest.c.fips	2009-11-12 12:36:50.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssltest.c	2009-11-12 12:36:50.000000000 +0100
 @@ -265,6 +265,9 @@ static void sv_usage(void)
  	{
  	fprintf(stderr,"usage: ssltest [args ...]\n");
@@ -11984,10 +11930,10 @@ diff -up openssl-1.0.0-beta3/ssl/ssltest.c.fips openssl-1.0.0-beta3/ssl/ssltest.
  	if(s->version == TLS1_VERSION)
  		FIPS_allow_md5(0);
  # endif
-diff -up openssl-1.0.0-beta3/ssl/s23_clnt.c.fips openssl-1.0.0-beta3/ssl/s23_clnt.c
---- openssl-1.0.0-beta3/ssl/s23_clnt.c.fips	2009-04-07 19:01:07.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/s23_clnt.c	2009-09-30 13:25:58.000000000 +0200
-@@ -332,6 +332,14 @@ static int ssl23_client_hello(SSL *s)
+diff -up openssl-1.0.0-beta4/ssl/s23_clnt.c.fips openssl-1.0.0-beta4/ssl/s23_clnt.c
+--- openssl-1.0.0-beta4/ssl/s23_clnt.c.fips	2009-08-05 17:29:14.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/s23_clnt.c	2009-11-12 12:36:50.000000000 +0100
+@@ -335,6 +335,14 @@ static int ssl23_client_hello(SSL *s)
  			version_major = TLS1_VERSION_MAJOR;
  			version_minor = TLS1_VERSION_MINOR;
  			}
@@ -12002,7 +11948,7 @@ diff -up openssl-1.0.0-beta3/ssl/s23_clnt.c.fips openssl-1.0.0-beta3/ssl/s23_cln
  		else if (version == SSL3_VERSION)
  			{
  			version_major = SSL3_VERSION_MAJOR;
-@@ -615,6 +623,14 @@ static int ssl23_get_server_hello(SSL *s
+@@ -618,6 +626,14 @@ static int ssl23_get_server_hello(SSL *s
  		if ((p[2] == SSL3_VERSION_MINOR) &&
  			!(s->options & SSL_OP_NO_SSLv3))
  			{
@@ -12017,9 +11963,9 @@ diff -up openssl-1.0.0-beta3/ssl/s23_clnt.c.fips openssl-1.0.0-beta3/ssl/s23_cln
  			s->version=SSL3_VERSION;
  			s->method=SSLv3_client_method();
  			}
-diff -up openssl-1.0.0-beta3/ssl/s23_srvr.c.fips openssl-1.0.0-beta3/ssl/s23_srvr.c
---- openssl-1.0.0-beta3/ssl/s23_srvr.c.fips	2008-06-03 04:48:34.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/s23_srvr.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/ssl/s23_srvr.c.fips openssl-1.0.0-beta4/ssl/s23_srvr.c
+--- openssl-1.0.0-beta4/ssl/s23_srvr.c.fips	2008-06-03 04:48:34.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/s23_srvr.c	2009-11-12 12:36:50.000000000 +0100
 @@ -386,6 +386,15 @@ int ssl23_get_client_hello(SSL *s)
  			}
  		}
@@ -12036,9 +11982,9 @@ diff -up openssl-1.0.0-beta3/ssl/s23_srvr.c.fips openssl-1.0.0-beta3/ssl/s23_srv
  	if (s->state == SSL23_ST_SR_CLNT_HELLO_B)
  		{
  		/* we have SSLv3/TLSv1 in an SSLv2 header
-diff -up openssl-1.0.0-beta3/ssl/s3_clnt.c.fips openssl-1.0.0-beta3/ssl/s3_clnt.c
---- openssl-1.0.0-beta3/ssl/s3_clnt.c.fips	2009-06-16 18:39:20.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/s3_clnt.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/ssl/s3_clnt.c.fips openssl-1.0.0-beta4/ssl/s3_clnt.c
+--- openssl-1.0.0-beta4/ssl/s3_clnt.c.fips	2009-10-30 15:06:18.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/s3_clnt.c	2009-11-12 12:36:50.000000000 +0100
 @@ -156,6 +156,10 @@
  #include <openssl/objects.h>
  #include <openssl/evp.h>
@@ -12050,7 +11996,7 @@ diff -up openssl-1.0.0-beta3/ssl/s3_clnt.c.fips openssl-1.0.0-beta3/ssl/s3_clnt.
  #ifndef OPENSSL_NO_DH
  #include <openssl/dh.h>
  #endif
-@@ -1524,6 +1528,8 @@ int ssl3_get_key_exchange(SSL *s)
+@@ -1530,6 +1534,8 @@ int ssl3_get_key_exchange(SSL *s)
  			q=md_buf;
  			for (num=2; num > 0; num--)
  				{
@@ -12059,9 +12005,9 @@ diff -up openssl-1.0.0-beta3/ssl/s3_clnt.c.fips openssl-1.0.0-beta3/ssl/s3_clnt.
  				EVP_DigestInit_ex(&md_ctx,(num == 2)
  					?s->ctx->md5:s->ctx->sha1, NULL);
  				EVP_DigestUpdate(&md_ctx,&(s->s3->client_random[0]),SSL3_RANDOM_SIZE);
-diff -up openssl-1.0.0-beta3/ssl/s3_enc.c.fips openssl-1.0.0-beta3/ssl/s3_enc.c
---- openssl-1.0.0-beta3/ssl/s3_enc.c.fips	2009-04-16 19:22:50.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/s3_enc.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/ssl/s3_enc.c.fips openssl-1.0.0-beta4/ssl/s3_enc.c
+--- openssl-1.0.0-beta4/ssl/s3_enc.c.fips	2009-04-16 19:22:50.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/s3_enc.c	2009-11-12 12:36:50.000000000 +0100
 @@ -170,6 +170,7 @@ static int ssl3_generate_key_block(SSL *
  #endif
  	k=0;
@@ -12087,10 +12033,10 @@ diff -up openssl-1.0.0-beta3/ssl/s3_enc.c.fips openssl-1.0.0-beta3/ssl/s3_enc.c
  	EVP_MD_CTX_copy_ex(&ctx,d);
  	n=EVP_MD_CTX_size(&ctx);
  	if (n < 0)
-diff -up openssl-1.0.0-beta3/ssl/s3_srvr.c.fips openssl-1.0.0-beta3/ssl/s3_srvr.c
---- openssl-1.0.0-beta3/ssl/s3_srvr.c.fips	2009-06-26 17:04:22.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/s3_srvr.c	2009-09-30 13:25:58.000000000 +0200
-@@ -1674,6 +1674,8 @@ int ssl3_send_server_key_exchange(SSL *s
+diff -up openssl-1.0.0-beta4/ssl/s3_srvr.c.fips openssl-1.0.0-beta4/ssl/s3_srvr.c
+--- openssl-1.0.0-beta4/ssl/s3_srvr.c.fips	2009-10-30 14:22:44.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/s3_srvr.c	2009-11-12 12:36:50.000000000 +0100
+@@ -1679,6 +1679,8 @@ int ssl3_send_server_key_exchange(SSL *s
  				j=0;
  				for (num=2; num > 0; num--)
  					{
@@ -12099,9 +12045,9 @@ diff -up openssl-1.0.0-beta3/ssl/s3_srvr.c.fips openssl-1.0.0-beta3/ssl/s3_srvr.
  					EVP_DigestInit_ex(&md_ctx,(num == 2)
  						?s->ctx->md5:s->ctx->sha1, NULL);
  					EVP_DigestUpdate(&md_ctx,&(s->s3->client_random[0]),SSL3_RANDOM_SIZE);
-diff -up openssl-1.0.0-beta3/ssl/t1_enc.c.fips openssl-1.0.0-beta3/ssl/t1_enc.c
---- openssl-1.0.0-beta3/ssl/t1_enc.c.fips	2009-04-19 20:03:13.000000000 +0200
-+++ openssl-1.0.0-beta3/ssl/t1_enc.c	2009-09-30 13:25:58.000000000 +0200
+diff -up openssl-1.0.0-beta4/ssl/t1_enc.c.fips openssl-1.0.0-beta4/ssl/t1_enc.c
+--- openssl-1.0.0-beta4/ssl/t1_enc.c.fips	2009-04-19 20:03:13.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/t1_enc.c	2009-11-12 12:36:50.000000000 +0100
 @@ -169,6 +169,8 @@ static void tls1_P_hash(const EVP_MD *md
  
  	HMAC_CTX_init(&ctx);
