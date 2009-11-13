@@ -1,0 +1,14 @@
+We have to keep the beta status on 3 as some applications (OpenSSH) incorrectly insist
+on having the same beta status of OpenSSL library as they were built against.
+diff -up openssl-1.0.0-beta4/crypto/opensslv.h.version openssl-1.0.0-beta4/crypto/opensslv.h
+--- openssl-1.0.0-beta4/crypto/opensslv.h.version	2009-11-12 15:17:28.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/opensslv.h	2009-11-13 12:39:08.000000000 +0100
+@@ -25,7 +25,7 @@
+  * (Prior to 0.9.5a beta1, a different scheme was used: MMNNFFRBB for
+  *  major minor fix final patch/beta)
+  */
+-#define OPENSSL_VERSION_NUMBER	0x10000004L
++#define OPENSSL_VERSION_NUMBER	0x10000003L
+ #ifdef OPENSSL_FIPS
+ #define OPENSSL_VERSION_TEXT	"OpenSSL 1.0.0-fips-beta4 10 Nov 2009"
+ #else

@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.11.%{beta}%{?dist}
+Release: 0.12.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -60,6 +60,7 @@ Patch47: openssl-0.9.8j-readme-warning.patch
 Patch48: openssl-0.9.8j-bad-mime.patch
 Patch49: openssl-1.0.0-beta4-algo-doc.patch
 Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
+Patch51: openssl-1.0.0-beta4-version.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-beta4-reneg.patch
 
@@ -139,6 +140,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch48 -p1 -b .bad-mime
 %patch49 -p1 -b .algo-doc
 %patch50 -p1 -b .dtls1-abi
+%patch51 -p1 -b .version
 
 %patch60 -p1 -b .reneg
 
@@ -389,6 +391,10 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov 13 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.12.beta4
+- keep the beta status in version number at 3 so we do not have to rebuild
+  openssh and possibly other dependencies with too strict version check
+
 * Thu Nov 12 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.11.beta4
 - update to new upstream version, no soname bump needed 
 - fix CVE-2009-3555 - note that the fix is bypassed if SSL_OP_ALL is used
