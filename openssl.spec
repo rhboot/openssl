@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.12.%{beta}%{?dist}
+Release: 0.14.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -63,6 +63,9 @@ Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
 Patch51: openssl-1.0.0-beta4-version.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-beta4-reneg.patch
+# This one is not backported but has to be applied after reneg patch
+Patch61: openssl-1.0.0-beta4-client-reneg.patch
+Patch62: openssl-1.0.0-beta4-backports.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -143,6 +146,8 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch51 -p1 -b .version
 
 %patch60 -p1 -b .reneg
+%patch61 -p1 -b .client-reneg
+%patch62 -p1 -b .backports
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -176,7 +181,7 @@ sslarch=linux-alpha-gcc
 sslarch="linux-generic32 -DB_ENDIAN"
 %endif
 %ifarch s390x
-sslarch="linux-generic64 -DB_ENDIAN"
+sslarch="linux-s390x"
 %endif
 %ifarch %{arm} sh3 sh4
 sslarch=linux-generic32
@@ -391,6 +396,13 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov 20 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.14.beta4
+- fix build on s390x
+
+* Wed Nov 18 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.13.beta4
+- disable enforcement of the renegotiation extension on the client (#537962)
+- add fixes from the current upstream snapshot
+
 * Fri Nov 13 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.12.beta4
 - keep the beta status in version number at 3 so we do not have to rebuild
   openssh and possibly other dependencies with too strict version check

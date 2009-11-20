@@ -1,0 +1,35 @@
+Do not enforce the renegotiation extension on the client - too many broken servers remain.
+diff -up openssl-1.0.0-beta4/ssl/t1_lib.c.client-reneg openssl-1.0.0-beta4/ssl/t1_lib.c
+--- openssl-1.0.0-beta4/ssl/t1_lib.c.client-reneg	2009-11-12 15:17:29.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/t1_lib.c	2009-11-18 14:04:19.000000000 +0100
+@@ -985,6 +985,7 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 
+ 	if (data >= (d+n-2))
+ 		{
++#if 0
+ 		/* Because the client does not see any renegotiation during an
+ 		   attack, we must enforce this on all server hellos, even the
+ 		   first */
+@@ -994,6 +995,7 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 			*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+ 			return 0;
+ 			}
++#endif
+ 		return 1;
+ 		}
+ 
+@@ -1126,12 +1128,14 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 		return 0;
+ 		}
+ 
++#if 0
+ 	if (!renegotiate_seen
+ 		&& !(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+ 		{
+ 		*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+ 		return 0;
+ 		}
++#endif
+ 
+ 	if (!s->hit && tlsext_servername == 1)
+ 		{
