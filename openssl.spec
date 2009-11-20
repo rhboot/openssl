@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.14.%{beta}%{?dist}
+Release: 0.14.%{beta}.1%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -74,6 +74,14 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 BuildRequires: /usr/bin/rename
 Requires: mktemp, ca-certificates >= 2008-5
+
+# Temporary hack
+Requires(post): coreutils
+%ifarch ppc64 s390x sparc64 x86_64
+Provides: libcrypto.so.8()(64bit) libssl.so.8()(64bit)
+%else
+Provides: libcrypto.so.8 libssl.so.8
+%endif
 
 %description
 The OpenSSL toolkit provides support for secure communications between
@@ -156,14 +164,14 @@ perl util/perlpath.pl `dirname %{__perl}`
 touch Makefile
 make TABLE PERL=%{__perl}
 
-%build 
+%build
 # Figure out which flags we want to use.
 # default
 sslarch=%{_os}-%{_arch}
 %ifarch %ix86
 sslarch=linux-elf
 if ! echo %{_target} | grep -q i686 ; then
-	sslflags="no-asm 386"
+        sslflags="no-asm 386"
 fi
 %endif
 %ifarch sparcv9
@@ -191,11 +199,11 @@ sslarch=linux-generic32
 # usable on all platforms.  The Configure script already knows to use -fPIC and
 # RPM_OPT_FLAGS, so we can skip specifiying them here.
 ./Configure \
-	--prefix=/usr --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
-	zlib enable-camellia enable-seed enable-tlsext enable-rfc3779 \
-	enable-cms enable-md2 no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa \
-	--with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
-	--with-krb5-dir=/usr shared  ${sslarch} fips
+        --prefix=/usr --openssldir=%{_sysconfdir}/pki/tls ${sslflags} \
+        zlib enable-camellia enable-seed enable-tlsext enable-rfc3779 \
+        enable-cms enable-md2 no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa \
+        --with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
+        --with-krb5-dir=/usr shared  ${sslarch} fips
 
 # Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
 # marked as not requiring an executable stack.
@@ -219,14 +227,14 @@ LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 export LD_LIBRARY_PATH
 make -C test apps tests
 %{__cc} -o openssl-thread-test \
-	`krb5-config --cflags` \
-	-I./include \
-	$RPM_OPT_FLAGS \
-	%{SOURCE8} \
-	-L. \
-	-lssl -lcrypto \
-	`krb5-config --libs` \
-	-lpthread -lz -ldl
+        `krb5-config --cflags` \
+        -I./include \
+        $RPM_OPT_FLAGS \
+        %{SOURCE8} \
+        -L. \
+        -lssl -lcrypto \
+        `krb5-config --libs` \
+        -lpthread -lz -ldl
 ./openssl-thread-test --threads %{thread_test_threads}
 
 # Add generation of HMAC checksum of the final stripped library
@@ -254,9 +262,11 @@ rmdir $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man
 mv $RPM_BUILD_ROOT/usr/lib/* $RPM_BUILD_ROOT%{_libdir}/ || :
 rename so.%{soversion} so.%{version} $RPM_BUILD_ROOT%{_libdir}/*.so.%{soversion}
 for lib in $RPM_BUILD_ROOT%{_libdir}/*.so.%{version} ; do
-	chmod 755 ${lib}
-	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
-	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
+        chmod 755 ${lib}
+        ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
+        ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
+        # Temporary hack
+        ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.8
 
 done
 
@@ -268,24 +278,24 @@ install -m755 %{SOURCE6} $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/certs/make-dummy-
 
 # Make sure we actually include the headers we built against.
 for header in $RPM_BUILD_ROOT%{_includedir}/openssl/* ; do
-	if [ -f ${header} -a -f include/openssl/$(basename ${header}) ] ; then
-		install -m644 include/openssl/`basename ${header}` ${header}
-	fi
+        if [ -f ${header} -a -f include/openssl/$(basename ${header}) ] ; then
+                install -m644 include/openssl/`basename ${header}` ${header}
+        fi
 done
 
 # Rename man pages so that they don't conflict with other system man pages.
 pushd $RPM_BUILD_ROOT%{_mandir}
 for manpage in man*/* ; do
-	if [ -L ${manpage} ]; then
-		TARGET=`ls -l ${manpage} | awk '{ print $NF }'`
-		ln -snf ${TARGET}ssl ${manpage}ssl
-		rm -f ${manpage}
-	else
-		mv ${manpage} ${manpage}ssl
-	fi
+        if [ -L ${manpage} ]; then
+                TARGET=`ls -l ${manpage} | awk '{ print $NF }'`
+                ln -snf ${TARGET}ssl ${manpage}ssl
+                rm -f ${manpage}
+        else
+                mv ${manpage} ${manpage}ssl
+        fi
 done
 for conflict in passwd rand ; do
-	rename ${conflict} ssl${conflict} man*/${conflict}*
+        rename ${conflict} ssl${conflict} man*/${conflict}*
 done
 popd
 
@@ -304,10 +314,10 @@ touch -r %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/openssl.cnf
 # Fix libdir.
 pushd $RPM_BUILD_ROOT/%{_libdir}/pkgconfig
 for i in *.pc ; do
-	sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
-		$i >$i.tmp && \
-	cat $i.tmp >$i && \
-	rm -f $i.tmp
+        sed 's,^libdir=${exec_prefix}/lib,libdir=${exec_prefix}/%{_lib},g' \
+                $i >$i.tmp && \
+        cat $i.tmp >$i && \
+        rm -f $i.tmp
 done
 popd
 
@@ -328,11 +338,11 @@ basearch=sparc64
 # can have both a 32- and 64-bit version of the library, and they each need
 # their own correct-but-different versions of opensslconf.h to be usable.
 install -m644 %{SOURCE10} \
-	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
+        $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 cat $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h >> \
-	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
+        $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf-${basearch}.h
 install -m644 %{SOURCE9} \
-	$RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
+        $RPM_BUILD_ROOT/%{_prefix}/include/openssl/opensslconf.h
 %endif
 
 # Remove unused files from upstream fips support
@@ -343,7 +353,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
-%files 
+%files
 %defattr(-,root,root)
 %doc FAQ LICENSE CHANGES NEWS INSTALL README
 %doc doc/c-indentation.el doc/openssl.txt
@@ -373,6 +383,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 
+# Temporary hack
+%attr(0755,root,root) %{_libdir}/*.so.8
+
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
@@ -396,6 +409,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov 20 2009 Dennis Gregorovic <dgregor@redhat.com> - 1.0.0-0.14.beta4.1
+- compat hacks for rebuild
+
 * Fri Nov 20 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.14.beta4
 - fix build on s390x
 
@@ -408,7 +424,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
   openssh and possibly other dependencies with too strict version check
 
 * Thu Nov 12 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.11.beta4
-- update to new upstream version, no soname bump needed 
+- update to new upstream version, no soname bump needed
 - fix CVE-2009-3555 - note that the fix is bypassed if SSL_OP_ALL is used
   so the compatibility with unfixed clients is not broken. The
   protocol extension is also not final.
@@ -514,7 +530,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 - temporarily provide symlink to old soname to make it possible to rebuild
   the dependent packages in rawhide
 - add eap-fast support (#428181)
-- add possibility to disable zlib by setting 
+- add possibility to disable zlib by setting
 - add fips mode support for testing purposes
 - do not null dereference on some invalid smime files
 - add buildrequires pkgconfig (#479493)
@@ -721,7 +737,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 - upgrade to new upstream version (no soname bump needed)
 - disable thread test - it was testing the backport of the
   RSA blinding - no longer needed
-- added support for changing serial number to 
+- added support for changing serial number to
   Makefile.certificate (#151188)
 - make ca-bundle.crt a config file (#118903)
 
