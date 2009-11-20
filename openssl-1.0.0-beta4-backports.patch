@@ -1,0 +1,45 @@
+diff -up openssl-1.0.0-beta4/crypto/asn1/d2i_pu.c.backports openssl-1.0.0-beta4/crypto/asn1/d2i_pu.c
+--- openssl-1.0.0-beta4/crypto/asn1/d2i_pu.c.backports	2008-11-12 04:57:49.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/asn1/d2i_pu.c	2009-11-18 14:11:14.000000000 +0100
+@@ -87,9 +87,13 @@ EVP_PKEY *d2i_PublicKey(int type, EVP_PK
+ 		}
+ 	else	ret= *a;
+ 
+-	ret->save_type=type;
+-	ret->type=EVP_PKEY_type(type);
+-	switch (ret->type)
++	if (!EVP_PKEY_set_type(ret, type))
++		{
++		ASN1err(ASN1_F_D2I_PUBLICKEY,ERR_R_EVP_LIB);
++		goto err;
++		}
++
++	switch (EVP_PKEY_id(ret))
+ 		{
+ #ifndef OPENSSL_NO_RSA
+ 	case EVP_PKEY_RSA:
+diff -up openssl-1.0.0-beta4/crypto/evp/p_lib.c.backports openssl-1.0.0-beta4/crypto/evp/p_lib.c
+--- openssl-1.0.0-beta4/crypto/evp/p_lib.c.backports	2006-07-04 22:27:44.000000000 +0200
++++ openssl-1.0.0-beta4/crypto/evp/p_lib.c	2009-11-18 14:11:26.000000000 +0100
+@@ -220,7 +220,10 @@ static int pkey_set_type(EVP_PKEY *pkey,
+ #ifndef OPENSSL_NO_ENGINE
+ 		/* If we have an ENGINE release it */
+ 		if (pkey->engine)
++			{
+ 			ENGINE_finish(pkey->engine);
++			pkey->engine = NULL;
++			}
+ #endif
+ 		}
+ 	if (str)
+diff -up openssl-1.0.0-beta4/crypto/x509/x509_vfy.c.backports openssl-1.0.0-beta4/crypto/x509/x509_vfy.c
+--- openssl-1.0.0-beta4/crypto/x509/x509_vfy.c.backports	2009-10-31 20:21:47.000000000 +0100
++++ openssl-1.0.0-beta4/crypto/x509/x509_vfy.c	2009-11-18 14:11:31.000000000 +0100
+@@ -1727,6 +1727,7 @@ int X509_cmp_time(const ASN1_TIME *ctm, 
+ 			offset= -offset;
+ 		}
+ 	atm.type=ctm->type;
++	atm.flags = 0;
+ 	atm.length=sizeof(buff2);
+ 	atm.data=(unsigned char *)buff2;
+ 

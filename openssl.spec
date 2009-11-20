@@ -11,7 +11,7 @@
 # 1.0.0 soversion = 10
 %define soversion 10
 
-%define beta beta3
+%define beta beta4
 
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.4.%{beta}%{?dist}
+Release: 0.14.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -35,36 +35,37 @@ Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 Source11: README.FIPS
 # Build changes
-Patch0: openssl-1.0.0-beta3-redhat.patch
+Patch0: openssl-1.0.0-beta4-redhat.patch
 Patch1: openssl-1.0.0-beta3-defaults.patch
-Patch2: openssl-1.0.0-beta3-krb5.patch
 Patch3: openssl-1.0.0-beta3-soversion.patch
-Patch4: openssl-1.0.0-beta3-enginesdir.patch
+Patch4: openssl-1.0.0-beta4-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
 # Bug fixes
-Patch21: openssl-0.9.8b-aliasing-bug.patch
-Patch23: openssl-1.0.0-beta3-default-paths.patch
+Patch23: openssl-1.0.0-beta4-default-paths.patch
+Patch24: openssl-1.0.0-beta4-binutils.patch
 # Functionality changes
 Patch32: openssl-0.9.8g-ia64.patch
-Patch33: openssl-0.9.8j-ca-dir.patch
+Patch33: openssl-1.0.0-beta4-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.8j-version-add-engines.patch
 Patch38: openssl-1.0.0-beta3-cipher-change.patch
 Patch39: openssl-1.0.0-beta3-ipv6-apps.patch
-Patch40: openssl-1.0.0-beta3-fips.patch
+Patch40: openssl-1.0.0-beta4-fips.patch
 Patch41: openssl-1.0.0-beta3-fipscheck.patch
 Patch43: openssl-1.0.0-beta3-fipsmode.patch
 Patch44: openssl-1.0.0-beta3-fipsrng.patch
 Patch45: openssl-0.9.8j-env-nozlib.patch
 Patch47: openssl-0.9.8j-readme-warning.patch
 Patch48: openssl-0.9.8j-bad-mime.patch
-Patch49: openssl-0.9.8k-algo-doc.patch
-Patch50: openssl-1.0.0-beta3-curl.patch
-Patch51: openssl-1.0.0-beta3-const.patch
+Patch49: openssl-1.0.0-beta4-algo-doc.patch
+Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
+Patch51: openssl-1.0.0-beta4-version.patch
 # Backported fixes including security fixes
-Patch60: openssl-1.0.0-beta3-namingstr.patch
-Patch61: openssl-1.0.0-beta3-namingblk.patch
+Patch60: openssl-1.0.0-beta4-reneg.patch
+# This one is not backported but has to be applied after reneg patch
+Patch61: openssl-1.0.0-beta4-client-reneg.patch
+Patch62: openssl-1.0.0-beta4-backports.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -73,14 +74,6 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 BuildRequires: /usr/bin/rename
 Requires: mktemp, ca-certificates >= 2008-5
-
-# Temporary hack
-Requires(post): coreutils
-%ifarch ppc64 s390x sparc64 x86_64
-Provides: libcrypto.so.8()(64bit) libssl.so.8()(64bit)
-%else
-Provides: libcrypto.so.8 libssl.so.8
-%endif
 
 %description
 The OpenSSL toolkit provides support for secure communications between
@@ -127,15 +120,13 @@ from other formats to the formats used by the OpenSSL toolkit.
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .defaults
-# Fix link line for libssl (bug #111154).
-%patch2 -p1 -b .krb5
 %patch3 -p1 -b .soversion
 %patch4 -p1 -b .enginesdir
 %patch5 -p1 -b .no-rpath
 %patch6 -p1 -b .use-localhost
 
-%patch21 -p1 -b .aliasing-bug
 %patch23 -p1 -b .default-paths
+%patch24 -p1 -b .binutils
 
 %patch32 -p1 -b .ia64
 %patch33 -p1 -b .ca-dir
@@ -151,10 +142,12 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch47 -p1 -b .warning
 %patch48 -p1 -b .bad-mime
 %patch49 -p1 -b .algo-doc
-%patch50 -p1 -b .curl
-%patch51 -p1 -b .const
-%patch60 -p1 -b .namingstr
-%patch61 -p1 -b .namingblk
+%patch50 -p1 -b .dtls1-abi
+%patch51 -p1 -b .version
+
+%patch60 -p1 -b .reneg
+%patch61 -p1 -b .client-reneg
+%patch62 -p1 -b .backports
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -188,7 +181,7 @@ sslarch=linux-alpha-gcc
 sslarch="linux-generic32 -DB_ENDIAN"
 %endif
 %ifarch s390x
-sslarch="linux-generic64 -DB_ENDIAN"
+sslarch="linux-s390x"
 %endif
 %ifarch %{arm} sh3 sh4
 sslarch=linux-generic32
@@ -264,8 +257,6 @@ for lib in $RPM_BUILD_ROOT%{_libdir}/*.so.%{version} ; do
 	chmod 755 ${lib}
 	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`
 	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.%{soversion}
-# Temporary hack
-	ln -s -f `basename ${lib}` $RPM_BUILD_ROOT%{_libdir}/`basename ${lib} .%{version}`.8
 
 done
 
@@ -382,9 +373,6 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
 
-# Temporary hack
-%attr(0755,root,root) %{_libdir}/*.so.8
-
 %files devel
 %defattr(-,root,root)
 %{_prefix}/include/openssl
@@ -407,18 +395,45 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 
 %postun -p /sbin/ldconfig
 
-%triggerpostun -- openssl < 1.0.0
-# Temporary hack
-[ $1 != 0 ] || exit 0
-if [ "$(readlink %{_libdir}/libcrypto.so.8)" != libcrypto.so.%{version} ] ; then
-    ln -sf libcrypto.so.%{version} %{_libdir}/libcrypto.so.8 || :
-fi
-if [ "$(readlink %{_libdir}/libssl.so.8)" != libssl.so.%{version} ] ; then
-    ln -sf libssl.so.%{version} %{_libdir}/libssl.so.8 || :
-fi
-/sbin/ldconfig -X
-
 %changelog
+* Fri Nov 20 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.14.beta4
+- fix build on s390x
+
+* Wed Nov 18 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.13.beta4
+- disable enforcement of the renegotiation extension on the client (#537962)
+- add fixes from the current upstream snapshot
+
+* Fri Nov 13 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.12.beta4
+- keep the beta status in version number at 3 so we do not have to rebuild
+  openssh and possibly other dependencies with too strict version check
+
+* Thu Nov 12 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.11.beta4
+- update to new upstream version, no soname bump needed 
+- fix CVE-2009-3555 - note that the fix is bypassed if SSL_OP_ALL is used
+  so the compatibility with unfixed clients is not broken. The
+  protocol extension is also not final.
+
+* Fri Oct 16 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.10.beta3
+- fix use of freed memory if SSL_CTX_free() is called before
+  SSL_free() (#521342)
+
+* Thu Oct  8 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.9.beta3
+- fix typo in DTLS1 code (#527015)
+- fix leak in error handling of d2i_SSL_SESSION()
+
+* Wed Sep 30 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.8.beta3
+- fix RSA and DSA FIPS selftests
+- reenable fixed x86_64 camellia assembler code (#521127)
+
+* Fri Sep  4 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.7.beta3
+- temporarily disable x86_64 camellia assembler code (#521127)
+
+* Mon Aug 31 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.6.beta3
+- fix openssl dgst -dss1 (#520152)
+
+* Wed Aug 26 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.5.beta3
+- drop the compat symlink hacks
+
 * Sat Aug 22 2009 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.4.beta3
 - constify SSL_CIPHER_description()
 
