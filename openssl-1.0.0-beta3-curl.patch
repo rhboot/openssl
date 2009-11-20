@@ -1,0 +1,27 @@
+diff -up openssl-1.0.0-beta3/apps/tsget.curl openssl-1.0.0-beta3/apps/tsget
+--- openssl-1.0.0-beta3/apps/tsget.curl	2006-02-13 00:11:21.000000000 +0100
++++ openssl-1.0.0-beta3/apps/tsget	2009-08-21 15:37:24.000000000 +0200
+@@ -7,7 +7,7 @@ use strict;
+ use IO::Handle;
+ use Getopt::Std;
+ use File::Basename;
+-use WWW::Curl::easy;
++use WWW::Curl::Easy;
+ 
+ use vars qw(%options);
+ 
+@@ -37,7 +37,7 @@ sub create_curl {
+     my $url = shift;
+ 
+     # Create Curl object.
+-    my $curl = WWW::Curl::easy::new();
++    my $curl = WWW::Curl::Easy::new();
+ 
+     # Error-handling related options.
+     $curl->setopt(CURLOPT_VERBOSE, 1) if $options{d};
+@@ -192,4 +192,4 @@ REQUEST: foreach (@ARGV) {
+     STDERR->printflush(", $output written.\n") if $options{v};
+ }
+ $curl->cleanup();
+-WWW::Curl::easy::global_cleanup();
++WWW::Curl::Easy::global_cleanup();
