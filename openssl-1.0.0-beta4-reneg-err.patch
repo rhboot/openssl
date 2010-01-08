@@ -1,0 +1,93 @@
+Better error reporting for unsafe renegotiation.
+diff -up openssl-1.0.0-beta4/ssl/ssl_err.c.reneg-err openssl-1.0.0-beta4/ssl/ssl_err.c
+--- openssl-1.0.0-beta4/ssl/ssl_err.c.reneg-err	2009-11-09 19:45:42.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssl_err.c	2009-11-20 17:56:57.000000000 +0100
+@@ -226,7 +226,9 @@ static ERR_STRING_DATA SSL_str_functs[]=
+ {ERR_FUNC(SSL_F_SSL_LOAD_CLIENT_CA_FILE),	"SSL_load_client_CA_file"},
+ {ERR_FUNC(SSL_F_SSL_NEW),	"SSL_new"},
+ {ERR_FUNC(SSL_F_SSL_PARSE_CLIENTHELLO_RENEGOTIATE_EXT),	"SSL_PARSE_CLIENTHELLO_RENEGOTIATE_EXT"},
++{ERR_FUNC(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT),	"SSL_PARSE_CLIENTHELLO_TLSEXT"},
+ {ERR_FUNC(SSL_F_SSL_PARSE_SERVERHELLO_RENEGOTIATE_EXT),	"SSL_PARSE_SERVERHELLO_RENEGOTIATE_EXT"},
++{ERR_FUNC(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT),	"SSL_PARSE_SERVERHELLO_TLSEXT"},
+ {ERR_FUNC(SSL_F_SSL_PEEK),	"SSL_peek"},
+ {ERR_FUNC(SSL_F_SSL_PREPARE_CLIENTHELLO_TLSEXT),	"SSL_PREPARE_CLIENTHELLO_TLSEXT"},
+ {ERR_FUNC(SSL_F_SSL_PREPARE_SERVERHELLO_TLSEXT),	"SSL_PREPARE_SERVERHELLO_TLSEXT"},
+@@ -526,6 +528,7 @@ static ERR_STRING_DATA SSL_str_reasons[]
+ {ERR_REASON(SSL_R_UNKNOWN_REMOTE_ERROR_TYPE),"unknown remote error type"},
+ {ERR_REASON(SSL_R_UNKNOWN_SSL_VERSION)   ,"unknown ssl version"},
+ {ERR_REASON(SSL_R_UNKNOWN_STATE)         ,"unknown state"},
++{ERR_REASON(SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED),"unsafe legacy renegotiation disabled"},
+ {ERR_REASON(SSL_R_UNSUPPORTED_CIPHER)    ,"unsupported cipher"},
+ {ERR_REASON(SSL_R_UNSUPPORTED_COMPRESSION_ALGORITHM),"unsupported compression algorithm"},
+ {ERR_REASON(SSL_R_UNSUPPORTED_DIGEST_TYPE),"unsupported digest type"},
+diff -up openssl-1.0.0-beta4/ssl/ssl.h.reneg-err openssl-1.0.0-beta4/ssl/ssl.h
+--- openssl-1.0.0-beta4/ssl/ssl.h.reneg-err	2009-11-12 15:17:29.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssl.h	2009-11-20 17:56:57.000000000 +0100
+@@ -1934,7 +1934,9 @@ void ERR_load_SSL_strings(void);
+ #define SSL_F_SSL_LOAD_CLIENT_CA_FILE			 185
+ #define SSL_F_SSL_NEW					 186
+ #define SSL_F_SSL_PARSE_CLIENTHELLO_RENEGOTIATE_EXT	 300
++#define SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT		 302
+ #define SSL_F_SSL_PARSE_SERVERHELLO_RENEGOTIATE_EXT	 301
++#define SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT		 303
+ #define SSL_F_SSL_PEEK					 270
+ #define SSL_F_SSL_PREPARE_CLIENTHELLO_TLSEXT		 281
+ #define SSL_F_SSL_PREPARE_SERVERHELLO_TLSEXT		 282
+@@ -2231,6 +2233,7 @@ void ERR_load_SSL_strings(void);
+ #define SSL_R_UNKNOWN_REMOTE_ERROR_TYPE			 253
+ #define SSL_R_UNKNOWN_SSL_VERSION			 254
+ #define SSL_R_UNKNOWN_STATE				 255
++#define SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED	 338
+ #define SSL_R_UNSUPPORTED_CIPHER			 256
+ #define SSL_R_UNSUPPORTED_COMPRESSION_ALGORITHM		 257
+ #define SSL_R_UNSUPPORTED_DIGEST_TYPE			 326
+diff -up openssl-1.0.0-beta4/ssl/s23_srvr.c.reneg-err openssl-1.0.0-beta4/ssl/s23_srvr.c
+--- openssl-1.0.0-beta4/ssl/s23_srvr.c.reneg-err	2009-11-12 15:17:29.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/s23_srvr.c	2009-11-20 17:57:23.000000000 +0100
+@@ -497,6 +497,11 @@ int ssl23_get_client_hello(SSL *s)
+ 		SSLerr(SSL_F_SSL23_GET_CLIENT_HELLO,SSL_R_UNSUPPORTED_PROTOCOL);
+ 		goto err;
+ #else
++		if (!(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
++			{
++			SSLerr(SSL_F_SSL23_GET_CLIENT_HELLO,SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
++			goto err;
++			}
+ 		/* we are talking sslv2 */
+ 		/* we need to clean up the SSLv3/TLSv1 setup and put in the
+ 		 * sslv2 stuff. */
+diff -up openssl-1.0.0-beta4/ssl/t1_lib.c.reneg-err openssl-1.0.0-beta4/ssl/t1_lib.c
+--- openssl-1.0.0-beta4/ssl/t1_lib.c.reneg-err	2009-11-18 14:04:19.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/t1_lib.c	2009-11-20 17:56:57.000000000 +0100
+@@ -636,6 +636,7 @@ int ssl_parse_clienthello_tlsext(SSL *s,
+ 			{
+ 			/* We should always see one extension: the renegotiate extension */
+ 			*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
++			SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+ 			return 0;
+ 			}
+ 		return 1;
+@@ -965,6 +966,7 @@ int ssl_parse_clienthello_tlsext(SSL *s,
+  	if (s->new_session && !renegotiate_seen
+  		&& !(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+  		{
++		SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+  		*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+  		return 0;
+  		}
+@@ -993,6 +995,7 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 			{
+ 			/* We should always see one extension: the renegotiate extension */
+ 			*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
++			SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+ 			return 0;
+ 			}
+ #endif
+@@ -1133,6 +1136,7 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 		&& !(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+ 		{
+ 		*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
++		SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+ 		return 0;
+ 		}
+ #endif

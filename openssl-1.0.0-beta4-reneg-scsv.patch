@@ -1,0 +1,793 @@
+diff -up openssl-1.0.0-beta4/apps/s_client.c.scsv openssl-1.0.0-beta4/apps/s_client.c
+--- openssl-1.0.0-beta4/apps/s_client.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/apps/s_client.c	2010-01-07 23:37:39.000000000 +0100
+@@ -382,7 +382,7 @@ int MAIN(int, char **);
+ 
+ int MAIN(int argc, char **argv)
+ 	{
+-	int off=0;
++	unsigned int off=0, clr=0;
+ 	SSL *con=NULL;
+ 	int s,k,width,state=0;
+ 	char *cbuf=NULL,*sbuf=NULL,*mbuf=NULL;
+@@ -660,6 +660,10 @@ int MAIN(int argc, char **argv)
+ 			off|=SSL_OP_CIPHER_SERVER_PREFERENCE;
+ 		else if (strcmp(*argv,"-legacy_renegotiation") == 0)
+ 			off|=SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
++		else if	(strcmp(*argv,"-legacy_server_connect") == 0)
++			{ off|=SSL_OP_LEGACY_SERVER_CONNECT; }
++		else if	(strcmp(*argv,"-no_legacy_server_connect") == 0)
++			{ clr|=SSL_OP_LEGACY_SERVER_CONNECT; }
+ 		else if	(strcmp(*argv,"-cipher") == 0)
+ 			{
+ 			if (--argc < 1) goto bad;
+@@ -870,6 +874,9 @@ bad:
+ 		SSL_CTX_set_options(ctx,SSL_OP_ALL|off);
+ 	else
+ 		SSL_CTX_set_options(ctx,off);
++
++	if (clr)
++		SSL_CTX_clear_options(ctx, clr);
+ 	/* DTLS: partial reads end up discarding unread UDP bytes :-( 
+ 	 * Setting read ahead solves this problem.
+ 	 */
+@@ -1725,6 +1732,8 @@ static void print_stuff(BIO *bio, SSL *s
+ 							 EVP_PKEY_bits(pktmp));
+ 		EVP_PKEY_free(pktmp);
+ 	}
++	BIO_printf(bio, "Secure Renegotiation IS%s supported\n",
++			SSL_get_secure_renegotiation_support(s) ? "" : " NOT");
+ #ifndef OPENSSL_NO_COMP
+ 	comp=SSL_get_current_compression(s);
+ 	expansion=SSL_get_current_expansion(s);
+diff -up openssl-1.0.0-beta4/apps/s_server.c.scsv openssl-1.0.0-beta4/apps/s_server.c
+--- openssl-1.0.0-beta4/apps/s_server.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/apps/s_server.c	2010-01-07 23:37:39.000000000 +0100
+@@ -2212,6 +2212,8 @@ static int init_ssl_connection(SSL *con)
+ 			con->kssl_ctx->client_princ);
+ 		}
+ #endif /* OPENSSL_NO_KRB5 */
++	BIO_printf(bio_s_out, "Secure Renegotiation IS%s supported\n",
++		      SSL_get_secure_renegotiation_support(con) ? "" : " NOT");
+ 	return(1);
+ 	}
+ 
+diff -up openssl-1.0.0-beta4/doc/ssl/SSL_CTX_set_options.pod.scsv openssl-1.0.0-beta4/doc/ssl/SSL_CTX_set_options.pod
+--- openssl-1.0.0-beta4/doc/ssl/SSL_CTX_set_options.pod.scsv	2007-08-24 00:49:13.000000000 +0200
++++ openssl-1.0.0-beta4/doc/ssl/SSL_CTX_set_options.pod	2010-01-07 23:37:39.000000000 +0100
+@@ -2,7 +2,7 @@
+ 
+ =head1 NAME
+ 
+-SSL_CTX_set_options, SSL_set_options, SSL_CTX_get_options, SSL_get_options - manipulate SSL engine options
++SSL_CTX_set_options, SSL_set_options, SSL_CTX_clear_options, SSL_clear_options, SSL_CTX_get_options, SSL_get_options, SSL_get_secure_renegotiation_support - manipulate SSL options
+ 
+ =head1 SYNOPSIS
+ 
+@@ -11,26 +11,41 @@ SSL_CTX_set_options, SSL_set_options, SS
+  long SSL_CTX_set_options(SSL_CTX *ctx, long options);
+  long SSL_set_options(SSL *ssl, long options);
+ 
++ long SSL_CTX_clear_options(SSL_CTX *ctx, long options);
++ long SSL_clear_options(SSL *ssl, long options);
++
+  long SSL_CTX_get_options(SSL_CTX *ctx);
+  long SSL_get_options(SSL *ssl);
+ 
++ long SSL_get_secure_renegotiation_support(SSL *ssl);
++
+ =head1 DESCRIPTION
+ 
++Note: all these functions are implemented using macros.
++
+ SSL_CTX_set_options() adds the options set via bitmask in B<options> to B<ctx>.
+ Options already set before are not cleared!
+ 
+ SSL_set_options() adds the options set via bitmask in B<options> to B<ssl>.
+ Options already set before are not cleared!
+ 
++SSL_CTX_clear_options() clears the options set via bitmask in B<options>
++to B<ctx>.
++
++SSL_clear_options() clears the options set via bitmask in B<options> to B<ssl>.
++
+ SSL_CTX_get_options() returns the options set for B<ctx>.
+ 
+ SSL_get_options() returns the options set for B<ssl>.
+ 
++SSL_get_secure_renegotiation_support() indicates whether the peer supports
++secure renegotiation.
++
+ =head1 NOTES
+ 
+ The behaviour of the SSL library can be changed by setting several options.
+ The options are coded as bitmasks and can be combined by a logical B<or>
+-operation (|). Options can only be added but can never be reset.
++operation (|).
+ 
+ SSL_CTX_set_options() and SSL_set_options() affect the (external)
+ protocol behaviour of the SSL library. The (internal) behaviour of
+@@ -199,7 +214,7 @@ Do not use the TLSv1 protocol.
+ 
+ When performing renegotiation as a server, always start a new session
+ (i.e., session resumption requests are only accepted in the initial
+-handshake).  This option is not needed for clients.
++handshake). This option is not needed for clients.
+ 
+ =item SSL_OP_NO_TICKET
+ 
+@@ -209,15 +224,63 @@ of RFC4507bis tickets for stateless sess
+ If this option is set this functionality is disabled and tickets will
+ not be used by clients or servers.
+ 
++=item SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
++
++See the B<SECURE RENEGOTIATION> section for a discussion of the purpose of
++this option
++
+ =back
+ 
++=head1 SECURE RENEGOTIATION
++
++OpenSSL 0.9.8m and later always attempts to use secure renegotiation as
++described in draft-ietf-tls-renegotiation (FIXME: replace by RFC). This
++counters a prefix attack described in the draft and elsewhere (FIXME: need full
++reference).
++
++This attack has far reaching consequences which application writers should be
++aware of. In the description below an implementation supporting secure
++renegotiation is referred to as I<patched>. A server not supporting secure
++renegotiation is referred to as I<unpatched>.
++
++If an unpatched client attempts to connect to a patched OpenSSL server then
++the attempt will succeed but renegotiation is not permitted. As required
++by the standard a B<no_renegotiation> alert is sent back to the client if
++the TLS v1.0 protocol is used. If SSLv3.0 is used then renegotiation results
++in a fatal B<handshake_failed> alert.
++
++If a patched OpenSSL client attempts to connect to an unpatched server
++then the connection will fail because it is not possible to determine
++whether an attack is taking place.
++
++If the option B<SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION> is set then the
++above restrictions are relaxed. Renegotiation is permissible and initial
++connections to unpatched servers will succeed.
++
++This option should be used with caution because it leaves both clients and
++servers vulnerable. However unpatched servers and clients are likely to be
++around for some time and refusing to connect to unpatched servers or denying
++renegotion altogether may be unacceptable. So applications may be forced to
++tolerate unsafe renegotiation for the immediate future.
++
++The function SSL_get_secure_renegotiation_support() indicates whether the peer
++supports secure renegotiation. 
++
++The deprecated SSLv2 protocol does not support secure renegotiation at all.
++
+ =head1 RETURN VALUES
+ 
+ SSL_CTX_set_options() and SSL_set_options() return the new options bitmask
+ after adding B<options>.
+ 
++SSL_CTX_clear_options() and SSL_clear_options() return the new options bitmask
++after clearing B<options>.
++
+ SSL_CTX_get_options() and SSL_get_options() return the current bitmask.
+ 
++SSL_get_secure_renegotiation_support() returns 1 is the peer supports
++secure renegotiation and 0 if it does not.
++
+ =head1 SEE ALSO
+ 
+ L<ssl(3)|ssl(3)>, L<SSL_new(3)|SSL_new(3)>, L<SSL_clear(3)|SSL_clear(3)>,
+@@ -240,4 +303,10 @@ Versions up to OpenSSL 0.9.6c do not inc
+ can be disabled with this option (in OpenSSL 0.9.6d, it was always
+ enabled).
+ 
++SSL_CTX_clear_options() and SSL_clear_options() were first added in OpenSSL
++0.9.8m.
++
++B<SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION> was first added in OpenSSL
++0.9.8m.
++
+ =cut
+diff -up openssl-1.0.0-beta4/ssl/d1_clnt.c.scsv openssl-1.0.0-beta4/ssl/d1_clnt.c
+--- openssl-1.0.0-beta4/ssl/d1_clnt.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/d1_clnt.c	2010-01-07 23:37:39.000000000 +0100
+@@ -698,7 +698,7 @@ int dtls1_client_hello(SSL *s)
+ #ifndef OPENSSL_NO_TLSEXT
+ 		if ((p = ssl_add_clienthello_tlsext(s, p, buf+SSL3_RT_MAX_PLAIN_LENGTH)) == NULL)
+ 			{
+-			SSLerr(SSL_F_SSL3_CLIENT_HELLO,ERR_R_INTERNAL_ERROR);
++			SSLerr(SSL_F_DTLS1_CLIENT_HELLO,ERR_R_INTERNAL_ERROR);
+ 			goto err;
+ 			}
+ #endif		
+diff -up openssl-1.0.0-beta4/ssl/d1_srvr.c.scsv openssl-1.0.0-beta4/ssl/d1_srvr.c
+--- openssl-1.0.0-beta4/ssl/d1_srvr.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/d1_srvr.c	2010-01-07 23:37:39.000000000 +0100
+@@ -814,7 +814,7 @@ int dtls1_send_server_hello(SSL *s)
+ #ifndef OPENSSL_NO_TLSEXT
+ 		if ((p = ssl_add_serverhello_tlsext(s, p, buf+SSL3_RT_MAX_PLAIN_LENGTH)) == NULL)
+ 			{
+-			SSLerr(SSL_F_SSL3_SEND_SERVER_HELLO,ERR_R_INTERNAL_ERROR);
++			SSLerr(SSL_F_DTLS1_SEND_SERVER_HELLO,ERR_R_INTERNAL_ERROR);
+ 			return -1;
+ 			}
+ #endif
+diff -up openssl-1.0.0-beta4/ssl/ssl_err.c.scsv openssl-1.0.0-beta4/ssl/ssl_err.c
+--- openssl-1.0.0-beta4/ssl/ssl_err.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssl_err.c	2010-01-07 23:37:39.000000000 +0100
+@@ -414,6 +414,7 @@ static ERR_STRING_DATA SSL_str_reasons[]
+ {ERR_REASON(SSL_R_NO_PRIVATE_KEY_ASSIGNED),"no private key assigned"},
+ {ERR_REASON(SSL_R_NO_PROTOCOLS_AVAILABLE),"no protocols available"},
+ {ERR_REASON(SSL_R_NO_PUBLICKEY)          ,"no publickey"},
++{ERR_REASON(SSL_R_NO_RENEGOTIATION)      ,"no renegotiation"},
+ {ERR_REASON(SSL_R_NO_REQUIRED_DIGEST)    ,"digest requred for handshake isn't computed"},
+ {ERR_REASON(SSL_R_NO_SHARED_CIPHER)      ,"no shared cipher"},
+ {ERR_REASON(SSL_R_NO_VERIFY_CALLBACK)    ,"no verify callback"},
+@@ -453,6 +454,7 @@ static ERR_STRING_DATA SSL_str_reasons[]
+ {ERR_REASON(SSL_R_REUSE_CERT_LENGTH_NOT_ZERO),"reuse cert length not zero"},
+ {ERR_REASON(SSL_R_REUSE_CERT_TYPE_NOT_ZERO),"reuse cert type not zero"},
+ {ERR_REASON(SSL_R_REUSE_CIPHER_LIST_NOT_ZERO),"reuse cipher list not zero"},
++{ERR_REASON(SSL_R_SCSV_RECEIVED_WHEN_RENEGOTIATING),"scsv received when renegotiating"},
+ {ERR_REASON(SSL_R_SERVERHELLO_TLSEXT)    ,"serverhello tlsext"},
+ {ERR_REASON(SSL_R_SESSION_ID_CONTEXT_UNINITIALIZED),"session id context uninitialized"},
+ {ERR_REASON(SSL_R_SHORT_READ)            ,"short read"},
+diff -up openssl-1.0.0-beta4/ssl/ssl.h.scsv openssl-1.0.0-beta4/ssl/ssl.h
+--- openssl-1.0.0-beta4/ssl/ssl.h.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssl.h	2010-01-07 23:37:39.000000000 +0100
+@@ -511,6 +511,8 @@ typedef struct ssl_session_st
+ 
+ #define SSL_OP_MICROSOFT_SESS_ID_BUG			0x00000001L
+ #define SSL_OP_NETSCAPE_CHALLENGE_BUG			0x00000002L
++/* Allow initial connection to servers that don't support RI */
++#define SSL_OP_LEGACY_SERVER_CONNECT			0x00000004L
+ #define SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG		0x00000008L /* can break some security expectations */
+ #define SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG		0x00000010L
+ #define SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER		0x00000020L
+@@ -518,7 +520,6 @@ typedef struct ssl_session_st
+ #define SSL_OP_SSLEAY_080_CLIENT_DH_BUG			0x00000080L
+ #define SSL_OP_TLS_D5_BUG				0x00000100L
+ #define SSL_OP_TLS_BLOCK_PADDING_BUG			0x00000200L
+-#define SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION	0x00000400L
+ 
+ /* Disable SSL 3.0/TLS 1.0 CBC vulnerability workaround that was added
+  * in OpenSSL 0.9.6d.  Usually (depending on the application protocol)
+@@ -544,6 +545,8 @@ typedef struct ssl_session_st
+ #define SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION	0x00010000L
+ /* Don't use compression even if supported */
+ #define SSL_OP_NO_COMPRESSION				0x00020000L
++/* Permit unsafe legacy renegotiation */
++#define SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION	0x00040000L
+ /* If set, always create a new key when using tmp_ecdh parameters */
+ #define SSL_OP_SINGLE_ECDH_USE				0x00080000L
+ /* If set, always create a new key when using tmp_dh parameters */
+@@ -599,17 +602,25 @@ typedef struct ssl_session_st
+ 
+ #define SSL_CTX_set_options(ctx,op) \
+ 	SSL_CTX_ctrl((ctx),SSL_CTRL_OPTIONS,(op),NULL)
++#define SSL_CTX_clear_options(ctx,op) \
++	SSL_CTX_ctrl((ctx),SSL_CTRL_CLEAR_OPTIONS,(op),NULL)
+ #define SSL_CTX_get_options(ctx) \
+ 	SSL_CTX_ctrl((ctx),SSL_CTRL_OPTIONS,0,NULL)
+ #define SSL_set_options(ssl,op) \
+ 	SSL_ctrl((ssl),SSL_CTRL_OPTIONS,(op),NULL)
++#define SSL_clear_options(ssl,op) \
++	SSL_ctrl((ssl),SSL_CTRL_CLEAR_OPTIONS,(op),NULL)
+ #define SSL_get_options(ssl) \
+         SSL_ctrl((ssl),SSL_CTRL_OPTIONS,0,NULL)
+ 
+ #define SSL_CTX_set_mode(ctx,op) \
+ 	SSL_CTX_ctrl((ctx),SSL_CTRL_MODE,(op),NULL)
++#define SSL_CTX_clear_mode(ctx,op) \
++	SSL_CTX_ctrl((ctx),SSL_CTRL_CLEAR_MODE,(op),NULL)
+ #define SSL_CTX_get_mode(ctx) \
+ 	SSL_CTX_ctrl((ctx),SSL_CTRL_MODE,0,NULL)
++#define SSL_clear_mode(ssl,op) \
++	SSL_ctrl((ssl),SSL_CTRL_CLEAR_MODE,(op),NULL)
+ #define SSL_set_mode(ssl,op) \
+ 	SSL_ctrl((ssl),SSL_CTRL_MODE,(op),NULL)
+ #define SSL_get_mode(ssl) \
+@@ -617,6 +628,8 @@ typedef struct ssl_session_st
+ #define SSL_set_mtu(ssl, mtu) \
+         SSL_ctrl((ssl),SSL_CTRL_SET_MTU,(mtu),NULL)
+ 
++#define SSL_get_secure_renegotiation_support(ssl) \
++	SSL_ctrl((ssl), SSL_CTRL_GET_RI_SUPPORT, 0, NULL)
+ 
+ void SSL_CTX_set_msg_callback(SSL_CTX *ctx, void (*cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg));
+ void SSL_set_msg_callback(SSL *ssl, void (*cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg));
+@@ -1389,6 +1402,10 @@ DECLARE_PEM_rw(SSL_SESSION, SSL_SESSION)
+ #define DTLS_CTRL_HANDLE_TIMEOUT	74
+ #define DTLS_CTRL_LISTEN			75
+ 
++#define SSL_CTRL_GET_RI_SUPPORT			76
++#define SSL_CTRL_CLEAR_OPTIONS			77
++#define SSL_CTRL_CLEAR_MODE			78
++
+ #define DTLSv1_get_timeout(ssl, arg) \
+ 	SSL_ctrl(ssl,DTLS_CTRL_GET_TIMEOUT,0, (void *)arg)
+ #define DTLSv1_handle_timeout(ssl) \
+@@ -2119,6 +2136,7 @@ void ERR_load_SSL_strings(void);
+ #define SSL_R_NO_PRIVATE_KEY_ASSIGNED			 190
+ #define SSL_R_NO_PROTOCOLS_AVAILABLE			 191
+ #define SSL_R_NO_PUBLICKEY				 192
++#define SSL_R_NO_RENEGOTIATION				 339
+ #define SSL_R_NO_REQUIRED_DIGEST			 324
+ #define SSL_R_NO_SHARED_CIPHER				 193
+ #define SSL_R_NO_VERIFY_CALLBACK			 194
+@@ -2158,6 +2176,7 @@ void ERR_load_SSL_strings(void);
+ #define SSL_R_REUSE_CERT_LENGTH_NOT_ZERO		 216
+ #define SSL_R_REUSE_CERT_TYPE_NOT_ZERO			 217
+ #define SSL_R_REUSE_CIPHER_LIST_NOT_ZERO		 218
++#define SSL_R_SCSV_RECEIVED_WHEN_RENEGOTIATING		 345
+ #define SSL_R_SERVERHELLO_TLSEXT			 275
+ #define SSL_R_SESSION_ID_CONTEXT_UNINITIALIZED		 277
+ #define SSL_R_SHORT_READ				 219
+diff -up openssl-1.0.0-beta4/ssl/ssl_lib.c.scsv openssl-1.0.0-beta4/ssl/ssl_lib.c
+--- openssl-1.0.0-beta4/ssl/ssl_lib.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssl_lib.c	2010-01-07 23:38:08.000000000 +0100
+@@ -1041,8 +1041,12 @@ long SSL_ctrl(SSL *s,int cmd,long larg,v
+ 
+ 	case SSL_CTRL_OPTIONS:
+ 		return(s->options|=larg);
++	case SSL_CTRL_CLEAR_OPTIONS:
++		return(s->options&=~larg);
+ 	case SSL_CTRL_MODE:
+ 		return(s->mode|=larg);
++	case SSL_CTRL_CLEAR_MODE:
++		return(s->mode &=~larg);
+ 	case SSL_CTRL_GET_MAX_CERT_LIST:
+ 		return(s->max_cert_list);
+ 	case SSL_CTRL_SET_MAX_CERT_LIST:
+@@ -1062,6 +1066,10 @@ long SSL_ctrl(SSL *s,int cmd,long larg,v
+ 			return 0;
+ 		s->max_send_fragment = larg;
+ 		return 1;
++	case SSL_CTRL_GET_RI_SUPPORT:
++		if (s->s3)
++			return s->s3->send_connection_binding;
++		else return 0;
+ 	default:
+ 		return(s->method->ssl_ctrl(s,cmd,larg,parg));
+ 		}
+@@ -1148,8 +1156,12 @@ long SSL_CTX_ctrl(SSL_CTX *ctx,int cmd,l
+ 		return(ctx->stats.sess_cache_full);
+ 	case SSL_CTRL_OPTIONS:
+ 		return(ctx->options|=larg);
++	case SSL_CTRL_CLEAR_OPTIONS:
++		return(ctx->options&=~larg);
+ 	case SSL_CTRL_MODE:
+ 		return(ctx->mode|=larg);
++	case SSL_CTRL_CLEAR_MODE:
++		return(ctx->mode&=~larg);
+ 	case SSL_CTRL_SET_MAX_SEND_FRAGMENT:
+ 		if (larg < 512 || larg > SSL3_RT_MAX_PLAIN_LENGTH)
+ 			return 0;
+@@ -1357,6 +1369,22 @@ int ssl_cipher_list_to_bytes(SSL *s,STAC
+ 		j = put_cb ? put_cb(c,p) : ssl_put_cipher_by_char(s,c,p);
+ 		p+=j;
+ 		}
++	/* If p == q, no ciphers and caller indicates an error. Otherwise
++	 * add SCSV if not renegotiating.
++	 */
++	if (p != q && !s->new_session)
++		{
++		static SSL_CIPHER scsv =
++			{
++			0, NULL, SSL3_CK_SCSV, 0, 0, 0, 0, 0, 0, 0, 0, 0
++			};
++		j = put_cb ? put_cb(&scsv,p) : ssl_put_cipher_by_char(s,&scsv,p);
++		p+=j;
++#ifdef OPENSSL_RI_DEBUG
++		fprintf(stderr, "SCSV sent by client\n");
++#endif
++		}
++
+ 	return(p-q);
+ 	}
+ 
+@@ -1366,6 +1394,8 @@ STACK_OF(SSL_CIPHER) *ssl_bytes_to_ciphe
+ 	const SSL_CIPHER *c;
+ 	STACK_OF(SSL_CIPHER) *sk;
+ 	int i,n;
++	if (s->s3)
++		s->s3->send_connection_binding = 0;
+ 
+ 	n=ssl_put_cipher_by_char(s,NULL,NULL);
+ 	if ((num%n) != 0)
+@@ -1383,6 +1413,26 @@ STACK_OF(SSL_CIPHER) *ssl_bytes_to_ciphe
+ 
+ 	for (i=0; i<num; i+=n)
+ 		{
++		/* Check for SCSV */
++		if (s->s3 && (n != 3 || !p[0]) &&
++			(p[n-2] == ((SSL3_CK_SCSV >> 8) & 0xff)) &&
++			(p[n-1] == (SSL3_CK_SCSV & 0xff)))
++			{
++			/* SCSV fatal if renegotiating */
++			if (s->new_session)
++				{
++				SSLerr(SSL_F_SSL_BYTES_TO_CIPHER_LIST,SSL_R_SCSV_RECEIVED_WHEN_RENEGOTIATING);
++				ssl3_send_alert(s,SSL3_AL_FATAL,SSL_AD_HANDSHAKE_FAILURE); 
++				goto err;
++				}
++			s->s3->send_connection_binding = 1;
++			p += n;
++#ifdef OPENSSL_RI_DEBUG
++			fprintf(stderr, "SCSV received by server\n");
++#endif
++			continue;
++			}
++
+ 		c=ssl_get_cipher_by_char(s,p);
+ 		p+=n;
+ 		if (c != NULL)
+@@ -1642,6 +1692,10 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *m
+ 	}
+ #endif
+ #endif
++	/* Default is to connect to non-RI servers. When RI is more widely
++	 * deployed might change this.
++	 */
++	ret->options = SSL_OP_LEGACY_SERVER_CONNECT;
+ 
+ 	return(ret);
+ err:
+diff -up openssl-1.0.0-beta4/ssl/ssl3.h.scsv openssl-1.0.0-beta4/ssl/ssl3.h
+--- openssl-1.0.0-beta4/ssl/ssl3.h.scsv	2010-01-07 23:37:38.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/ssl3.h	2010-01-07 23:37:39.000000000 +0100
+@@ -128,6 +128,9 @@
+ extern "C" {
+ #endif
+ 
++/* Signalling cipher suite value: from draft-ietf-tls-renegotiation-03.txt */
++#define SSL3_CK_SCSV				0x030000FF
++
+ #define SSL3_CK_RSA_NULL_MD5			0x03000001
+ #define SSL3_CK_RSA_NULL_SHA			0x03000002
+ #define SSL3_CK_RSA_RC4_40_MD5 			0x03000003
+diff -up openssl-1.0.0-beta4/ssl/s3_clnt.c.scsv openssl-1.0.0-beta4/ssl/s3_clnt.c
+--- openssl-1.0.0-beta4/ssl/s3_clnt.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/s3_clnt.c	2010-01-07 23:37:39.000000000 +0100
+@@ -916,7 +916,7 @@ int ssl3_get_server_hello(SSL *s)
+ 
+ #ifndef OPENSSL_NO_TLSEXT
+ 	/* TLS extensions*/
+-	if (s->version > SSL3_VERSION)
++	if (s->version >= SSL3_VERSION)
+ 		{
+ 		if (!ssl_parse_serverhello_tlsext(s,&p,d,n, &al))
+ 			{
+diff -up openssl-1.0.0-beta4/ssl/s3_pkt.c.scsv openssl-1.0.0-beta4/ssl/s3_pkt.c
+--- openssl-1.0.0-beta4/ssl/s3_pkt.c.scsv	2009-07-14 17:28:44.000000000 +0200
++++ openssl-1.0.0-beta4/ssl/s3_pkt.c	2010-01-07 23:37:39.000000000 +0100
+@@ -1120,7 +1120,25 @@ start:
+ 		 * now try again to obtain the (application) data we were asked for */
+ 		goto start;
+ 		}
+-
++	/* If we are a server and get a client hello when renegotiation isn't
++	 * allowed send back a no renegotiation alert and carry on.
++	 * WARNING: experimental code, needs reviewing (steve)
++	 */
++	if (s->server &&
++		SSL_is_init_finished(s) &&
++    		!s->s3->send_connection_binding &&
++		(s->version > SSL3_VERSION) &&
++		(s->s3->handshake_fragment_len >= 4) &&
++		(s->s3->handshake_fragment[0] == SSL3_MT_CLIENT_HELLO) &&
++		(s->session != NULL) && (s->session->cipher != NULL) &&
++		!(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
++		
++		{
++		/*s->s3->handshake_fragment_len = 0;*/
++		rr->length = 0;
++		ssl3_send_alert(s,SSL3_AL_WARNING, SSL_AD_NO_RENEGOTIATION);
++		goto start;
++		}
+ 	if (s->s3->alert_fragment_len >= 2)
+ 		{
+ 		int alert_level = s->s3->alert_fragment[0];
+@@ -1150,6 +1168,21 @@ start:
+ 				s->shutdown |= SSL_RECEIVED_SHUTDOWN;
+ 				return(0);
+ 				}
++			/* This is a warning but we receive it if we requested
++			 * renegotiation and the peer denied it. Terminate with
++			 * a fatal alert because if application tried to
++			 * renegotiatie it presumably had a good reason and
++			 * expects it to succeed.
++			 *
++			 * In future we might have a renegotiation where we
++			 * don't care if the peer refused it where we carry on.
++			 */
++			else if (alert_descr == SSL_AD_NO_RENEGOTIATION)
++				{
++				al = SSL_AD_HANDSHAKE_FAILURE;
++				SSLerr(SSL_F_SSL3_READ_BYTES,SSL_R_NO_RENEGOTIATION);
++				goto f_err;
++				}
+ 			}
+ 		else if (alert_level == 2) /* fatal */
+ 			{
+diff -up openssl-1.0.0-beta4/ssl/s3_srvr.c.scsv openssl-1.0.0-beta4/ssl/s3_srvr.c
+--- openssl-1.0.0-beta4/ssl/s3_srvr.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/s3_srvr.c	2010-01-07 23:37:39.000000000 +0100
+@@ -1015,7 +1015,7 @@ int ssl3_get_client_hello(SSL *s)
+ 
+ #ifndef OPENSSL_NO_TLSEXT
+ 	/* TLS extensions*/
+-	if (s->version > SSL3_VERSION)
++	if (s->version >= SSL3_VERSION)
+ 		{
+ 		if (!ssl_parse_clienthello_tlsext(s,&p,d,n, &al))
+ 			{
+diff -up openssl-1.0.0-beta4/ssl/t1_lib.c.scsv openssl-1.0.0-beta4/ssl/t1_lib.c
+--- openssl-1.0.0-beta4/ssl/t1_lib.c.scsv	2010-01-07 23:37:39.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/t1_lib.c	2010-01-07 23:38:08.000000000 +0100
+@@ -275,8 +275,9 @@ unsigned char *ssl_add_clienthello_tlsex
+ 	int extdatalen=0;
+ 	unsigned char *ret = p;
+ 
+-	/* don't add extensions for SSLv3 */
+-	if (s->client_version == SSL3_VERSION)
++	/* don't add extensions for SSLv3 unless doing secure renegotiation */
++	if (s->client_version == SSL3_VERSION
++					&& !s->s3->send_connection_binding)
+ 		return p;
+ 
+ 	ret+=2;
+@@ -315,8 +316,9 @@ unsigned char *ssl_add_clienthello_tlsex
+ 		ret+=size_str;
+ 		}
+ 
+-        /* Add the renegotiation option: TODOEKR switch */
+-        {
++        /* Add RI if renegotiating */
++        if (s->new_session)
++          {
+           int el;
+           
+           if(!ssl_add_clienthello_renegotiate_ext(s, 0, &el, 0))
+@@ -504,8 +506,8 @@ unsigned char *ssl_add_serverhello_tlsex
+ 	int extdatalen=0;
+ 	unsigned char *ret = p;
+ 
+-	/* don't add extensions for SSLv3 */
+-	if (s->version == SSL3_VERSION)
++	/* don't add extensions for SSLv3, unless doing secure renegotiation */
++	if (s->version == SSL3_VERSION && !s->s3->send_connection_binding)
+ 		return p;
+ 	
+ 	ret+=2;
+@@ -633,24 +635,13 @@ int ssl_parse_clienthello_tlsext(SSL *s,
+ 
+ 	s->servername_done = 0;
+ 	s->tlsext_status_type = -1;
+-	s->s3->send_connection_binding = 0;
+ 
+ 	if (data >= (d+n-2))
+-		{
+-		if (s->new_session
+-			&& !(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+-			{
+-			/* We should always see one extension: the renegotiate extension */
+-			*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+-			SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+-			return 0;
+-			}
+-		return 1;
+-		}
++		goto ri_check;
+ 	n2s(data,len);
+ 
+ 	if (data > (d+n-len)) 
+-		return 1;
++		goto ri_check;
+ 
+ 	while (data <= (d+n-4))
+ 		{
+@@ -658,7 +649,7 @@ int ssl_parse_clienthello_tlsext(SSL *s,
+ 		n2s(data,size);
+ 
+ 		if (data+size > (d+n))
+-	   		return 1;
++	   		goto ri_check;
+ #if 0
+ 		fprintf(stderr,"Received extension type %d size %d\n",type,size);
+ #endif
+@@ -971,17 +962,22 @@ int ssl_parse_clienthello_tlsext(SSL *s,
+ 		/* session ticket processed earlier */
+ 		data+=size;
+ 		}
+-  
+- 	if (s->new_session && !renegotiate_seen
+- 		&& !(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+- 		{
+-		SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+- 		*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+- 		return 0;
+- 		}
+- 
+ 				
+ 	*p = data;
++
++	ri_check:
++
++	/* Need RI if renegotiating */
++
++	if (!renegotiate_seen && s->new_session &&
++		!(s->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
++		{
++		*al = SSL_AD_HANDSHAKE_FAILURE;
++	 	SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT,
++				SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
++		return 0;
++		}
++
+ 	return 1;
+ 	}
+ 
+@@ -995,21 +991,7 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 	int renegotiate_seen = 0;
+ 
+ 	if (data >= (d+n-2))
+-		{
+-#if 0
+-		/* Because the client does not see any renegotiation during an
+-		   attack, we must enforce this on all server hellos, even the
+-		   first */
+-		if (!(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+-			{
+-			/* We should always see one extension: the renegotiate extension */
+-			*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+-			SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+-			return 0;
+-			}
+-#endif
+-		return 1;
+-		}
++		goto ri_check;
+ 
+ 	n2s(data,len);
+ 
+@@ -1019,7 +1001,7 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 		n2s(data,size);
+ 
+ 		if (data+size > (d+n))
+-	   		return 1;
++	   		goto ri_check;
+ 
+ 		if (s->tlsext_debug_cb)
+ 			s->tlsext_debug_cb(s, 1, type, data, size,
+@@ -1143,16 +1125,6 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 		return 0;
+ 		}
+ 
+-#if 0
+-	if (!renegotiate_seen
+-		&& !(s->ctx->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+-		{
+-		*al = SSL_AD_ILLEGAL_PARAMETER; /* is this the right alert? */
+-		SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+-		return 0;
+-		}
+-#endif
+-
+ 	if (!s->hit && tlsext_servername == 1)
+ 		{
+  		if (s->tlsext_hostname)
+@@ -1175,6 +1147,26 @@ int ssl_parse_serverhello_tlsext(SSL *s,
+ 		}
+ 
+ 	*p = data;
++
++	ri_check:
++
++	/* Determine if we need to see RI. Strictly speaking if we want to
++	 * avoid an attack we should *always* see RI even on initial server
++	 * hello because the client doesn't see any renegotiation during an
++	 * attack. However this would mean we could not connect to any server
++	 * which doesn't support RI so for the immediate future tolerate RI
++	 * absence on initial connect only.
++	 */
++	if (!renegotiate_seen && 
++		(s->new_session || !(s->options & SSL_OP_LEGACY_SERVER_CONNECT))
++		&& !(s->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
++		{
++		*al = SSL_AD_HANDSHAKE_FAILURE;
++		SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT,
++				SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
++		return 0;
++		}
++
+ 	return 1;
+ 	}
+ 
+diff -up openssl-1.0.0-beta4/ssl/t1_reneg.c.scsv openssl-1.0.0-beta4/ssl/t1_reneg.c
+--- openssl-1.0.0-beta4/ssl/t1_reneg.c.scsv	2009-11-09 19:45:42.000000000 +0100
++++ openssl-1.0.0-beta4/ssl/t1_reneg.c	2010-01-07 23:37:39.000000000 +0100
+@@ -130,10 +130,15 @@ int ssl_add_clienthello_renegotiate_ext(
+ 
+         memcpy(p, s->s3->previous_client_finished,
+ 	       s->s3->previous_client_finished_len);
++#ifdef OPENSSL_RI_DEBUG
++    fprintf(stderr, "%s RI extension sent by client\n",
++		s->s3->previous_client_finished_len ? "Non-empty" : "Empty");
++#endif
+         }
+     
+     *len=s->s3->previous_client_finished_len + 1;
+-    
++
++ 
+     return 1;
+     }
+ 
+@@ -166,7 +171,7 @@ int ssl_parse_clienthello_renegotiate_ex
+     if(ilen != s->s3->previous_client_finished_len)
+         {
+         SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_RENEGOTIATE_EXT,SSL_R_RENEGOTIATION_MISMATCH);
+-        *al=SSL_AD_ILLEGAL_PARAMETER;
++        *al=SSL_AD_HANDSHAKE_FAILURE;
+         return 0;
+         }
+     
+@@ -174,9 +179,13 @@ int ssl_parse_clienthello_renegotiate_ex
+ 	      s->s3->previous_client_finished_len))
+         {
+         SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_RENEGOTIATE_EXT,SSL_R_RENEGOTIATION_MISMATCH);
+-        *al=SSL_AD_ILLEGAL_PARAMETER;
++        *al=SSL_AD_HANDSHAKE_FAILURE;
+         return 0;
+         }
++#ifdef OPENSSL_RI_DEBUG
++    fprintf(stderr, "%s RI extension received by server\n",
++				ilen ? "Non-empty" : "Empty");
++#endif
+ 
+     s->s3->send_connection_binding=1;
+ 
+@@ -206,6 +215,10 @@ int ssl_add_serverhello_renegotiate_ext(
+ 
+         memcpy(p, s->s3->previous_server_finished,
+ 	       s->s3->previous_server_finished_len);
++#ifdef OPENSSL_RI_DEBUG
++    fprintf(stderr, "%s RI extension sent by server\n",
++    		s->s3->previous_client_finished_len ? "Non-empty" : "Empty");
++#endif
+         }
+     
+     *len=s->s3->previous_client_finished_len
+@@ -249,7 +262,7 @@ int ssl_parse_serverhello_renegotiate_ex
+     if(ilen != expected_len)
+         {
+         SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_RENEGOTIATE_EXT,SSL_R_RENEGOTIATION_MISMATCH);
+-        *al=SSL_AD_ILLEGAL_PARAMETER;
++        *al=SSL_AD_HANDSHAKE_FAILURE;
+         return 0;
+         }
+ 
+@@ -257,7 +270,7 @@ int ssl_parse_serverhello_renegotiate_ex
+ 	      s->s3->previous_client_finished_len))
+         {
+         SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_RENEGOTIATE_EXT,SSL_R_RENEGOTIATION_MISMATCH);
+-        *al=SSL_AD_ILLEGAL_PARAMETER;
++        *al=SSL_AD_HANDSHAKE_FAILURE;
+         return 0;
+         }
+     d += s->s3->previous_client_finished_len;
+@@ -269,6 +282,11 @@ int ssl_parse_serverhello_renegotiate_ex
+         *al=SSL_AD_ILLEGAL_PARAMETER;
+         return 0;
+         }
++#ifdef OPENSSL_RI_DEBUG
++    fprintf(stderr, "%s RI extension received by client\n",
++				ilen ? "Non-empty" : "Empty");
++#endif
++    s->s3->send_connection_binding=1;
+ 
+     return 1;
+     }
