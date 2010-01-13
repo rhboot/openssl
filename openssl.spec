@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.17.%{beta}%{?dist}
+Release: 0.18.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -72,6 +72,7 @@ Patch65: openssl-1.0.0-beta4-dtls-reneg.patch
 Patch66: openssl-1.0.0-beta4-backports2.patch
 Patch67: openssl-1.0.0-beta4-reneg-scsv.patch
 Patch68: openssl-1.0.0-beta4-tls-comp.patch
+Patch69: openssl-1.0.0-beta4-aesni.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -160,6 +161,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch66 -p1 -b .backports2
 %patch67 -p1 -b .scsv
 %patch68 -p1 -b .tls-comp
+%patch69 -p1 -b .aesni
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -408,6 +410,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jan 13 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.18.beta4
+- add support for Intel AES-NI
+
 * Thu Jan  7 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.17.beta4
 - upstream fix compression handling on session resumption
 - various null checks and other small fixes from upstream
