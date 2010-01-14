@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.18.%{beta}%{?dist}
+Release: 0.19.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -73,6 +73,8 @@ Patch66: openssl-1.0.0-beta4-backports2.patch
 Patch67: openssl-1.0.0-beta4-reneg-scsv.patch
 Patch68: openssl-1.0.0-beta4-tls-comp.patch
 Patch69: openssl-1.0.0-beta4-aesni.patch
+Patch70: openssl-1.0.0-beta4-tlsver.patch
+Patch71: openssl-1.0.0-beta4-cve-2009-4355.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -162,6 +164,8 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch67 -p1 -b .scsv
 %patch68 -p1 -b .tls-comp
 %patch69 -p1 -b .aesni
+%patch70 -p1 -b .tlsver
+%patch71 -p1 -b .compleak
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -410,6 +414,11 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Jan 14 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.19.beta4
+- fix CVE-2009-4355 - leak in applications incorrectly calling
+  CRYPTO_free_all_ex_data() before application exit (#546707)
+- upstream fix for future TLS protocol version handling
+
 * Wed Jan 13 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.18.beta4
 - add support for Intel AES-NI
 
