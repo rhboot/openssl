@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 12%{?dist}
+Release: 12%{?dist}.1
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -69,6 +69,8 @@ Patch79: openssl-fips-0.9.8e-bad-mime.patch
 Patch80: openssl-fips-0.9.8e-cve-2009-0590.patch
 Patch81: openssl-fips-0.9.8e-dtls-dos.patch
 Patch82: openssl-fips-0.9.8e-algo-doc.patch
+Patch83: openssl-fips-0.9.8e-cve-2009-2409.patch
+Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -145,6 +147,8 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch80 -p1 -b .bad-string
 %patch81 -p1 -b .dtls-dos
 %patch82 -p1 -b .algo-doc
+%patch83 -p1 -b .nomd2
+%patch84 -p1 -b .compleak
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -398,6 +402,11 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Jan 14 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12.1
+- fix CVE-2009-2409 - drop MD2 algorithm from EVP tables (#510197)
+- fix CVE-2009-4355 - do not leak memory when CRYPTO_cleanup_all_ex_data()
+  is called prematurely by application (#546707)
+
 * Mon Jun 29 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12
 - abort if selftests failed and random number generator is polled
 - mention EVP_aes and EVP_sha2xx routines in the manpages
