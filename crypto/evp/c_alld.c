@@ -69,9 +69,6 @@ void OpenSSL_add_all_digests(void)
 	if (!FIPS_mode())
 		{
 #endif
-#ifndef OPENSSL_NO_MD2
-	EVP_add_digest(EVP_md2());
-#endif
 #ifndef OPENSSL_NO_MD4
 	EVP_add_digest(EVP_md4());
 #endif
