@@ -11,7 +11,7 @@
 # 1.0.0 soversion = 10
 %define soversion 10
 
-%define beta beta4
+%define beta beta5
 
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.19.%{beta}%{?dist}
+Release: 0.20.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -38,43 +38,30 @@ Source11: README.FIPS
 Patch0: openssl-1.0.0-beta4-redhat.patch
 Patch1: openssl-1.0.0-beta3-defaults.patch
 Patch3: openssl-1.0.0-beta3-soversion.patch
-Patch4: openssl-1.0.0-beta4-enginesdir.patch
+Patch4: openssl-1.0.0-beta5-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
 # Bug fixes
 Patch23: openssl-1.0.0-beta4-default-paths.patch
-Patch24: openssl-1.0.0-beta4-binutils.patch
+Patch24: openssl-0.9.8j-bad-mime.patch
 # Functionality changes
 Patch32: openssl-0.9.8g-ia64.patch
 Patch33: openssl-1.0.0-beta4-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.8j-version-add-engines.patch
-Patch38: openssl-1.0.0-beta3-cipher-change.patch
+Patch38: openssl-1.0.0-beta5-cipher-change.patch
 Patch39: openssl-1.0.0-beta3-ipv6-apps.patch
-Patch40: openssl-1.0.0-beta4-fips.patch
+Patch40: openssl-1.0.0-beta5-fips.patch
 Patch41: openssl-1.0.0-beta3-fipscheck.patch
 Patch43: openssl-1.0.0-beta3-fipsmode.patch
 Patch44: openssl-1.0.0-beta3-fipsrng.patch
 Patch45: openssl-0.9.8j-env-nozlib.patch
-Patch47: openssl-0.9.8j-readme-warning.patch
-Patch48: openssl-0.9.8j-bad-mime.patch
+Patch47: openssl-1.0.0-beta5-readme-warning.patch
 Patch49: openssl-1.0.0-beta4-algo-doc.patch
 Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
-Patch51: openssl-1.0.0-beta4-version.patch
+Patch51: openssl-1.0.0-beta5-version.patch
+Patch52: openssl-1.0.0-beta4-aesni.patch
 # Backported fixes including security fixes
-Patch60: openssl-1.0.0-beta4-reneg.patch
-# This one is not backported but has to be applied after reneg patch
-Patch61: openssl-1.0.0-beta4-client-reneg.patch
-Patch62: openssl-1.0.0-beta4-backports.patch
-Patch63: openssl-1.0.0-beta4-reneg-err.patch
-Patch64: openssl-1.0.0-beta4-dtls-ipv6.patch
-Patch65: openssl-1.0.0-beta4-dtls-reneg.patch
-Patch66: openssl-1.0.0-beta4-backports2.patch
-Patch67: openssl-1.0.0-beta4-reneg-scsv.patch
-Patch68: openssl-1.0.0-beta4-tls-comp.patch
-Patch69: openssl-1.0.0-beta4-aesni.patch
-Patch70: openssl-1.0.0-beta4-tlsver.patch
-Patch71: openssl-1.0.0-beta4-cve-2009-4355.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -135,7 +122,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch6 -p1 -b .use-localhost
 
 %patch23 -p1 -b .default-paths
-%patch24 -p1 -b .binutils
+%patch24 -p1 -b .bad-mime
 
 %patch32 -p1 -b .ia64
 %patch33 -p1 -b .ca-dir
@@ -149,23 +136,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch44 -p1 -b .fipsrng
 %patch45 -p1 -b .env-nozlib
 %patch47 -p1 -b .warning
-%patch48 -p1 -b .bad-mime
 %patch49 -p1 -b .algo-doc
 %patch50 -p1 -b .dtls1-abi
 %patch51 -p1 -b .version
-
-%patch60 -p1 -b .reneg
-%patch61 -p1 -b .client-reneg
-%patch62 -p1 -b .backports
-%patch63 -p1 -b .reneg-err
-%patch64 -p1 -b .dtls-ipv6
-%patch65 -p1 -b .dtls-reneg
-%patch66 -p1 -b .backports2
-%patch67 -p1 -b .scsv
-%patch68 -p1 -b .tls-comp
-%patch69 -p1 -b .aesni
-%patch70 -p1 -b .tlsver
-%patch71 -p1 -b .compleak
+%patch52 -p1 -b .aesni
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -264,12 +238,9 @@ make -C test apps tests
 install -d $RPM_BUILD_ROOT{%{_bindir},%{_includedir},%{_libdir},%{_mandir},%{_libdir}/openssl}
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install_docs
-# OpenSSL install doesn't use correct _libdir on 64 bit archs
-[ "%{_libdir}" != /usr/lib ] && mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{soversion} $RPM_BUILD_ROOT%{_libdir}/
-mv $RPM_BUILD_ROOT/usr/lib/engines $RPM_BUILD_ROOT%{_libdir}/openssl
+mv $RPM_BUILD_ROOT%{_libdir}/engines $RPM_BUILD_ROOT%{_libdir}/openssl
 mv $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man/* $RPM_BUILD_ROOT%{_mandir}/
 rmdir $RPM_BUILD_ROOT%{_sysconfdir}/pki/tls/man
-mv $RPM_BUILD_ROOT/usr/lib/* $RPM_BUILD_ROOT%{_libdir}/ || :
 rename so.%{soversion} so.%{version} $RPM_BUILD_ROOT%{_libdir}/*.so.%{soversion}
 for lib in $RPM_BUILD_ROOT%{_libdir}/*.so.%{version} ; do
 	chmod 755 ${lib}
@@ -414,6 +385,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jan 20 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.20.beta5
+- new upstream release
+
 * Thu Jan 14 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.19.beta4
 - fix CVE-2009-4355 - leak in applications incorrectly calling
   CRYPTO_free_all_ex_data() before application exit (#546707)

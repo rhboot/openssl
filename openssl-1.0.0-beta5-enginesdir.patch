@@ -1,6 +1,6 @@
-diff -up openssl-1.0.0-beta4/Configure.enginesdir openssl-1.0.0-beta4/Configure
---- openssl-1.0.0-beta4/Configure.enginesdir	2009-11-12 12:17:59.000000000 +0100
-+++ openssl-1.0.0-beta4/Configure	2009-11-12 12:19:45.000000000 +0100
+diff -up openssl-1.0.0-beta5/Configure.enginesdir openssl-1.0.0-beta5/Configure
+--- openssl-1.0.0-beta5/Configure.enginesdir	2010-01-20 18:07:05.000000000 +0100
++++ openssl-1.0.0-beta5/Configure	2010-01-20 18:10:48.000000000 +0100
 @@ -622,6 +622,7 @@ my $idx_multilib = $idx++;
  my $prefix="";
  my $libdir="";
@@ -20,7 +20,7 @@ diff -up openssl-1.0.0-beta4/Configure.enginesdir openssl-1.0.0-beta4/Configure
  			elsif (/^--install.prefix=(.*)$/)
  				{
  				$install_prefix=$1;
-@@ -1055,7 +1060,7 @@ chop $prefix if $prefix =~ /.\/$/;
+@@ -1053,7 +1058,7 @@ chop $prefix if $prefix =~ /.\/$/;
  
  $openssldir=$prefix . "/ssl" if $openssldir eq "";
  $openssldir=$prefix . "/" . $openssldir if $openssldir !~ /(^\/|^[a-zA-Z]:[\\\/])/;
@@ -29,18 +29,18 @@ diff -up openssl-1.0.0-beta4/Configure.enginesdir openssl-1.0.0-beta4/Configure
  
  print "IsMK1MF=$IsMK1MF\n";
  
-@@ -1676,7 +1681,7 @@ while (<IN>)
- 		# $foo is to become "$prefix/lib$multilib/engines";
- 		# as Makefile.org and engines/Makefile are adapted for
- 		# $multilib suffix.
--		my $foo = "$prefix/lib/engines";
+@@ -1673,7 +1678,7 @@ while (<IN>)
+ 		}
+ 	elsif	(/^#define\s+ENGINESDIR/)
+ 		{
+-		my $foo = "$prefix/$libdir/engines";
 +		my $foo = "$enginesdir";
  		$foo =~ s/\\/\\\\/g;
  		print OUT "#define ENGINESDIR \"$foo\"\n";
  		}
-diff -up openssl-1.0.0-beta4/engines/Makefile.enginesdir openssl-1.0.0-beta4/engines/Makefile
---- openssl-1.0.0-beta4/engines/Makefile.enginesdir	2009-11-10 02:52:52.000000000 +0100
-+++ openssl-1.0.0-beta4/engines/Makefile	2009-11-12 12:23:06.000000000 +0100
+diff -up openssl-1.0.0-beta5/engines/Makefile.enginesdir openssl-1.0.0-beta5/engines/Makefile
+--- openssl-1.0.0-beta5/engines/Makefile.enginesdir	2010-01-16 21:06:09.000000000 +0100
++++ openssl-1.0.0-beta5/engines/Makefile	2010-01-20 18:07:05.000000000 +0100
 @@ -124,7 +124,7 @@ install:
  				sfx=".so"; \
  				cp cyg$$l.dll $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/engines/$$pfx$$l$$sfx.new; \
