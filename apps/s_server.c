@@ -371,6 +371,7 @@ static void sv_usage(void)
 #endif
 	BIO_printf(bio_err," -id_prefix arg - Generate SSL/TLS session IDs prefixed by 'arg'\n");
 	BIO_printf(bio_err," -rand file%cfile%c...\n", LIST_SEPARATOR_CHAR, LIST_SEPARATOR_CHAR);
+	BIO_printf(bio_err," -legacy_renegotiation - enable use of legacy renegotiation (dangerous)\n");
 	}
 
 static int local_argc=0;
@@ -700,6 +701,8 @@ int MAIN(int argc, char *argv[])
 			}
 		else if	(strcmp(*argv,"-serverpref") == 0)
 			{ off|=SSL_OP_CIPHER_SERVER_PREFERENCE; }
+		else if (strcmp(*argv,"-legacy_renegotiation") == 0)
+			off|=SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
 		else if	(strcmp(*argv,"-cipher") == 0)
 			{
 			if (--argc < 1) goto bad;
@@ -1534,6 +1537,8 @@ static int init_ssl_connection(SSL *con)
 			con->kssl_ctx->client_princ);
 		}
 #endif /* OPENSSL_NO_KRB5 */
+	BIO_printf(bio_s_out, "Secure Renegotiation IS%s supported\n",
+		      SSL_get_secure_renegotiation_support(con) ? "" : " NOT");
 	return(1);
 	}
 

@@ -368,6 +368,11 @@ static int ssl23_client_hello(SSL *s)
 				*(p++)=comp->id;
 				}
 			*(p++)=0; /* Add the NULL method */
+			if ((p = ssl_add_clienthello_tlsext(s, p, buf+SSL3_RT_MAX_PLAIN_LENGTH)) == NULL)
+				{
+				SSLerr(SSL_F_SSL23_CLIENT_HELLO,ERR_R_INTERNAL_ERROR);
+				return -1;
+				}
 			
 			l = p-d;
 			*p = 42;
