@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 12%{?dist}.1
+Release: 12%{?dist}.2
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -71,6 +71,7 @@ Patch81: openssl-fips-0.9.8e-dtls-dos.patch
 Patch82: openssl-fips-0.9.8e-algo-doc.patch
 Patch83: openssl-fips-0.9.8e-cve-2009-2409.patch
 Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
+Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -149,6 +150,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch82 -p1 -b .algo-doc
 %patch83 -p1 -b .nomd2
 %patch84 -p1 -b .compleak
+%patch85 -p1 -b .reneg
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -402,6 +404,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Feb  5 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12.2
+- fix CVE-2009-3555 - support the safe renegotiation extension and
+  do not allow legacy renegotiation on the server by default (#533125)
+
 * Thu Jan 14 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12.1
 - fix CVE-2009-2409 - drop MD2 algorithm from EVP tables (#510197)
 - fix CVE-2009-4355 - do not leak memory when CRYPTO_cleanup_all_ex_data()
