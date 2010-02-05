@@ -267,7 +267,6 @@ int dtls1_accept(SSL *s)
 			s->shutdown=0;
 			ret=ssl3_get_client_hello(s);
 			if (ret <= 0) goto end;
-			s->new_session = 2;
 
 			if ( s->d1->send_cookie)
 				s->state = DTLS1_ST_SW_HELLO_VERIFY_REQUEST_A;
@@ -293,6 +292,7 @@ int dtls1_accept(SSL *s)
 			
 		case SSL3_ST_SW_SRVR_HELLO_A:
 		case SSL3_ST_SW_SRVR_HELLO_B:
+			s->new_session = 2;
 			ret=dtls1_send_server_hello(s);
 			if (ret <= 0) goto end;
 
@@ -713,6 +713,8 @@ int dtls1_send_server_hello(SSL *s)
 		p+=sl;
 
 		/* put the cipher */
+		if (s->s3->tmp.new_cipher == NULL)
+			return -1;
 		i=ssl3_put_cipher_by_char(s->s3->tmp.new_cipher,p);
 		p+=i;
 
@@ -726,13 +728,21 @@ int dtls1_send_server_hello(SSL *s)
 			*(p++)=s->s3->tmp.new_compression->id;
 #endif
 
+#ifndef OPENSSL_NO_TLSEXT
+		if ((p = ssl_add_serverhello_tlsext(s, p, buf+SSL3_RT_MAX_PLAIN_LENGTH)) == NULL)
+			{
+			SSLerr(SSL_F_DTLS1_SEND_SERVER_HELLO,ERR_R_INTERNAL_ERROR);
+			return -1;
+			}
+#endif
+
 		/* do the header */
 		l=(p-d);
 		d=buf;
 
 		d = dtls1_set_message_header(s, d, SSL3_MT_SERVER_HELLO, l, 0, l);
 
-		s->state=SSL3_ST_CW_CLNT_HELLO_B;
+		s->state=SSL3_ST_SW_SRVR_HELLO_B;
 		/* number of bytes to write */
 		s->init_num=p-buf;
 		s->init_off=0;
@@ -741,7 +751,7 @@ int dtls1_send_server_hello(SSL *s)
 		dtls1_buffer_message(s, 0);
 		}
 
-	/* SSL3_ST_CW_CLNT_HELLO_B */
+	/* SSL3_ST_SW_SRVR_HELLO_B */
 	return(dtls1_do_write(s,SSL3_RT_HANDSHAKE));
 	}
 
@@ -765,7 +775,7 @@ int dtls1_send_server_done(SSL *s)
 		dtls1_buffer_message(s, 0);
 		}
 
-	/* SSL3_ST_CW_CLNT_HELLO_B */
+	/* SSL3_ST_SW_SRVR_DONE_B */
 	return(dtls1_do_write(s,SSL3_RT_HANDSHAKE));
 	}
 

@@ -248,6 +248,18 @@ int ssl3_accept(SSL *s)
 				s->state=SSL3_ST_SR_CLNT_HELLO_A;
 				s->ctx->stats.sess_accept++;
 				}
+			else if (!s->s3->send_connection_binding &&
+				!(s->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+				{
+				/* Server attempting to renegotiate with
+				 * client that doesn't support secure
+				 * renegotiation.
+				 */
+				SSLerr(SSL_F_SSL3_ACCEPT, SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+				ssl3_send_alert(s,SSL3_AL_FATAL,SSL_AD_HANDSHAKE_FAILURE);
+				ret = -1;
+				goto end;
+				}
 			else
 				{
 				/* s->state == SSL_ST_RENEGOTIATE,
@@ -898,6 +910,16 @@ int ssl3_get_client_hello(SSL *s)
 		goto f_err;
 		}
 
+	/* TLS extensions - just parsing the renegotiation extension */
+	if (s->version >= SSL3_VERSION)
+		{
+		if (!ssl_parse_clienthello_tlsext(s,&p,d,n, &al))
+			{
+			/* 'al' set by ssl_parse_clienthello_tlsext */
+			SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO,SSL_R_PARSE_TLSEXT);
+			goto f_err;
+			}
+		}
 	/* Worst case, we will use the NULL compression, but if we have other
 	 * options, we will now look for them.  We have i-1 compression
 	 * algorithms from the client, starting at q. */
@@ -1089,20 +1111,24 @@ int ssl3_send_server_hello(SSL *s)
 		else
 			*(p++)=s->s3->tmp.new_compression->id;
 #endif
-
+		if ((p = ssl_add_serverhello_tlsext(s, p, buf+SSL3_RT_MAX_PLAIN_LENGTH)) == NULL)
+			{
+			SSLerr(SSL_F_SSL3_SEND_SERVER_HELLO,ERR_R_INTERNAL_ERROR);
+			return -1;
+			}
 		/* do the header */
 		l=(p-d);
 		d=buf;
 		*(d++)=SSL3_MT_SERVER_HELLO;
 		l2n3(l,d);
 
-		s->state=SSL3_ST_CW_CLNT_HELLO_B;
+		s->state=SSL3_ST_SW_SRVR_HELLO_B;
 		/* number of bytes to write */
 		s->init_num=p-buf;
 		s->init_off=0;
 		}
 
-	/* SSL3_ST_CW_CLNT_HELLO_B */
+	/* SSL3_ST_SW_SRVR_HELLO_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));
 	}
 
@@ -1126,7 +1152,7 @@ int ssl3_send_server_done(SSL *s)
 		s->init_off=0;
 		}
 
-	/* SSL3_ST_CW_CLNT_HELLO_B */
+	/* SSL3_ST_SW_SRVR_DONE_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));
 	}
 
