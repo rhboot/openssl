@@ -934,5 +934,17 @@ int check_srvr_ecc_cert_and_alg(X509 *x, SSL_CIPHER *cs);
 
 SSL_COMP *ssl3_comp_find(STACK_OF(SSL_COMP) *sk, int n);
 
+unsigned char *ssl_add_clienthello_tlsext(SSL *s, unsigned char *p, unsigned char *limit); 
+unsigned char *ssl_add_serverhello_tlsext(SSL *s, unsigned char *p, unsigned char *limit); 
+int ssl_parse_clienthello_tlsext(SSL *s, unsigned char **data, unsigned char *d, int n, int *al);
+int ssl_parse_serverhello_tlsext(SSL *s, unsigned char **data, unsigned char *d, int n, int *al);
+int ssl_add_serverhello_renegotiate_ext(SSL *s, unsigned char *p, int *len,
+					int maxlen);
+int ssl_parse_serverhello_renegotiate_ext(SSL *s, unsigned char *d, int len,
+					  int *al);
+int ssl_add_clienthello_renegotiate_ext(SSL *s, unsigned char *p, int *len,
+					int maxlen);
+int ssl_parse_clienthello_renegotiate_ext(SSL *s, unsigned char *d, int len,
+					  int *al);
 
 #endif
