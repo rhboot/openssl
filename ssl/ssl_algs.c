@@ -82,9 +82,6 @@ int SSL_library_init(void)
 	EVP_add_cipher(EVP_aes_192_cbc());
 	EVP_add_cipher(EVP_aes_256_cbc());
 #endif
-#ifndef OPENSSL_NO_MD2
-	EVP_add_digest(EVP_md2());
-#endif
 #ifndef OPENSSL_NO_MD5
 	EVP_add_digest(EVP_md5());
 	EVP_add_digest_alias(SN_md5,"ssl2-md5");
