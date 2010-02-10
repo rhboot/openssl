@@ -147,3 +147,202 @@ long tls1_callback_ctrl(SSL *s, int cmd, void *(*fp)())
 	return(0);
 	}
 #endif
+
+unsigned char *ssl_add_clienthello_tlsext(SSL *s, unsigned char *p, unsigned char *limit)
+	{
+	int extdatalen=0;
+	unsigned char *ret = p;
+
+	/* don't add extensions for SSLv3 unless doing secure renegotiation */
+	if (s->client_version == SSL3_VERSION
+					&& !s->s3->send_connection_binding)
+		return p;
+
+	ret+=2;
+
+	if (ret>=limit) return NULL; /* this really never occurs, but ... */
+ 
+        /* Add RI if renegotiating */
+        if (s->new_session)
+          {
+          int el;
+          
+          if(!ssl_add_clienthello_renegotiate_ext(s, 0, &el, 0))
+              {
+              SSLerr(SSL_F_SSL_ADD_CLIENTHELLO_TLSEXT, ERR_R_INTERNAL_ERROR);
+              return NULL;
+              }
+
+          if((limit - p - 4 - el) < 0) return NULL;
+          
+          s2n(TLSEXT_TYPE_renegotiate,ret);
+          s2n(el,ret);
+
+          if(!ssl_add_clienthello_renegotiate_ext(s, ret, &el, el))
+              {
+              SSLerr(SSL_F_SSL_ADD_CLIENTHELLO_TLSEXT, ERR_R_INTERNAL_ERROR);
+              return NULL;
+              }
+
+          ret += el;
+        }
+
+	if ((extdatalen = ret-p-2)== 0) 
+		return p;
+
+	s2n(extdatalen,p);
+	return ret;
+	}
+
+unsigned char *ssl_add_serverhello_tlsext(SSL *s, unsigned char *p, unsigned char *limit)
+	{
+	int extdatalen=0;
+	unsigned char *ret = p;
+
+	/* don't add extensions for SSLv3, unless doing secure renegotiation */
+	if (s->version == SSL3_VERSION && !s->s3->send_connection_binding)
+		return p;
+	
+	ret+=2;
+	if (ret>=limit) return NULL; /* this really never occurs, but ... */
+
+	if(s->s3->send_connection_binding)
+        {
+          int el;
+          
+          if(!ssl_add_serverhello_renegotiate_ext(s, 0, &el, 0))
+              {
+              SSLerr(SSL_F_SSL_ADD_SERVERHELLO_TLSEXT, ERR_R_INTERNAL_ERROR);
+              return NULL;
+              }
+
+          if((limit - p - 4 - el) < 0) return NULL;
+          
+          s2n(TLSEXT_TYPE_renegotiate,ret);
+          s2n(el,ret);
+
+          if(!ssl_add_serverhello_renegotiate_ext(s, ret, &el, el))
+              {
+              SSLerr(SSL_F_SSL_ADD_SERVERHELLO_TLSEXT, ERR_R_INTERNAL_ERROR);
+              return NULL;
+              }
+
+          ret += el;
+        }
+
+	if ((extdatalen = ret-p-2)== 0) 
+		return p;
+
+	s2n(extdatalen,p);
+	return ret;
+	}
+
+int ssl_parse_clienthello_tlsext(SSL *s, unsigned char **p, unsigned char *d, int n, int *al)
+	{
+	unsigned short type;
+	unsigned short size;
+	unsigned short len;
+	unsigned char *data = *p;
+	int renegotiate_seen = 0;
+
+	if (data >= (d+n-2))
+		goto ri_check;
+
+	n2s(data,len);
+
+	if (data > (d+n-len)) 
+		goto ri_check;
+
+	while (data <= (d+n-4))
+		{
+		n2s(data,type);
+		n2s(data,size);
+
+		if (data+size > (d+n))
+	   		goto ri_check;
+
+		if (type == TLSEXT_TYPE_renegotiate)
+			{
+			if(!ssl_parse_clienthello_renegotiate_ext(s, data, size, al))
+				return 0;
+			renegotiate_seen = 1;
+			}
+
+		data+=size;		
+		}
+	*p = data;
+
+	ri_check:
+
+	/* Need RI if renegotiating */
+
+	if (!renegotiate_seen && s->new_session &&
+		!(s->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+		{
+		*al = SSL_AD_HANDSHAKE_FAILURE;
+	 	SSLerr(SSL_F_SSL_PARSE_CLIENTHELLO_TLSEXT,
+				SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+		return 0;
+		}
+
+	return 1;
+	}
+
+int ssl_parse_serverhello_tlsext(SSL *s, unsigned char **p, unsigned char *d, int n, int *al)
+	{
+	unsigned short type;
+	unsigned short size;
+	unsigned short len;  
+	unsigned char *data = *p;
+	int renegotiate_seen = 0;
+
+	if (data >= (d+n-2))
+		goto ri_check;
+
+	n2s(data,len);
+
+	while(data <= (d+n-4))
+		{
+		n2s(data,type);
+		n2s(data,size);
+
+		if (data+size > (d+n))
+	   		goto ri_check;
+		if (type == TLSEXT_TYPE_renegotiate)
+			{
+			if(!ssl_parse_serverhello_renegotiate_ext(s, data, size, al))
+				return 0;
+			renegotiate_seen = 1;
+			}
+		data+=size;		
+		}
+
+	if (data != d+n)
+		{
+		*al = SSL_AD_DECODE_ERROR;
+		return 0;
+		}
+
+	*p = data;
+
+	ri_check:
+
+	/* Determine if we need to see RI. Strictly speaking if we want to
+	 * avoid an attack we should *always* see RI even on initial server
+	 * hello because the client doesn't see any renegotiation during an
+	 * attack. However this would mean we could not connect to any server
+	 * which doesn't support RI so for the immediate future tolerate RI
+	 * absence on initial connect only.
+	 */
+	if (!renegotiate_seen
+		&& !(s->options & SSL_OP_LEGACY_SERVER_CONNECT)
+		&& !(s->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
+		{
+		*al = SSL_AD_HANDSHAKE_FAILURE;
+		SSLerr(SSL_F_SSL_PARSE_SERVERHELLO_TLSEXT,
+				SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+		return 0;
+		}
+
+	return 1;
+	}
