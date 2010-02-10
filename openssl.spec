@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.21
+Release: 43.17%{?dist}.2
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -78,9 +78,6 @@ Patch57: openssl-0.9.7a-pkcs12-no-crash.patch
 Patch58: openssl-0.9.7a-cve-2007-3108.patch
 Patch59: openssl-0.9.8b-cve-2007-5135.patch
 Patch60: openssl-0.9.7a-cve-2008-5077.patch
-Patch61: openssl-0.9.7a-cve-2009-0590.patch
-Patch62: openssl-0.9.7a-cve-2009-2409.patch
-Patch63: openssl-0.9.7a-cve-2009-3555.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -179,9 +176,6 @@ popd
 %patch58 -p1 -b .no-branch
 %patch59 -p1 -b .shciphers
 %patch60 -p1 -b .verifysig
-%patch61 -p1 -b .bad-string
-%patch62 -p1 -b .nomd2
-%patch63 -p1 -b .reneg
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -441,17 +435,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
-* Wed Feb 10 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.21
-- CVE-2009-3555 - support the secure renegotiation RFC (#533125)
-- CVE-2009-2409 - drop MD2 from the default algorithm list (#510197)
-
-* Thu Dec 17 2009 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.20
-- CVE-2009-0590 - crash when printing incorrect asn1 strings (#492304)
-
-* Wed Dec 17 2008 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.19
+* Wed Dec 17 2008 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.2
 - CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
 
-* Mon Oct 22 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.18
+* Mon Oct 22 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.1
 - CVE-2007-5135 off by one buffer overflow in SSL_get_shared_ciphers (#309851)
 
 * Thu Aug  2 2007 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17
