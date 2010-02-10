@@ -226,14 +226,14 @@ static void sc_usage(void)
 	BIO_printf(bio_err," -engine id    - Initialise and use the specified engine\n");
 #endif
 	BIO_printf(bio_err," -rand file%cfile%c...\n", LIST_SEPARATOR_CHAR, LIST_SEPARATOR_CHAR);
-
+	BIO_printf(bio_err," -legacy_renegotiation - enable use of legacy renegotiation (dangerous)\n");
 	}
 
 int MAIN(int, char **);
 
 int MAIN(int argc, char **argv)
 	{
-	int off=0;
+	int off=0, clr = 0;
 	SSL *con=NULL,*con2=NULL;
 	X509_STORE *store = NULL;
 	int s,k,width,state=0;
@@ -401,6 +401,12 @@ int MAIN(int argc, char **argv)
 			off|=SSL_OP_NO_SSLv2;
 		else if (strcmp(*argv,"-serverpref") == 0)
 			off|=SSL_OP_CIPHER_SERVER_PREFERENCE;
+		else if (strcmp(*argv,"-legacy_renegotiation") == 0)
+			off|=SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
+		else if	(strcmp(*argv,"-legacy_server_connect") == 0)
+			{ off|=SSL_OP_LEGACY_SERVER_CONNECT; }
+		else if	(strcmp(*argv,"-no_legacy_server_connect") == 0)
+			{ clr|=SSL_OP_LEGACY_SERVER_CONNECT; }
 		else if	(strcmp(*argv,"-cipher") == 0)
 			{
 			if (--argc < 1) goto bad;
@@ -487,6 +493,9 @@ bad:
 		SSL_CTX_set_options(ctx,SSL_OP_ALL|off);
 	else
 		SSL_CTX_set_options(ctx,off);
+
+	if (clr)
+		SSL_CTX_clear_options(ctx, clr);
 
 	if (state) SSL_CTX_set_info_callback(ctx,apps_ssl_info_callback);
 	if (cipher != NULL)
@@ -1042,6 +1051,8 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 							 EVP_PKEY_bits(pktmp));
 		EVP_PKEY_free(pktmp);
 	}
+	BIO_printf(bio, "Secure Renegotiation IS%s supported\n",
+			SSL_get_secure_renegotiation_support(s) ? "" : " NOT");
 	SSL_SESSION_print(bio,SSL_get_session(s));
 	BIO_printf(bio,"---\n");
 	if (peer != NULL)

@@ -587,7 +587,11 @@ static int ssl3_client_hello(SSL *s)
 			*(p++)=comp->id;
 			}
 		*(p++)=0; /* Add the NULL method */
-		
+		if ((p = ssl_add_clienthello_tlsext(s, p, buf+SSL3_RT_MAX_PLAIN_LENGTH)) == NULL)
+			{
+			SSLerr(SSL_F_SSL3_CLIENT_HELLO,ERR_R_INTERNAL_ERROR);
+			goto err;
+			}
 		l=(p-d);
 		d=buf;
 		*(d++)=SSL3_MT_CLIENT_HELLO;
@@ -619,7 +623,7 @@ static int ssl3_get_server_hello(SSL *s)
 		SSL3_ST_CR_SRVR_HELLO_A,
 		SSL3_ST_CR_SRVR_HELLO_B,
 		SSL3_MT_SERVER_HELLO,
-		300, /* ?? */
+		1000, /* ?? */
 		&ok);
 
 	if (!ok) return((int)n);
@@ -733,6 +737,17 @@ static int ssl3_get_server_hello(SSL *s)
 	else
 		{
 		s->s3->tmp.new_compression=comp;
+		}
+
+	/* TLS extensions - we parse renegotiate extension only */
+	if (s->version >= SSL3_VERSION)
+		{
+		if (!ssl_parse_serverhello_tlsext(s,&p,d,n, &al))
+			{
+			/* 'al' set by ssl_parse_serverhello_tlsext */
+			SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_PARSE_TLSEXT);
+			goto f_err; 
+			}
 		}
 
 	if (p != (d+n))

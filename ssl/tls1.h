@@ -84,6 +84,9 @@ extern "C" {
 #define TLS1_AD_USER_CANCELLED		90
 #define TLS1_AD_NO_RENEGOTIATION	100
 
+/* Temporary extension type */
+#define TLSEXT_TYPE_renegotiate                 0xff01
+
 /* Additional TLS ciphersuites from draft-ietf-tls-56-bit-ciphersuites-00.txt
  * (available if TLS1_ALLOW_EXPERIMENTAL_CIPHERSUITES is defined, see
  * s3_lib.c).  We actually treat them like SSL 3.0 ciphers, which we probably
