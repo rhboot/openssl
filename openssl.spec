@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.17%{?dist}.3
+Release: 43.17%{?dist}.4
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -441,6 +441,9 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Feb 15 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.4
+- mention the RFC5746 in the renegotiation fix doc
+
 * Wed Feb 10 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.3
 - CVE-2009-3555 - support the secure renegotiation RFC (#533125)
 - CVE-2009-2409 - drop MD2 from the default algorithm list (#510197)
