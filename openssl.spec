@@ -23,7 +23,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.20.%{beta}%{?dist}
+Release: 0.22.%{beta}%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-%{beta}-usa.tar.bz2
@@ -50,7 +50,7 @@ Patch33: openssl-1.0.0-beta4-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.8j-version-add-engines.patch
 Patch38: openssl-1.0.0-beta5-cipher-change.patch
-Patch39: openssl-1.0.0-beta3-ipv6-apps.patch
+Patch39: openssl-1.0.0-beta5-ipv6-apps.patch
 Patch40: openssl-1.0.0-beta5-fips.patch
 Patch41: openssl-1.0.0-beta3-fipscheck.patch
 Patch43: openssl-1.0.0-beta3-fipsmode.patch
@@ -62,6 +62,7 @@ Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
 Patch51: openssl-1.0.0-beta5-version.patch
 Patch52: openssl-1.0.0-beta4-aesni.patch
 # Backported fixes including security fixes
+Patch53: openssl-1.0.0-beta5-cleanse.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -140,6 +141,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch50 -p1 -b .dtls1-abi
 %patch51 -p1 -b .version
 %patch52 -p1 -b .aesni
+%patch53 -p1 -b .cleanse
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -385,6 +387,14 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Feb 16 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.22.beta5
+- make TLS work in the FIPS mode
+
+* Fri Feb 12 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.21.beta5
+- gracefully handle zero length in assembler implementations of
+  OPENSSL_cleanse (#564029)
+- do not fail in s_server if client hostname not resolvable (#561260)
+
 * Wed Jan 20 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.20.beta5
 - new upstream release
 

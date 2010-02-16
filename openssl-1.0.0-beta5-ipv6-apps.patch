@@ -1,6 +1,6 @@
-diff -up openssl-1.0.0-beta3/apps/s_apps.h.ipv6-apps openssl-1.0.0-beta3/apps/s_apps.h
---- openssl-1.0.0-beta3/apps/s_apps.h.ipv6-apps	2009-08-05 21:29:58.000000000 +0200
-+++ openssl-1.0.0-beta3/apps/s_apps.h	2009-08-05 21:29:58.000000000 +0200
+diff -up openssl-1.0.0-beta5/apps/s_apps.h.ipv6-apps openssl-1.0.0-beta5/apps/s_apps.h
+--- openssl-1.0.0-beta5/apps/s_apps.h.ipv6-apps	2010-02-03 09:43:49.000000000 +0100
++++ openssl-1.0.0-beta5/apps/s_apps.h	2010-02-03 09:43:49.000000000 +0100
 @@ -148,7 +148,7 @@ typedef fd_mask fd_set;
  #define PORT_STR        "4433"
  #define PROTOCOL        "tcp"
@@ -23,10 +23,10 @@ diff -up openssl-1.0.0-beta3/apps/s_apps.h.ipv6-apps openssl-1.0.0-beta3/apps/s_
  
  long MS_CALLBACK bio_dump_callback(BIO *bio, int cmd, const char *argp,
  				   int argi, long argl, long ret);
-diff -up openssl-1.0.0-beta3/apps/s_client.c.ipv6-apps openssl-1.0.0-beta3/apps/s_client.c
---- openssl-1.0.0-beta3/apps/s_client.c.ipv6-apps	2009-08-05 21:29:58.000000000 +0200
-+++ openssl-1.0.0-beta3/apps/s_client.c	2009-08-05 22:33:44.000000000 +0200
-@@ -388,7 +388,7 @@ int MAIN(int argc, char **argv)
+diff -up openssl-1.0.0-beta5/apps/s_client.c.ipv6-apps openssl-1.0.0-beta5/apps/s_client.c
+--- openssl-1.0.0-beta5/apps/s_client.c.ipv6-apps	2010-02-03 09:43:49.000000000 +0100
++++ openssl-1.0.0-beta5/apps/s_client.c	2010-02-03 09:43:49.000000000 +0100
+@@ -389,7 +389,7 @@ int MAIN(int argc, char **argv)
  	int cbuf_len,cbuf_off;
  	int sbuf_len,sbuf_off;
  	fd_set readfds,writefds;
@@ -35,7 +35,7 @@ diff -up openssl-1.0.0-beta3/apps/s_client.c.ipv6-apps openssl-1.0.0-beta3/apps/
  	int full_log=1;
  	char *host=SSL_HOST_NAME;
  	char *cert_file=NULL,*key_file=NULL;
-@@ -486,13 +486,12 @@ int MAIN(int argc, char **argv)
+@@ -488,13 +488,12 @@ int MAIN(int argc, char **argv)
  		else if	(strcmp(*argv,"-port") == 0)
  			{
  			if (--argc < 1) goto bad;
@@ -51,7 +51,7 @@ diff -up openssl-1.0.0-beta3/apps/s_client.c.ipv6-apps openssl-1.0.0-beta3/apps/
  				goto bad;
  			}
  		else if	(strcmp(*argv,"-verify") == 0)
-@@ -956,7 +955,7 @@ bad:
+@@ -967,7 +966,7 @@ bad:
  
  re_start:
  
@@ -60,10 +60,10 @@ diff -up openssl-1.0.0-beta3/apps/s_client.c.ipv6-apps openssl-1.0.0-beta3/apps/
  		{
  		BIO_printf(bio_err,"connect:errno=%d\n",get_last_socket_error());
  		SHUTDOWN(s);
-diff -up openssl-1.0.0-beta3/apps/s_server.c.ipv6-apps openssl-1.0.0-beta3/apps/s_server.c
---- openssl-1.0.0-beta3/apps/s_server.c.ipv6-apps	2009-08-05 21:29:58.000000000 +0200
-+++ openssl-1.0.0-beta3/apps/s_server.c	2009-08-05 21:29:58.000000000 +0200
-@@ -837,7 +837,7 @@ int MAIN(int argc, char *argv[])
+diff -up openssl-1.0.0-beta5/apps/s_server.c.ipv6-apps openssl-1.0.0-beta5/apps/s_server.c
+--- openssl-1.0.0-beta5/apps/s_server.c.ipv6-apps	2010-02-03 09:43:49.000000000 +0100
++++ openssl-1.0.0-beta5/apps/s_server.c	2010-02-03 09:43:49.000000000 +0100
+@@ -838,7 +838,7 @@ int MAIN(int argc, char *argv[])
  	{
  	X509_VERIFY_PARAM *vpm = NULL;
  	int badarg = 0;
@@ -72,7 +72,7 @@ diff -up openssl-1.0.0-beta3/apps/s_server.c.ipv6-apps openssl-1.0.0-beta3/apps/
  	char *CApath=NULL,*CAfile=NULL;
  	unsigned char *context = NULL;
  	char *dhfile = NULL;
-@@ -907,8 +907,7 @@ int MAIN(int argc, char *argv[])
+@@ -909,8 +909,7 @@ int MAIN(int argc, char *argv[])
  			 (strcmp(*argv,"-accept") == 0))
  			{
  			if (--argc < 1) goto bad;
@@ -82,7 +82,7 @@ diff -up openssl-1.0.0-beta3/apps/s_server.c.ipv6-apps openssl-1.0.0-beta3/apps/
  			}
  		else if	(strcmp(*argv,"-verify") == 0)
  			{
-@@ -1685,9 +1684,9 @@ bad:
+@@ -1700,9 +1699,9 @@ bad:
  	BIO_printf(bio_s_out,"ACCEPT\n");
  	(void)BIO_flush(bio_s_out);
  	if (www)
@@ -94,10 +94,10 @@ diff -up openssl-1.0.0-beta3/apps/s_server.c.ipv6-apps openssl-1.0.0-beta3/apps/
  	print_stats(bio_s_out,ctx);
  	ret=0;
  end:
-diff -up openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta3/apps/s_socket.c
---- openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps	2008-11-12 04:57:47.000000000 +0100
-+++ openssl-1.0.0-beta3/apps/s_socket.c	2009-08-05 21:29:58.000000000 +0200
-@@ -96,9 +96,7 @@ static struct hostent *GetHostByName(cha
+diff -up openssl-1.0.0-beta5/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta5/apps/s_socket.c
+--- openssl-1.0.0-beta5/apps/s_socket.c.ipv6-apps	2009-08-26 13:21:50.000000000 +0200
++++ openssl-1.0.0-beta5/apps/s_socket.c	2010-02-03 10:00:30.000000000 +0100
+@@ -102,9 +102,7 @@ static struct hostent *GetHostByName(cha
  static void ssl_sock_cleanup(void);
  #endif
  static int ssl_sock_init(void);
@@ -108,7 +108,7 @@ diff -up openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta3/apps/
  static int do_accept(int acc_sock, int *sock, char **host);
  static int host_ip(char *str, unsigned char ip[4]);
  
-@@ -228,58 +226,70 @@ static int ssl_sock_init(void)
+@@ -234,58 +232,70 @@ static int ssl_sock_init(void)
  	return(1);
  	}
  
@@ -217,7 +217,7 @@ diff -up openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta3/apps/
  	{
  	int sock;
  	char *name = NULL;
-@@ -317,33 +327,38 @@ int do_server(int port, int type, int *r
+@@ -323,33 +333,38 @@ int do_server(int port, int type, int *r
  		}
  	}
  
@@ -277,7 +277,7 @@ diff -up openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta3/apps/
  #if defined SOL_SOCKET && defined SO_REUSEADDR
  		{
  		int j = 1;
-@@ -351,36 +366,39 @@ static int init_server_long(int *sock, i
+@@ -357,36 +372,39 @@ static int init_server_long(int *sock, i
  			   (void *) &j, sizeof j);
  		}
  #endif
@@ -337,11 +337,10 @@ diff -up openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta3/apps/
  	int len;
  /*	struct linger ling; */
  
-@@ -425,137 +443,62 @@ redoit:
- 	if (i < 0) { perror("keepalive"); return(0); }
+@@ -432,136 +450,58 @@ redoit:
  */
  
--	if (host == NULL) goto end;
+ 	if (host == NULL) goto end;
 -#ifndef BIT_FIELD_LIMITS
 -	/* I should use WSAAsyncGetHostByName() under windows */
 -	h1=gethostbyaddr((char *)&from.sin_addr.s_addr,
@@ -351,50 +350,44 @@ diff -up openssl-1.0.0-beta3/apps/s_socket.c.ipv6-apps openssl-1.0.0-beta3/apps/
 -		sizeof(struct in_addr),AF_INET);
 -#endif
 -	if (h1 == NULL)
-+	if (host == NULL)
- 		{
--		BIO_printf(bio_err,"bad gethostbyaddr\n");
--		*host=NULL;
--		/* return(0); */
--		}
--	else
--		{
--		if ((*host=(char *)OPENSSL_malloc(strlen(h1->h_name)+1)) == NULL)
--			{
--			perror("OPENSSL_malloc");
-+		*sock=ret;
- 			return(0);
- 			}
--		BUF_strlcpy(*host,h1->h_name,strlen(h1->h_name)+1);
- 
--		h2=GetHostByName(*host);
--		if (h2 == NULL)
++
 +	if (getnameinfo((struct sockaddr *)&from, sizeof(from),
 +		buffer, sizeof(buffer),
 +		NULL, 0, 0))
- 			{
--			BIO_printf(bio_err,"gethostbyname failure\n");
+ 		{
+-		BIO_printf(bio_err,"bad gethostbyaddr\n");
 +		BIO_printf(bio_err,"getnameinfo failed\n");
-+		*host=NULL;
+ 		*host=NULL;
+ 		/* return(0); */
+ 		}
+ 	else
+ 		{
+-		if ((*host=(char *)OPENSSL_malloc(strlen(h1->h_name)+1)) == NULL)
++		if ((*host=(char *)OPENSSL_malloc(strlen(buffer)+1)) == NULL)
+ 			{
+ 			perror("OPENSSL_malloc");
  			return(0);
  			}
+-		BUF_strlcpy(*host,h1->h_name,strlen(h1->h_name)+1);
+-
+-		h2=GetHostByName(*host);
+-		if (h2 == NULL)
+-			{
+-			BIO_printf(bio_err,"gethostbyname failure\n");
+-			return(0);
+-			}
 -		i=0;
 -		if (h2->h_addrtype != AF_INET)
-+	else
- 			{
+-			{
 -			BIO_printf(bio_err,"gethostbyname addr is not AF_INET\n");
-+		if ((*host=(char *)OPENSSL_malloc(strlen(buffer)+1)) == NULL)
-+			{
-+			perror("OPENSSL_malloc");
- 			return(0);
- 			}
--		}
--end:
+-			return(0);
+-			}
 +		strcpy(*host, buffer);
+ 		}
+ end:
  	*sock=ret;
  	return(1);
  	}
-+	}
  
 -int extract_host_port(char *str, char **host_ptr, unsigned char *ip,
 -	     short *port_ptr)
