@@ -389,7 +389,7 @@ int MAIN(int argc, char **argv)
 	int cbuf_len,cbuf_off;
 	int sbuf_len,sbuf_off;
 	fd_set readfds,writefds;
-	short port=PORT;
+	char *port_str = PORT_STR;
 	int full_log=1;
 	char *host=SSL_HOST_NAME;
 	char *cert_file=NULL,*key_file=NULL;
@@ -488,13 +488,12 @@ int MAIN(int argc, char **argv)
 		else if	(strcmp(*argv,"-port") == 0)
 			{
 			if (--argc < 1) goto bad;
-			port=atoi(*(++argv));
-			if (port == 0) goto bad;
+			port_str= *(++argv);
 			}
 		else if (strcmp(*argv,"-connect") == 0)
 			{
 			if (--argc < 1) goto bad;
-			if (!extract_host_port(*(++argv),&host,NULL,&port))
+			if (!extract_host_port(*(++argv),&host,&port_str))
 				goto bad;
 			}
 		else if	(strcmp(*argv,"-verify") == 0)
@@ -967,7 +966,7 @@ bad:
 
 re_start:
 
-	if (init_client(&s,host,port,socket_type) == 0)
+	if (init_client(&s,host,port_str,socket_type) == 0)
 		{
 		BIO_printf(bio_err,"connect:errno=%d\n",get_last_socket_error());
 		SHUTDOWN(s);
