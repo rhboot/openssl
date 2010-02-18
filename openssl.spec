@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 12%{?dist}.3
+Release: 12%{?dist}.4
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -404,6 +404,11 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Feb 18 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12.4
+- do not disable SSLv2 in the renegotiation patch - SSLv2 does
+  not support renegotiation
+- allow unsafe renegotiation on clients with SSL_OP_LEGACY_SERVER_CONNECT
+
 * Mon Feb 15 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12.3
 - mention the RFC5746 in the CVE-2009-3555 doc
 
