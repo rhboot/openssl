@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.17%{?dist}.4
+Release: 43.17%{?dist}.5
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -441,6 +441,11 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Feb 18 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.5
+- do not disable SSLv2 in the renegotiation patch - SSLv2 does
+  not support renegotiation
+- allow unsafe renegotiation on clients with SSL_OP_LEGACY_SERVER_CONNECT
+
 * Mon Feb 15 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.4
 - mention the RFC5746 in the renegotiation fix doc
 
