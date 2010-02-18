@@ -404,7 +404,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Fri Feb  5 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-14
+* Thu Feb 18 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-14
 - fix CVE-2009-3555 - support the safe renegotiation extension and
   do not allow legacy renegotiation on the server by default (#533125)
 
