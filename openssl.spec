@@ -72,7 +72,7 @@ Patch82: openssl-fips-0.9.8e-algo-doc.patch
 Patch83: openssl-fips-0.9.8e-cve-2009-2409.patch
 Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
 Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
-Patch86: openssl-fips-0.9.8e-cve-2009-0433.patch
+Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 
 License: BSDish
 Group: System Environment/Libraries
