@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 15%{?dist}
+Release: 16%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -73,6 +73,7 @@ Patch83: openssl-fips-0.9.8e-cve-2009-2409.patch
 Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
 Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
+Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -153,6 +154,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch84 -p1 -b .compleak
 %patch85 -p1 -b .reneg
 %patch86 -p1 -b .nullprinc
+%patch87 -p1 -b .wexpand
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -406,6 +408,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Mar 12 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-16
+- fix CVE-2009-3245 - add missing bn_wexpand return checks (#570924)
+
 * Thu Mar  4 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-15
 - fix CVE-2010-0433 - do not pass NULL princ to krb5_kt_get_entry which
   in the RHEL-5 and newer versions will crash in such case (#569774)
