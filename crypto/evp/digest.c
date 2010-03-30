@@ -116,6 +116,7 @@
 #ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
 #endif
+#include "evp_locl.h"
 
 void EVP_MD_CTX_init(EVP_MD_CTX *ctx)
 	{
@@ -138,9 +139,50 @@ int EVP_DigestInit(EVP_MD_CTX *ctx, const EVP_MD *type)
 	return EVP_DigestInit_ex(ctx, type, NULL);
 	}
 
+#ifdef OPENSSL_FIPS
+
+/* The purpose of these is to trap programs that attempt to use non FIPS
+ * algorithms in FIPS mode and ignore the errors.
+ */
+
+static int bad_init(EVP_MD_CTX *ctx)
+	{ FIPS_ERROR_IGNORED("Digest init"); return 0;}
+
+static int bad_update(EVP_MD_CTX *ctx,const void *data,size_t count)
+	{ FIPS_ERROR_IGNORED("Digest update"); return 0;}
+
+static int bad_final(EVP_MD_CTX *ctx,unsigned char *md)
+	{ FIPS_ERROR_IGNORED("Digest Final"); return 0;}
+
+static const EVP_MD bad_md =
+	{
+	0,
+	0,
+	0,
+	0,
+	bad_init,
+	bad_update,
+	bad_final,
+	NULL,
+	NULL,
+	NULL,
+	0,
+	{0,0,0,0},
+	};
+
+#endif
+
 int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 	{
 	EVP_MD_CTX_clear_flags(ctx,EVP_MD_CTX_FLAG_CLEANED);
+#ifdef OPENSSL_FIPS
+	if(FIPS_selftest_failed())
+		{
+		FIPSerr(FIPS_F_EVP_DIGESTINIT_EX,FIPS_R_FIPS_SELFTEST_FAILED);
+		ctx->digest = &bad_md;
+		return 0;
+		}
+#endif
 #ifndef OPENSSL_NO_ENGINE
 	/* Whether it's nice or not, "Inits" can be used on "Final"'d contexts
 	 * so this context may already have an ENGINE! Try to avoid releasing
@@ -197,6 +239,18 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 #endif
 	if (ctx->digest != type)
 		{
+#ifdef OPENSSL_FIPS
+		if (FIPS_mode())
+			{
+			if (!(type->flags & EVP_MD_FLAG_FIPS) 
+			 && !(ctx->flags & EVP_MD_CTX_FLAG_NON_FIPS_ALLOW))
+				{
+				EVPerr(EVP_F_EVP_DIGESTINIT_EX, EVP_R_DISABLED_FOR_FIPS);
+				ctx->digest = &bad_md;
+				return 0;
+				}
+			}
+#endif
 		if (ctx->digest && ctx->digest->ctx_size)
 			OPENSSL_free(ctx->md_data);
 		ctx->digest=type;
@@ -230,6 +284,9 @@ skip_to_init:
 
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 	return ctx->update(ctx,data,count);
 	}
 
@@ -246,6 +303,9 @@ int EVP_DigestFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
 int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
 	{
 	int ret;
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 
 	OPENSSL_assert(ctx->digest->md_size <= EVP_MAX_MD_SIZE);
 	ret=ctx->digest->final(ctx,md);

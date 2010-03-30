@@ -23,9 +23,9 @@ APPS=
 
 LIB=$(TOP)/libcrypto.a
 LIBSRC=camellia.c cmll_misc.c cmll_ecb.c cmll_cbc.c cmll_ofb.c \
-	   cmll_cfb.c cmll_ctr.c 
+	   cmll_cfb.c cmll_ctr.c cmll_fblk.c
 
-LIBOBJ= cmll_ecb.o cmll_ofb.o cmll_cfb.o cmll_ctr.o $(CMLL_ENC)
+LIBOBJ= cmll_ecb.o cmll_ofb.o cmll_cfb.o cmll_ctr.o $(CMLL_ENC) cmll_fblk.o
 
 SRC= $(LIBSRC)
 

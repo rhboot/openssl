@@ -75,6 +75,10 @@
 #include <openssl/bio.h>
 #endif
 
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
+
 /*
 #define EVP_RC2_KEY_SIZE		16
 #define EVP_RC4_KEY_SIZE		16
@@ -197,6 +201,8 @@ typedef int evp_verify_method(int type,const unsigned char *m,
 
 #define EVP_MD_FLAG_PKEY_METHOD_SIGNATURE	0x0004
 
+#define EVP_MD_FLAG_FIPS	0x0400 /* Note if suitable for use in FIPS mode */
+
 /* DigestAlgorithmIdentifier flags... */
 
 #define EVP_MD_FLAG_DIGALGID_MASK		0x0018
@@ -269,10 +275,6 @@ struct env_md_ctx_st
 						* cleaned */
 #define EVP_MD_CTX_FLAG_REUSE		0x0004 /* Don't free up ctx->md_data
 						* in EVP_MD_CTX_cleanup */
-/* FIPS and pad options are ignored in 1.0.0, definitions are here
- * so we don't accidentally reuse the values for other purposes.
- */
-
 #define EVP_MD_CTX_FLAG_NON_FIPS_ALLOW	0x0008	/* Allow use of non FIPS digest
 						 * in FIPS mode */
 
@@ -284,6 +286,10 @@ struct env_md_ctx_st
 #define EVP_MD_CTX_FLAG_PAD_PKCS1	0x00	/* PKCS#1 v1.5 mode */
 #define EVP_MD_CTX_FLAG_PAD_X931	0x10	/* X9.31 mode */
 #define EVP_MD_CTX_FLAG_PAD_PSS		0x20	/* PSS mode */
+#define M_EVP_MD_CTX_FLAG_PSS_SALT(ctx) \
+		((ctx->flags>>16) &0xFFFF) /* seed length */
+#define EVP_MD_CTX_FLAG_PSS_MDLEN	0xFFFF	/* salt len same as digest */
+#define EVP_MD_CTX_FLAG_PSS_MREC	0xFFFE	/* salt max or auto recovered */
 
 #define EVP_MD_CTX_FLAG_NO_INIT		0x0100 /* Don't initialize md_data */
 
@@ -330,12 +336,16 @@ struct evp_cipher_st
 #define 	EVP_CIPH_NO_PADDING		0x100
 /* cipher handles random key generation */
 #define 	EVP_CIPH_RAND_KEY		0x200
-/* cipher has its own additional copying logic */
-#define 	EVP_CIPH_CUSTOM_COPY		0x400
+/* Note if suitable for use in FIPS mode */
+#define		EVP_CIPH_FLAG_FIPS		0x400
+/* Allow non FIPS cipher in FIPS mode */
+#define		EVP_CIPH_FLAG_NON_FIPS_ALLOW	0x800
 /* Allow use default ASN1 get/set iv */
 #define		EVP_CIPH_FLAG_DEFAULT_ASN1	0x1000
 /* Buffer length in bits not bytes: CFB1 mode only */
 #define		EVP_CIPH_FLAG_LENGTH_BITS	0x2000
+/* cipher has its own additional copying logic */
+#define 	EVP_CIPH_CUSTOM_COPY		0x4000
 
 /* ctrl() values */
 
@@ -1239,6 +1249,7 @@ void ERR_load_EVP_strings(void);
 #define EVP_R_DECODE_ERROR				 114
 #define EVP_R_DIFFERENT_KEY_TYPES			 101
 #define EVP_R_DIFFERENT_PARAMETERS			 153
+#define EVP_R_DISABLED_FOR_FIPS				 160
 #define EVP_R_ENCODE_ERROR				 115
 #define EVP_R_EVP_PBE_CIPHERINIT_ERROR			 119
 #define EVP_R_EXPECTING_AN_RSA_KEY			 127

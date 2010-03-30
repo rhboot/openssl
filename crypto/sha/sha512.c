@@ -5,6 +5,10 @@
  * ====================================================================
  */
 #include <openssl/opensslconf.h>
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
+
 #if !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_SHA512)
 /*
  * IMPLEMENTATION NOTES.
@@ -61,6 +65,9 @@ const char SHA512_version[]="SHA-512" OPENSSL_VERSION_PTEXT;
 
 int SHA384_Init (SHA512_CTX *c)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 #if defined(SHA512_ASM) && (defined(__arm__) || defined(__arm))
 	/* maintain dword order required by assembler module */
 	unsigned int *h = (unsigned int *)c->h;
@@ -90,6 +97,9 @@ int SHA384_Init (SHA512_CTX *c)
 
 int SHA512_Init (SHA512_CTX *c)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 #if defined(SHA512_ASM) && (defined(__arm__) || defined(__arm))
 	/* maintain dword order required by assembler module */
 	unsigned int *h = (unsigned int *)c->h;

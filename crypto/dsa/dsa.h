@@ -88,6 +88,8 @@
 # define OPENSSL_DSA_MAX_MODULUS_BITS	10000
 #endif
 
+#define OPENSSL_DSA_FIPS_MIN_MODULUS_BITS 1024
+
 #define DSA_FLAG_CACHE_MONT_P	0x01
 #define DSA_FLAG_NO_EXP_CONSTTIME       0x02 /* new with 0.9.7h; the built-in DSA
                                               * implementation now uses constant time
@@ -96,6 +98,21 @@
                                               * faster variable sliding window method to
                                               * be used for all exponents.
                                               */
+
+/* If this flag is set the DSA method is FIPS compliant and can be used
+ * in FIPS mode. This is set in the validated module method. If an
+ * application sets this flag in its own methods it is its reposibility
+ * to ensure the result is compliant.
+ */
+
+#define DSA_FLAG_FIPS_METHOD			0x0400
+
+/* If this flag is set the operations normally disabled in FIPS mode are
+ * permitted it is then the applications responsibility to ensure that the
+ * usage is compliant.
+ */
+
+#define DSA_FLAG_NON_FIPS_ALLOW			0x0400
 
 #ifdef  __cplusplus
 extern "C" {
@@ -270,8 +287,11 @@ void ERR_load_DSA_strings(void);
 #define DSA_F_DO_DSA_PRINT				 104
 #define DSA_F_DSAPARAMS_PRINT				 100
 #define DSA_F_DSAPARAMS_PRINT_FP			 101
+#define DSA_F_DSA_BUILTIN_KEYGEN			 124
+#define DSA_F_DSA_BUILTIN_PARAMGEN			 123
 #define DSA_F_DSA_DO_SIGN				 112
 #define DSA_F_DSA_DO_VERIFY				 113
+#define DSA_F_DSA_GENERATE_PARAMETERS			 125
 #define DSA_F_DSA_NEW_METHOD				 103
 #define DSA_F_DSA_PARAM_DECODE				 119
 #define DSA_F_DSA_PRINT_FP				 105
@@ -296,9 +316,12 @@ void ERR_load_DSA_strings(void);
 #define DSA_R_DATA_TOO_LARGE_FOR_KEY_SIZE		 100
 #define DSA_R_DECODE_ERROR				 104
 #define DSA_R_INVALID_DIGEST_TYPE			 106
+#define DSA_R_KEY_SIZE_TOO_SMALL			 110
 #define DSA_R_MISSING_PARAMETERS			 101
 #define DSA_R_MODULUS_TOO_LARGE				 103
+#define DSA_R_NON_FIPS_METHOD				 111
 #define DSA_R_NO_PARAMETERS_SET				 107
+#define DSA_R_OPERATION_NOT_ALLOWED_IN_FIPS_MODE	 112
 #define DSA_R_PARAMETER_ENCODING_ERROR			 105
 
 #ifdef  __cplusplus
