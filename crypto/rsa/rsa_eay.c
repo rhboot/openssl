@@ -114,6 +114,10 @@
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/rand.h>
+#include <openssl/err.h>
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
 
 #ifndef RSA_NULL
 
@@ -138,7 +142,7 @@ static RSA_METHOD rsa_pkcs1_eay_meth={
 	BN_mod_exp_mont, /* XXX probably we should not use Montgomery if  e == 3 */
 	RSA_eay_init,
 	RSA_eay_finish,
-	0, /* flags */
+	RSA_FLAG_FIPS_METHOD, /* flags */
 	NULL,
 	0, /* rsa_sign */
 	0, /* rsa_verify */
@@ -150,6 +154,16 @@ const RSA_METHOD *RSA_PKCS1_SSLeay(void)
 	return(&rsa_pkcs1_eay_meth);
 	}
 
+/* Usage example;
+ *    MONT_HELPER(rsa, bn_ctx, p, rsa->flags & RSA_FLAG_CACHE_PRIVATE, goto err);
+ */
+#define MONT_HELPER(rsa, ctx, m, pre_cond, err_instr) \
+	if((pre_cond) && ((rsa)->_method_mod_##m == NULL) && \
+			!BN_MONT_CTX_set_locked(&((rsa)->_method_mod_##m), \
+				CRYPTO_LOCK_RSA, \
+				(rsa)->m, (ctx))) \
+		err_instr
+
 static int RSA_eay_public_encrypt(int flen, const unsigned char *from,
 	     unsigned char *to, RSA *rsa, int padding)
 	{
@@ -157,6 +171,23 @@ static int RSA_eay_public_encrypt(int flen, const unsigned char *from,
 	int i,j,k,num=0,r= -1;
 	unsigned char *buf=NULL;
 	BN_CTX *ctx=NULL;
+
+#ifdef OPENSSL_FIPS
+	if(FIPS_mode())
+		{
+		if (FIPS_selftest_failed())
+			{
+			FIPSerr(FIPS_F_RSA_EAY_PUBLIC_ENCRYPT,FIPS_R_FIPS_SELFTEST_FAILED);
+			goto err;
+			}
+
+		if (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)
+			{
+			RSAerr(RSA_F_RSA_EAY_PUBLIC_ENCRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+			return -1;
+			}
+		}
+#endif
 
 	if (BN_num_bits(rsa->n) > OPENSSL_RSA_MAX_MODULUS_BITS)
 		{
@@ -223,9 +254,7 @@ static int RSA_eay_public_encrypt(int flen, const unsigned char *from,
 		goto err;
 		}
 
-	if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
-		if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, CRYPTO_LOCK_RSA, rsa->n, ctx))
-			goto err;
+	MONT_HELPER(rsa, ctx, n, rsa->flags & RSA_FLAG_CACHE_PUBLIC, goto err);
 
 	if (!rsa->meth->bn_mod_exp(ret,f,rsa->e,rsa->n,ctx,
 		rsa->_method_mod_n)) goto err;
@@ -355,6 +384,23 @@ static int RSA_eay_private_encrypt(int flen, const unsigned char *from,
 	int local_blinding = 0;
 	BN_BLINDING *blinding = NULL;
 
+#ifdef OPENSSL_FIPS
+	if (FIPS_mode())
+		{
+		if(FIPS_selftest_failed())
+			{
+			FIPSerr(FIPS_F_RSA_EAY_PRIVATE_ENCRYPT,FIPS_R_FIPS_SELFTEST_FAILED);
+			goto err;
+			}
+
+		if (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)
+			{
+			RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+			return -1;
+			}
+		}
+#endif
+
 	if ((ctx=BN_CTX_new()) == NULL) goto err;
 	BN_CTX_start(ctx);
 	f   = BN_CTX_get(ctx);
@@ -432,9 +478,7 @@ static int RSA_eay_private_encrypt(int flen, const unsigned char *from,
 		else
 			d= rsa->d;
 
-		if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
-			if(!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, CRYPTO_LOCK_RSA, rsa->n, ctx))
-				goto err;
+		MONT_HELPER(rsa, ctx, n, rsa->flags & RSA_FLAG_CACHE_PUBLIC, goto err);
 
 		if (!rsa->meth->bn_mod_exp(ret,f,d,rsa->n,ctx,
 				rsa->_method_mod_n)) goto err;
@@ -487,6 +531,23 @@ static int RSA_eay_private_decrypt(int flen, const unsigned char *from,
 	BN_CTX *ctx=NULL;
 	int local_blinding = 0;
 	BN_BLINDING *blinding = NULL;
+
+#ifdef OPENSSL_FIPS
+	if (FIPS_mode())
+		{
+		if(FIPS_selftest_failed())
+			{
+			FIPSerr(FIPS_F_RSA_EAY_PRIVATE_DECRYPT,FIPS_R_FIPS_SELFTEST_FAILED);
+			goto err;
+			}
+
+		if (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)
+			{
+			RSAerr(RSA_F_RSA_EAY_PRIVATE_DECRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+			return -1;
+			}
+		}
+#endif
 
 	if((ctx = BN_CTX_new()) == NULL) goto err;
 	BN_CTX_start(ctx);
@@ -555,9 +616,7 @@ static int RSA_eay_private_decrypt(int flen, const unsigned char *from,
 		else
 			d = rsa->d;
 
-		if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
-			if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, CRYPTO_LOCK_RSA, rsa->n, ctx))
-				goto err;
+		MONT_HELPER(rsa, ctx, n, rsa->flags & RSA_FLAG_CACHE_PUBLIC, goto err);
 		if (!rsa->meth->bn_mod_exp(ret,f,d,rsa->n,ctx,
 				rsa->_method_mod_n))
 		  goto err;
@@ -617,6 +676,23 @@ static int RSA_eay_public_decrypt(int flen, const unsigned char *from,
 	unsigned char *buf=NULL;
 	BN_CTX *ctx=NULL;
 
+#ifdef OPENSSL_FIPS
+	if (FIPS_mode())
+		{
+		if(FIPS_selftest_failed())
+			{
+			FIPSerr(FIPS_F_RSA_EAY_PUBLIC_DECRYPT,FIPS_R_FIPS_SELFTEST_FAILED);
+			goto err;
+			}
+
+		if (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)
+			{
+			RSAerr(RSA_F_RSA_EAY_PUBLIC_DECRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+			return -1;
+			}
+		}
+#endif
+
 	if (BN_num_bits(rsa->n) > OPENSSL_RSA_MAX_MODULUS_BITS)
 		{
 		RSAerr(RSA_F_RSA_EAY_PUBLIC_DECRYPT, RSA_R_MODULUS_TOO_LARGE);
@@ -667,9 +743,7 @@ static int RSA_eay_public_decrypt(int flen, const unsigned char *from,
 		goto err;
 		}
 
-	if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
-		if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, CRYPTO_LOCK_RSA, rsa->n, ctx))
-			goto err;
+	MONT_HELPER(rsa, ctx, n, rsa->flags & RSA_FLAG_CACHE_PUBLIC, goto err);
 
 	if (!rsa->meth->bn_mod_exp(ret,f,rsa->e,rsa->n,ctx,
 		rsa->_method_mod_n)) goto err;
@@ -717,6 +791,7 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa, BN_CTX *ctx)
 	BIGNUM *r1,*m1,*vrfy;
 	BIGNUM local_dmp1,local_dmq1,local_c,local_r1;
 	BIGNUM *dmp1,*dmq1,*c,*pr1;
+	int bn_flags;
 	int ret=0;
 
 	BN_CTX_start(ctx);
@@ -724,41 +799,31 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa, BN_CTX *ctx)
 	m1 = BN_CTX_get(ctx);
 	vrfy = BN_CTX_get(ctx);
 
-	{
-		BIGNUM local_p, local_q;
-		BIGNUM *p = NULL, *q = NULL;
+	/* Make sure mod_inverse in montgomerey intialization use correct 
+	 * BN_FLG_CONSTTIME flag.
+	 */
+	bn_flags = rsa->p->flags;
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		rsa->p->flags |= BN_FLG_CONSTTIME;
+		}
+	MONT_HELPER(rsa, ctx, p, rsa->flags & RSA_FLAG_CACHE_PRIVATE, goto err);
+	/* We restore bn_flags back */
+	rsa->p->flags = bn_flags;
 
-		/* Make sure BN_mod_inverse in Montgomery intialization uses the
-		 * BN_FLG_CONSTTIME flag (unless RSA_FLAG_NO_CONSTTIME is set)
-		 */
-		if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
-			{
-			BN_init(&local_p);
-			p = &local_p;
-			BN_with_flags(p, rsa->p, BN_FLG_CONSTTIME);
+        /* Make sure mod_inverse in montgomerey intialization use correct
+         * BN_FLG_CONSTTIME flag.
+         */
+	bn_flags = rsa->q->flags;
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		rsa->q->flags |= BN_FLG_CONSTTIME;
+		}
+	MONT_HELPER(rsa, ctx, q, rsa->flags & RSA_FLAG_CACHE_PRIVATE, goto err);
+	/* We restore bn_flags back */
+	rsa->q->flags = bn_flags;	
 
-			BN_init(&local_q);
-			q = &local_q;
-			BN_with_flags(q, rsa->q, BN_FLG_CONSTTIME);
-			}
-		else
-			{
-			p = rsa->p;
-			q = rsa->q;
-			}
-
-		if (rsa->flags & RSA_FLAG_CACHE_PRIVATE)
-			{
-			if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_p, CRYPTO_LOCK_RSA, p, ctx))
-				goto err;
-			if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_q, CRYPTO_LOCK_RSA, q, ctx))
-				goto err;
-			}
-	}
-
-	if (rsa->flags & RSA_FLAG_CACHE_PUBLIC)
-		if (!BN_MONT_CTX_set_locked(&rsa->_method_mod_n, CRYPTO_LOCK_RSA, rsa->n, ctx))
-			goto err;
+	MONT_HELPER(rsa, ctx, n, rsa->flags & RSA_FLAG_CACHE_PUBLIC, goto err);
 
 	/* compute I mod q */
 	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
@@ -875,6 +940,9 @@ err:
 
 static int RSA_eay_init(RSA *rsa)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 	rsa->flags|=RSA_FLAG_CACHE_PUBLIC|RSA_FLAG_CACHE_PRIVATE;
 	return(1);
 	}
