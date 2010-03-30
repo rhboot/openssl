@@ -77,6 +77,8 @@
 # define OPENSSL_DH_MAX_MODULUS_BITS	10000
 #endif
 
+#define OPENSSL_DH_FIPS_MIN_MODULUS_BITS 1024
+
 #define DH_FLAG_CACHE_MONT_P     0x01
 #define DH_FLAG_NO_EXP_CONSTTIME 0x02 /* new with 0.9.7h; the built-in DH
                                        * implementation now uses constant time
@@ -241,6 +243,8 @@ void ERR_load_DH_strings(void);
 #define DH_F_GENERATE_PARAMETERS			 104
 #define DH_F_PKEY_DH_DERIVE				 112
 #define DH_F_PKEY_DH_KEYGEN				 113
+#define DH_F_DH_COMPUTE_KEY				 114
+#define DH_F_DH_GENERATE_KEY			 115
 
 /* Reason codes. */
 #define DH_R_BAD_GENERATOR				 101
@@ -253,6 +257,7 @@ void ERR_load_DH_strings(void);
 #define DH_R_NO_PARAMETERS_SET				 107
 #define DH_R_NO_PRIVATE_VALUE				 100
 #define DH_R_PARAMETER_ENCODING_ERROR			 105
+#define DH_R_KEY_SIZE_TOO_SMALL				 110
 
 #ifdef  __cplusplus
 }

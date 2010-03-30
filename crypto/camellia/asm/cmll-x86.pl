@@ -722,12 +722,15 @@ my $bias=int(@T[0])?shift(@T):0;
 }
 &function_end("Camellia_Ekeygen");
 
+$setkeyfunc = "Camellia_set_key";
+$setkeyfunc = "private_Camellia_set_key" if ($ENV{FIPS} ne "");
+
 if ($OPENSSL) {
 # int Camellia_set_key (
 #		const unsigned char *userKey,
 #		int bits,
 #		CAMELLIA_KEY *key)
-&function_begin_B("Camellia_set_key");
+&function_begin_B($setkeyfunc);
 	&push	("ebx");
 	&mov	("ecx",&wparam(0));	# pull arguments
 	&mov	("ebx",&wparam(1));
@@ -760,7 +763,7 @@ if ($OPENSSL) {
 &set_label("done",4);
 	&pop	("ebx");
 	&ret	();
-&function_end_B("Camellia_set_key");
+&function_end_B($setkeyfunc);
 }
 
 @SBOX=(
