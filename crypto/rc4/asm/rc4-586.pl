@@ -166,8 +166,12 @@ $idx="edx";
 
 &external_label("OPENSSL_ia32cap_P");
 
+$setkeyfunc = "RC4_set_key";
+$setkeyfunc = "private_RC4_set_key" if ($ENV{FIPS} ne "");
+
+
 # void RC4_set_key(RC4_KEY *key,int len,const unsigned char *data);
-&function_begin("RC4_set_key");
+&function_begin($setkeyfunc);
 	&mov	($out,&wparam(0));		# load key
 	&mov	($idi,&wparam(1));		# load len
 	&mov	($inp,&wparam(2));		# load data
@@ -245,7 +249,7 @@ $idx="edx";
 	&xor	("eax","eax");
 	&mov	(&DWP(-8,$out),"eax");		# key->x=0;
 	&mov	(&DWP(-4,$out),"eax");		# key->y=0;
-&function_end("RC4_set_key");
+&function_end($setkeyfunc);
 
 # const char *RC4_options(void);
 &function_begin_B("RC4_options");

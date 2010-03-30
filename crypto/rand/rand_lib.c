@@ -60,6 +60,12 @@
 #include <time.h>
 #include "cryptlib.h"
 #include <openssl/rand.h>
+#include "rand_lcl.h"
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#include <openssl/fips_rand.h>
+#endif
+
 #ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
 #endif
@@ -102,8 +108,19 @@ const RAND_METHOD *RAND_get_rand_method(void)
 			funct_ref = e;
 		else
 #endif
+#ifdef OPENSSL_FIPS
+			default_RAND_meth = FIPS_mode() ? FIPS_rand_method() : RAND_SSLeay();
+		}
+	if (FIPS_mode()
+		&& default_RAND_meth != FIPS_rand_check())
+	    {
+	    RANDerr(RAND_F_RAND_GET_RAND_METHOD,RAND_R_NON_FIPS_METHOD);
+	    return 0;
+	    }
+#else
 			default_RAND_meth = RAND_SSLeay();
 		}
+#endif
 	return default_RAND_meth;
 	}
 

@@ -202,4 +202,6 @@ RC4_options:
 .string	"rc4(8x,char)"
 ___
 
+$code =~ s/RC4_set_key/private_RC4_set_key/g if ($ENV{FIPS} ne "");
+
 print $code;

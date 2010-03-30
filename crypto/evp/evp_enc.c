@@ -68,8 +68,53 @@
 
 const char EVP_version[]="EVP" OPENSSL_VERSION_PTEXT;
 
+#ifdef OPENSSL_FIPS
+
+/* The purpose of these is to trap programs that attempt to use non FIPS
+ * algorithms in FIPS mode and ignore the errors.
+ */
+
+static int bad_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+		    const unsigned char *iv, int enc)
+	{ FIPS_ERROR_IGNORED("Cipher init"); return 0;}
+
+static int bad_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+			 const unsigned char *in, unsigned int inl)
+	{ FIPS_ERROR_IGNORED("Cipher update"); return 0;}
+
+/* NB: no cleanup because it is allowed after failed init */
+
+static int bad_set_asn1(EVP_CIPHER_CTX *ctx, ASN1_TYPE *typ)
+	{ FIPS_ERROR_IGNORED("Cipher set_asn1"); return 0;}
+static int bad_get_asn1(EVP_CIPHER_CTX *ctx, ASN1_TYPE *typ)
+	{ FIPS_ERROR_IGNORED("Cipher get_asn1"); return 0;}
+static int bad_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
+	{ FIPS_ERROR_IGNORED("Cipher ctrl"); return 0;}
+
+static const EVP_CIPHER bad_cipher =
+	{
+	0,
+	0,
+	0,
+	0,
+	0,
+	bad_init,
+	bad_do_cipher,
+	NULL,
+	0,
+	bad_set_asn1,
+	bad_get_asn1,
+	bad_ctrl,
+	NULL
+	};
+
+#endif
+
 void EVP_CIPHER_CTX_init(EVP_CIPHER_CTX *ctx)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 	memset(ctx,0,sizeof(EVP_CIPHER_CTX));
 	/* ctx->cipher=NULL; */
 	}
@@ -101,6 +146,14 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher, ENGINE *imp
 			enc = 1;
 		ctx->encrypt = enc;
 		}
+#ifdef OPENSSL_FIPS
+	if(FIPS_selftest_failed())
+		{
+		FIPSerr(FIPS_F_EVP_CIPHERINIT_EX,FIPS_R_FIPS_SELFTEST_FAILED);
+		ctx->cipher = &bad_cipher;
+		return 0;
+		}
+#endif
 #ifndef OPENSSL_NO_ENGINE
 	/* Whether it's nice or not, "Inits" can be used on "Final"'d contexts
 	 * so this context may already have an ENGINE! Try to avoid releasing
@@ -218,6 +271,22 @@ skip_to_init:
 			break;
 		}
 	}
+
+#ifdef OPENSSL_FIPS
+	/* After 'key' is set no further parameters changes are permissible.
+	 * So only check for non FIPS enabling at this point.
+	 */
+	if (key && FIPS_mode())
+		{
+		if (!(ctx->cipher->flags & EVP_CIPH_FLAG_FIPS)
+			& !(ctx->flags & EVP_CIPH_FLAG_NON_FIPS_ALLOW))
+			{
+			EVPerr(EVP_F_EVP_CIPHERINIT_EX, EVP_R_DISABLED_FOR_FIPS);
+			ctx->cipher = &bad_cipher;
+			return 0;
+			}
+		}
+#endif
 
 	if(key || (ctx->cipher->flags & EVP_CIPH_ALWAYS_CALL_INIT)) {
 		if(!ctx->cipher->init(ctx,key,iv,enc)) return 0;
