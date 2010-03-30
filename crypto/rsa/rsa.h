@@ -74,6 +74,21 @@
 #error RSA is disabled.
 #endif
 
+/* If this flag is set the RSA method is FIPS compliant and can be used
+ * in FIPS mode. This is set in the validated module method. If an
+ * application sets this flag in its own methods it is its reposibility
+ * to ensure the result is compliant.
+ */
+
+#define RSA_FLAG_FIPS_METHOD			0x0400
+
+/* If this flag is set the operations normally disabled in FIPS mode are
+ * permitted it is then the applications responsibility to ensure that the
+ * usage is compliant.
+ */
+
+#define RSA_FLAG_NON_FIPS_ALLOW			0x0400
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -163,6 +178,8 @@ struct rsa_st
 #ifndef OPENSSL_RSA_MAX_MODULUS_BITS
 # define OPENSSL_RSA_MAX_MODULUS_BITS	16384
 #endif
+
+#define OPENSSL_RSA_FIPS_MIN_MODULUS_BITS 1024
 
 #ifndef OPENSSL_RSA_SMALL_MODULUS_BITS
 # define OPENSSL_RSA_SMALL_MODULUS_BITS	3072
@@ -267,6 +284,11 @@ RSA *	RSA_generate_key(int bits, unsigned long e,void
 
 /* New version */
 int	RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e, BN_GENCB *cb);
+int RSA_X931_derive_ex(RSA *rsa, BIGNUM *p1, BIGNUM *p2, BIGNUM *q1, BIGNUM *q2,
+			const BIGNUM *Xp1, const BIGNUM *Xp2, const BIGNUM *Xp,
+			const BIGNUM *Xq1, const BIGNUM *Xq2, const BIGNUM *Xq,
+			const BIGNUM *e, BN_GENCB *cb);
+int RSA_X931_generate_key_ex(RSA *rsa, int bits, const BIGNUM *e, BN_GENCB *cb);
 
 int	RSA_check_key(const RSA *);
 	/* next 4 return -1 on error */
@@ -438,8 +460,12 @@ void ERR_load_RSA_strings(void);
 #define RSA_F_RSA_PRINT_FP				 116
 #define RSA_F_RSA_PRIV_DECODE				 137
 #define RSA_F_RSA_PRIV_ENCODE				 138
+#define RSA_F_RSA_PRIVATE_ENCRYPT			 148
 #define RSA_F_RSA_PUB_DECODE				 139
+#define RSA_F_RSA_PUBLIC_DECRYPT			 149
 #define RSA_F_RSA_SETUP_BLINDING			 136
+#define RSA_F_RSA_SET_DEFAULT_METHOD			 150
+#define RSA_F_RSA_SET_METHOD				 151
 #define RSA_F_RSA_SIGN					 117
 #define RSA_F_RSA_SIGN_ASN1_OCTET_STRING		 118
 #define RSA_F_RSA_VERIFY				 119
@@ -479,10 +505,12 @@ void ERR_load_RSA_strings(void);
 #define RSA_R_KEY_SIZE_TOO_SMALL			 120
 #define RSA_R_LAST_OCTET_INVALID			 134
 #define RSA_R_MODULUS_TOO_LARGE				 105
+#define RSA_R_NON_FIPS_METHOD				 149
 #define RSA_R_NO_PUBLIC_EXPONENT			 140
 #define RSA_R_NULL_BEFORE_BLOCK_MISSING			 113
 #define RSA_R_N_DOES_NOT_EQUAL_P_Q			 127
 #define RSA_R_OAEP_DECODING_ERROR			 121
+#define RSA_R_OPERATION_NOT_ALLOWED_IN_FIPS_MODE	 150
 #define RSA_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE	 148
 #define RSA_R_PADDING_CHECK_FAILED			 114
 #define RSA_R_P_NOT_PRIME				 128
