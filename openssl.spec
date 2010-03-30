@@ -11,8 +11,6 @@
 # 1.0.0 soversion = 10
 %define soversion 10
 
-%define beta beta5
-
 # Number of threads to spawn when testing some threading fixes.
 %define thread_test_threads %{?threads:%{threads}}%{!?threads:1}
 
@@ -23,10 +21,10 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 0.22.%{beta}%{?dist}
+Release: 1%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
-Source: openssl-%{version}-%{beta}-usa.tar.bz2
+Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
 Source6: make-dummy-cert
@@ -51,7 +49,7 @@ Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.8j-version-add-engines.patch
 Patch38: openssl-1.0.0-beta5-cipher-change.patch
 Patch39: openssl-1.0.0-beta5-ipv6-apps.patch
-Patch40: openssl-1.0.0-beta5-fips.patch
+Patch40: openssl-1.0.0-fips.patch
 Patch41: openssl-1.0.0-beta3-fipscheck.patch
 Patch43: openssl-1.0.0-beta3-fipsmode.patch
 Patch44: openssl-1.0.0-beta3-fipsrng.patch
@@ -59,10 +57,9 @@ Patch45: openssl-0.9.8j-env-nozlib.patch
 Patch47: openssl-1.0.0-beta5-readme-warning.patch
 Patch49: openssl-1.0.0-beta4-algo-doc.patch
 Patch50: openssl-1.0.0-beta4-dtls1-abi.patch
-Patch51: openssl-1.0.0-beta5-version.patch
+Patch51: openssl-1.0.0-version.patch
 Patch52: openssl-1.0.0-beta4-aesni.patch
 # Backported fixes including security fixes
-Patch53: openssl-1.0.0-beta5-cleanse.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -112,7 +109,7 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q -n %{name}-%{version}-%{beta}
+%setup -q -n %{name}-%{version}
 
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
@@ -141,7 +138,6 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch50 -p1 -b .dtls1-abi
 %patch51 -p1 -b .version
 %patch52 -p1 -b .aesni
-%patch53 -p1 -b .cleanse
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -387,6 +383,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Mar 30 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-1
+- update to final 1.0.0 upstream release
+
 * Tue Feb 16 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-0.22.beta5
 - make TLS work in the FIPS mode
 
