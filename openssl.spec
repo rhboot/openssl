@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.21
+Release: 43.22
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -81,6 +81,7 @@ Patch60: openssl-0.9.7a-cve-2008-5077.patch
 Patch61: openssl-0.9.7a-cve-2009-0590.patch
 Patch62: openssl-0.9.7a-cve-2009-2409.patch
 Patch63: openssl-0.9.7a-cve-2009-3555.patch
+Patch64: openssl-0.9.7a-cve-2009-3245.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -182,6 +183,7 @@ popd
 %patch61 -p1 -b .bad-string
 %patch62 -p1 -b .nomd2
 %patch63 -p1 -b .reneg
+%patch64 -p1 -b .wexpand
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -441,6 +443,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Apr  1 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.22
+- CVE-2009-3245 - fix missing checks on allocation failure in
+  bn_wexpand (#570924)
+
 * Wed Feb 10 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.21
 - CVE-2009-3555 - support the secure renegotiation RFC (#533125)
 - CVE-2009-2409 - drop MD2 from the default algorithm list (#510197)
