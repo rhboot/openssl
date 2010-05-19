@@ -236,10 +236,17 @@ unsigned long X509_NAME_hash_old(X509_NAME *x)
 	{
 	unsigned long ret=0;
 	unsigned char md[16];
+	EVP_MD_CTX ctx; 
 
 	/* Make sure X509_NAME structure contains valid cached encoding */
 	i2d_X509_NAME(x,NULL);
-	EVP_Digest(x->bytes->data, x->bytes->length, md, NULL, EVP_md5(), NULL);
+
+	EVP_MD_CTX_init(&ctx);
+	EVP_MD_CTX_set_flags(&ctx,EVP_MD_CTX_FLAG_ONESHOT | EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+        EVP_DigestInit_ex(&ctx, EVP_md5(), NULL)
+		&& EVP_DigestUpdate(&ctx, x->bytes->data, x->bytes->length)
+		&& EVP_DigestFinal_ex(&ctx, md, NULL);
+	EVP_MD_CTX_cleanup(&ctx);
 
 	ret=(	((unsigned long)md[0]     )|((unsigned long)md[1]<<8L)|
 		((unsigned long)md[2]<<16L)|((unsigned long)md[3]<<24L)
