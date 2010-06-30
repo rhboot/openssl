@@ -1,0 +1,21 @@
+diff -up openssl-1.0.0a/doc/apps/openssl.pod.manfix openssl-1.0.0a/doc/apps/openssl.pod
+--- openssl-1.0.0a/doc/apps/openssl.pod.manfix	2010-01-21 19:46:28.000000000 +0100
++++ openssl-1.0.0a/doc/apps/openssl.pod	2010-06-30 14:24:50.000000000 +0200
+@@ -287,8 +287,6 @@ SHA Digest
+ 
+ SHA-1 Digest
+ 
+-=back
+-
+ =item B<sha224>
+ 
+ SHA-224 Digest
+@@ -305,6 +303,8 @@ SHA-384 Digest
+ 
+ SHA-512 Digest
+ 
++=back
++
+ =head2 ENCODING AND CIPHER COMMANDS
+ 
+ =over 10
