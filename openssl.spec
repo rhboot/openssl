@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 16%{?dist}
+Release: 16%{?dist}.sf00332776
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -74,6 +74,7 @@ Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
 Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
+Patch88: openssl-0.9.8e-avoid_ex_data.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -88,6 +89,13 @@ machines. OpenSSL includes a certificate management tool and shared
 libraries which provide various cryptographic algorithms and
 protocols.
 
+This RPM has been provided by Red Hat for testing purposes only and is
+NOT supported for any other use. This RPM may contain changes that are
+necessary for debugging but that are not appropriate for other uses,
+or that are not compatible with third-party hardware or software. This
+RPM should NOT be deployed for purposes other than testing and
+debugging.
+
 %package devel
 Summary: Files for development of applications which will use OpenSSL
 Group: Development/Libraries
@@ -99,6 +107,13 @@ package contains static libraries and include files needed to develop
 applications which support various cryptographic algorithms and
 protocols.
 
+This RPM has been provided by Red Hat for testing purposes only and is
+NOT supported for any other use. This RPM may contain changes that are
+necessary for debugging but that are not appropriate for other uses,
+or that are not compatible with third-party hardware or software. This
+RPM should NOT be deployed for purposes other than testing and
+debugging.
+
 %package perl
 Summary: Perl scripts provided with OpenSSL
 Group: Applications/Internet
@@ -109,6 +124,13 @@ Requires: %{name} = %{version}-%{release}
 OpenSSL is a toolkit for supporting cryptography. The openssl-perl
 package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
+
+This RPM has been provided by Red Hat for testing purposes only and is
+NOT supported for any other use. This RPM may contain changes that are
+necessary for debugging but that are not appropriate for other uses,
+or that are not compatible with third-party hardware or software. This
+RPM should NOT be deployed for purposes other than testing and
+debugging.
 
 %prep
 %setup -q -n %{name}-fips-%{version}
@@ -155,6 +177,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch85 -p1 -b .reneg
 %patch86 -p1 -b .nullprinc
 %patch87 -p1 -b .wexpand
+%patch88 -p1 -b .ex_data
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -408,6 +431,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Oct 15 2010 Jeff Bastian <jbastian@redhat.com> 0.9.8e16.sf00332776
+- apply upstream patch to Avoid use of ex_data free function in Chil 
+  ENGINE so it can be safely reloaded
+
 * Fri Mar 12 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-16
 - fix CVE-2009-3245 - add missing bn_wexpand return checks (#570924)
 
