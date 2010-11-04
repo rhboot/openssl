@@ -1,20 +1,23 @@
 diff --git a/apps/openssl.cnf b/apps/openssl.cnf
-index 28f80af..6e94f48 100644
+index 28f80af..a55b519 100644
 --- a/apps/openssl.cnf
 +++ b/apps/openssl.cnf
-@@ -11,6 +11,16 @@ RANDFILE		= $ENV::HOME/.rnd
+@@ -11,6 +11,19 @@ RANDFILE		= $ENV::HOME/.rnd
  # Uncomment out to enable OpenSSL configuration see config(3)
  # openssl_conf = openssl_init
  
-+openssl_conf            = openssl_def
-+[openssl_def]
-+engines = engine_section
-+
-+[engine_section]
-+chil = chil_section
-+
-+[chil_section]
-+SO_PATH=/opt/nfast/toolkits/hwcrhk/libnfhwcrhk.so
++#####################################################################
++# Uncomment this section to enable Thales nCipher hardware support
++#openssl_conf            = openssl_def
++#[openssl_def]
++#engines = engine_section
++#
++#[engine_section]
++#chil = chil_section
++#
++#[chil_section]
++#SO_PATH=/opt/nfast/toolkits/hwcrhk/libnfhwcrhk.so
++#####################################################################
 +
  # To use this configuration file with the "-extfile" option of the
  # "openssl x509" utility, name here the section containing the
