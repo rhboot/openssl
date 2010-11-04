@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 16%{?dist}.sf00332776
+Release: 16%{?dist}.sf00353519
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -75,6 +75,7 @@ Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
 Patch88: openssl-0.9.8e-avoid_ex_data.patch
+Patch89: openssl-thales-hwcrhk.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -178,6 +179,7 @@ debugging.
 %patch86 -p1 -b .nullprinc
 %patch87 -p1 -b .wexpand
 %patch88 -p1 -b .ex_data
+%patch89 -p1 -b .thales
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -431,6 +433,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Nov  4 2010 Jeff Bastian <jbastian@redhat.com> 0.9.8e16.sf00353519
+- apply Thales' patch to use keys protected by the nCipher key 
+  management architecture
+
 * Fri Oct 15 2010 Jeff Bastian <jbastian@redhat.com> 0.9.8e16.sf00332776
 - apply upstream patch to Avoid use of ex_data free function in Chil 
   ENGINE so it can be safely reloaded

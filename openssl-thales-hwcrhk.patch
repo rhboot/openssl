@@ -1,0 +1,110 @@
+diff --git a/apps/openssl.cnf b/apps/openssl.cnf
+index 28f80af..6e94f48 100644
+--- a/apps/openssl.cnf
++++ b/apps/openssl.cnf
+@@ -11,6 +11,16 @@ RANDFILE		= $ENV::HOME/.rnd
+ # Uncomment out to enable OpenSSL configuration see config(3)
+ # openssl_conf = openssl_init
+ 
++openssl_conf            = openssl_def
++[openssl_def]
++engines = engine_section
++
++[engine_section]
++chil = chil_section
++
++[chil_section]
++SO_PATH=/opt/nfast/toolkits/hwcrhk/libnfhwcrhk.so
++
+ # To use this configuration file with the "-extfile" option of the
+ # "openssl x509" utility, name here the section containing the
+ # X.509v3 extensions to use:
+diff --git a/crypto/crypto.h b/crypto/crypto.h
+index b1b3e9c..1700725 100644
+--- a/crypto/crypto.h
++++ b/crypto/crypto.h
+@@ -221,7 +221,8 @@ typedef struct openssl_item_st
+ #define CRYPTO_LOCK_COMP		38
+ #define CRYPTO_LOCK_FIPS		39
+ #define CRYPTO_LOCK_FIPS2		40
+-#define CRYPTO_NUM_LOCKS		41
++#define CRYPTO_LOCK_HWCRHK		41
++#define CRYPTO_NUM_LOCKS		42
+ 
+ #define CRYPTO_LOCK		1
+ #define CRYPTO_UNLOCK		2
+diff --git a/crypto/dyn_lck.c b/crypto/dyn_lck.c
+index 0ca9b63..780cfb6 100644
+--- a/crypto/dyn_lck.c
++++ b/crypto/dyn_lck.c
+@@ -168,7 +168,8 @@ static const char* const lock_names[CRYPTO_NUM_LOCKS] =
+ 	"comp",
+ 	"fips",
+ 	"fips2",
+-#if CRYPTO_NUM_LOCKS != 41
++	"hwcrhk",
++#if CRYPTO_NUM_LOCKS != 42
+ # error "Inconsistency between crypto.h and cryptlib.c"
+ #endif
+ 	};
+diff --git a/engines/e_chil.c b/engines/e_chil.c
+index 9394844..5a26f1f 100644
+--- a/engines/e_chil.c
++++ b/engines/e_chil.c
+@@ -103,6 +103,13 @@ static int hwcrhk_mutex_init(HWCryptoHook_Mutex*, HWCryptoHook_CallerContext*);
+ static int hwcrhk_mutex_lock(HWCryptoHook_Mutex*);
+ static void hwcrhk_mutex_unlock(HWCryptoHook_Mutex*);
+ static void hwcrhk_mutex_destroy(HWCryptoHook_Mutex*);
++/* Functions to handle mutexes if only have static locks */
++static int hwcrhk_static_mutex_init(HWCryptoHook_Mutex *m,
++                                    HWCryptoHook_CallerContext *c);
++static int hwcrhk_static_mutex_lock(HWCryptoHook_Mutex *m);
++static void hwcrhk_static_mutex_unlock(HWCryptoHook_Mutex *m);
++static void hwcrhk_static_mutex_destroy(HWCryptoHook_Mutex *m);
++
+ 
+ /* BIGNUM stuff */
+ static int hwcrhk_mod_exp(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
+@@ -586,9 +593,11 @@ static int hwcrhk_init(ENGINE *e)
+ 			}
+ 		else if (CRYPTO_get_locking_callback() != NULL)
+ 			{
+-			HWCRHKerr(HWCRHK_F_HWCRHK_INIT,HWCRHK_R_LOCKING_MISSING);
+-			ERR_add_error_data(1,"You HAVE to add dynamic locking callbacks via CRYPTO_set_dynlock_{create,lock,destroy}_callback()");
+-			goto err;
++                        hwcrhk_globals.maxmutexes    = 1; /* Only have one lock */
++                        hwcrhk_globals.mutex_init    = hwcrhk_static_mutex_init;
++                        hwcrhk_globals.mutex_acquire = hwcrhk_static_mutex_lock;
++                        hwcrhk_globals.mutex_release = hwcrhk_static_mutex_unlock;
++                        hwcrhk_globals.mutex_destroy = hwcrhk_static_mutex_destroy;
+ 			}
+ 		}
+ 
+@@ -1184,6 +1193,27 @@ static void hwcrhk_mutex_destroy(HWCryptoHook_Mutex *mt)
+ 	CRYPTO_destroy_dynlockid(mt->lockid);
+ 	}
+ 
++/* Mutex upcalls to use if the application does not support dynamic locks */
++
++static int hwcrhk_static_mutex_init(HWCryptoHook_Mutex *m,
++        HWCryptoHook_CallerContext *c)
++        {
++        return 0;
++        }
++static int hwcrhk_static_mutex_lock(HWCryptoHook_Mutex *m)
++        {
++        CRYPTO_w_lock(CRYPTO_LOCK_HWCRHK);
++        return 0;
++        }
++static void hwcrhk_static_mutex_unlock(HWCryptoHook_Mutex *m)
++        {
++        CRYPTO_w_unlock(CRYPTO_LOCK_HWCRHK);
++        }
++static void hwcrhk_static_mutex_destroy(HWCryptoHook_Mutex *m)
++        {
++        }
++
++
+ static int hwcrhk_get_pass(const char *prompt_info,
+ 	int *len_io, char *buf,
+ 	HWCryptoHook_PassphraseContext *ppctx,
