@@ -152,6 +152,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch61 -p1 -b .sha256
 %patch62 -p1 -b .originfo
 %patch63 -p1 -b .recover
+%patch64 -p1 -b .extrace
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
