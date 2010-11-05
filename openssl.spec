@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 4%{?dist}
+Release: 5%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -66,6 +66,7 @@ Patch60: openssl-1.0.0-dtls1-backports.patch
 Patch61: openssl-1.0.0-init-sha256.patch
 Patch62: openssl-1.0.0-cve-2010-0742.patch
 Patch63: openssl-1.0.0-cve-2010-1633.patch
+Patch64: openssl-1.0.0-cve-2010-3864.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -402,6 +403,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Nov  5 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-5
+- fix race in extension parsing code - CVE-2010-3864 (#649304)
+
 * Wed Jun 30 2010 Tomas Mraz <tmraz@redhat.com> 1.0.0-4
 - openssl man page fix (#609484)
 
