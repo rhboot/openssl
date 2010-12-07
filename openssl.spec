@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 16%{?dist}
+Release: 17%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -74,6 +74,7 @@ Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
 Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
+Patch88: openssl-fips-0.9.8e-cve-2010-4180.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -155,6 +156,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch85 -p1 -b .reneg
 %patch86 -p1 -b .nullprinc
 %patch87 -p1 -b .wexpand
+%patch88 -p1 -b .disable-nsbug
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -408,6 +410,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Dec  7 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-17
+- fix CVE-2010-4180 - completely disable code for
+  SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG (#659462)
+
 * Fri Mar 12 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-16
 - fix CVE-2009-3245 - add missing bn_wexpand return checks (#570924)
 
