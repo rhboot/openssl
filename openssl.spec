@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.17%{?dist}.5
+Release: 43.17%{?dist}.6
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -81,6 +81,8 @@ Patch60: openssl-0.9.7a-cve-2008-5077.patch
 Patch61: openssl-0.9.7a-cve-2009-0590.patch
 Patch62: openssl-0.9.7a-cve-2009-2409.patch
 Patch63: openssl-0.9.7a-cve-2009-3555.patch
+Patch64: openssl-0.9.7a-cve-2009-3245.patch
+Patch65: openssl-0.9.7a-cve-2010-4180.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -182,6 +184,8 @@ popd
 %patch61 -p1 -b .bad-string
 %patch62 -p1 -b .nomd2
 %patch63 -p1 -b .reneg
+%patch64 -p1 -b .wexpand
+%patch65 -p1 -b .disable-nsbug
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -441,6 +445,12 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Dec  7 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.6
+- CVE-2010-4180 - disable code for SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG
+  (#659462)
+- CVE-2009-3245 - fix missing checks on allocation failure in
+  bn_wexpand (#570924)
+
 * Thu Feb 18 2010 Tomas Mraz <tmraz@redhat.com> 0.9.7a-43.17.5
 - do not disable SSLv2 in the renegotiation patch - SSLv2 does
   not support renegotiation
