@@ -482,7 +482,7 @@ typedef struct ssl_session_st
 #define SSL_OP_NETSCAPE_CHALLENGE_BUG			0x00000002L
 /* Allow initial connection to servers that don't support RI */
 #define SSL_OP_LEGACY_SERVER_CONNECT			0x00000004L
-#define SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG		0x00000008L /* can break some security expectations */
+#define SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG		0x00000008L /* no effect anymore */
 #define SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG		0x00000010L
 #define SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER		0x00000020L
 #define SSL_OP_MSIE_SSLV2_RSA_PADDING			0x00000040L /* no effect since 0.9.7h and 0.9.8b */
