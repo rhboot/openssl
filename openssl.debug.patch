@@ -1,6 +1,6 @@
 diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
 --- openssl-0.9.7a/ssl/s3_srvr.c.original	2011-01-18 14:16:27.000000000 +0900
-+++ openssl-0.9.7a/ssl/s3_srvr.c	2011-01-18 15:46:50.000000000 +0900
++++ openssl-0.9.7a/ssl/s3_srvr.c	2011-01-18 16:34:05.000000000 +0900
 @@ -111,6 +111,7 @@
  
  #define REUSE_CIPHER_BUG
@@ -18,7 +18,15 @@ diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
  
  static SSL_METHOD *ssl3_get_server_method(int ver);
  static int ssl3_get_client_hello(SSL *s);
-@@ -692,6 +695,7 @@ static int ssl3_get_client_hello(SSL *s)
+@@ -663,6 +666,7 @@ static int ssl3_get_client_hello(SSL *s)
+ 	SSL_CIPHER *c;
+ 	SSL_COMP *comp=NULL;
+ 	STACK_OF(SSL_CIPHER) *ciphers=NULL;
++	openlog("openssl-dbg", NULL, LOG_LOCAL6);
+ 
+ 	/* We do this so that we will respond with our native type.
+ 	 * If we are TLSv1 and we get SSLv3, we will respond with TLSv1,
+@@ -692,6 +696,7 @@ static int ssl3_get_client_hello(SSL *s)
  
  	if (s->client_version < s->version)
  		{
@@ -26,7 +34,7 @@ diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
  		SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO, SSL_R_WRONG_VERSION_NUMBER);
  		if ((s->client_version>>8) == SSL3_VERSION_MAJOR) 
  			{
-@@ -769,15 +773,14 @@ static int ssl3_get_client_hello(SSL *s)
+@@ -769,15 +774,14 @@ static int ssl3_get_client_hello(SSL *s)
  		id=s->session->cipher->id;
  
  #ifdef CIPHER_DEBUG
@@ -45,7 +53,7 @@ diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
  			if (c->id == id)
  				{
  				j=1;
-@@ -796,6 +799,7 @@ static int ssl3_get_client_hello(SSL *s)
+@@ -796,6 +800,7 @@ static int ssl3_get_client_hello(SSL *s)
  				{
  				/* we need to have the cipher in the cipher
  				 * list if we are asked to reuse it */
@@ -53,3 +61,11 @@ diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
  				al=SSL_AD_ILLEGAL_PARAMETER;
  				SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO,SSL_R_REQUIRED_CIPHER_MISSING);
  				goto f_err;
+@@ -955,6 +960,7 @@ f_err:
+ 		ssl3_send_alert(s,SSL3_AL_FATAL,al);
+ 		}
+ err:
++	closelog();
+ 	if (ciphers != NULL) sk_SSL_CIPHER_free(ciphers);
+ 	return(ret);
+ 	}
