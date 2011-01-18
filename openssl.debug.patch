@@ -1,6 +1,6 @@
 diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
 --- openssl-0.9.7a/ssl/s3_srvr.c.original	2011-01-18 14:16:27.000000000 +0900
-+++ openssl-0.9.7a/ssl/s3_srvr.c	2011-01-18 14:48:51.000000000 +0900
++++ openssl-0.9.7a/ssl/s3_srvr.c	2011-01-18 15:46:50.000000000 +0900
 @@ -111,6 +111,7 @@
  
  #define REUSE_CIPHER_BUG
@@ -9,27 +9,47 @@ diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
  
  
  #include <stdio.h>
-@@ -692,6 +693,7 @@ static int ssl3_get_client_hello(SSL *s)
+@@ -124,6 +125,8 @@
+ #include <openssl/krb5_asn.h>
+ #include <openssl/md5.h>
+ #include "cryptlib.h"
++#include <syslog.h>
++
+ 
+ static SSL_METHOD *ssl3_get_server_method(int ver);
+ static int ssl3_get_client_hello(SSL *s);
+@@ -692,6 +695,7 @@ static int ssl3_get_client_hello(SSL *s)
  
  	if (s->client_version < s->version)
  		{
-+		printf("wrong version number(%x,%x)\n", s->client_version, s->version);
++		syslog(LOG_ERR, "wrong version number(%x,%x)\n", s->client_version, s->version);
  		SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO, SSL_R_WRONG_VERSION_NUMBER);
  		if ((s->client_version>>8) == SSL3_VERSION_MAJOR) 
  			{
-@@ -770,6 +772,7 @@ static int ssl3_get_client_hello(SSL *s)
+@@ -769,15 +773,14 @@ static int ssl3_get_client_hello(SSL *s)
+ 		id=s->session->cipher->id;
  
  #ifdef CIPHER_DEBUG
- 		printf("client sent %d ciphers\n",sk_num(ciphers));
-+		printf("DBG: session->cipher->id: %lx\n", id);
+-		printf("client sent %d ciphers\n",sk_num(ciphers));
++		syslog(LOG_ERR, "client sent %d ciphers\n",sk_num(ciphers));
++		syslog(LOG_ERR, "DBG: session->cipher->id: %lx\n", id);
  #endif
  		for (i=0; i<sk_SSL_CIPHER_num(ciphers); i++)
  			{
+ 			c=sk_SSL_CIPHER_value(ciphers,i);
+-#ifdef CIPHER_DEBUG
+-			printf("client [%2d of %2d]:%s\n",
++			syslog(LOG_ERR, "client [%2d of %2d]:%s\n",
+ 				i,sk_num(ciphers),SSL_CIPHER_get_name(c));
+-#endif
+ 			if (c->id == id)
+ 				{
+ 				j=1;
 @@ -796,6 +799,7 @@ static int ssl3_get_client_hello(SSL *s)
  				{
  				/* we need to have the cipher in the cipher
  				 * list if we are asked to reuse it */
-+				printf("DBG: required cipher missing\n");
++				syslog(LOG_ERR, "DBG: required cipher missing\n");
  				al=SSL_AD_ILLEGAL_PARAMETER;
  				SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO,SSL_R_REQUIRED_CIPHER_MISSING);
  				goto f_err;
