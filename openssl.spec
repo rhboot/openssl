@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit.
 Name: openssl
 Version: 0.9.7a
-Release: 43.17%{?dist}.5
+Release: 43.17%{?dist}.5.CASE00335006.0
 Source: openssl-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
@@ -81,6 +81,8 @@ Patch60: openssl-0.9.7a-cve-2008-5077.patch
 Patch61: openssl-0.9.7a-cve-2009-0590.patch
 Patch62: openssl-0.9.7a-cve-2009-2409.patch
 Patch63: openssl-0.9.7a-cve-2009-3555.patch
+
+Patch64: openssl.debug.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -182,6 +184,7 @@ popd
 %patch61 -p1 -b .bad-string
 %patch62 -p1 -b .nomd2
 %patch63 -p1 -b .reneg
+%patch64 -p1
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`

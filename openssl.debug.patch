@@ -1,0 +1,35 @@
+diff -up openssl-0.9.7a/ssl/s3_srvr.c.original openssl-0.9.7a/ssl/s3_srvr.c
+--- openssl-0.9.7a/ssl/s3_srvr.c.original	2011-01-18 14:16:27.000000000 +0900
++++ openssl-0.9.7a/ssl/s3_srvr.c	2011-01-18 14:48:51.000000000 +0900
+@@ -111,6 +111,7 @@
+ 
+ #define REUSE_CIPHER_BUG
+ #define NETSCAPE_HANG_BUG
++#define CIPHER_DEBUG
+ 
+ 
+ #include <stdio.h>
+@@ -692,6 +693,7 @@ static int ssl3_get_client_hello(SSL *s)
+ 
+ 	if (s->client_version < s->version)
+ 		{
++		printf("wrong version number(%x,%x)\n", s->client_version, s->version);
+ 		SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO, SSL_R_WRONG_VERSION_NUMBER);
+ 		if ((s->client_version>>8) == SSL3_VERSION_MAJOR) 
+ 			{
+@@ -770,6 +772,7 @@ static int ssl3_get_client_hello(SSL *s)
+ 
+ #ifdef CIPHER_DEBUG
+ 		printf("client sent %d ciphers\n",sk_num(ciphers));
++		printf("DBG: session->cipher->id: %lx\n", id);
+ #endif
+ 		for (i=0; i<sk_SSL_CIPHER_num(ciphers); i++)
+ 			{
+@@ -796,6 +799,7 @@ static int ssl3_get_client_hello(SSL *s)
+ 				{
+ 				/* we need to have the cipher in the cipher
+ 				 * list if we are asked to reuse it */
++				printf("DBG: required cipher missing\n");
+ 				al=SSL_AD_ILLEGAL_PARAMETER;
+ 				SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO,SSL_R_REQUIRED_CIPHER_MISSING);
+ 				goto f_err;
