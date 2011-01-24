@@ -100,6 +100,9 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
 #if !defined(OPENSSL_SYS_MSDOS)
 #include OPENSSL_UNISTD
 #endif
@@ -915,7 +918,12 @@ int MAIN(int argc, char **argv)
 #ifndef OPENSSL_NO_RSA
 			if (strcmp(*argv,"rsa") == 0)
 			{
+#ifdef OPENSSL_FIPS
+				if (!FIPS_mode())
+#endif
+				{
 			rsa_doit[R_RSA_512]=1;
+				}
 			rsa_doit[R_RSA_1024]=1;
 			rsa_doit[R_RSA_2048]=1;
 			rsa_doit[R_RSA_4096]=1;
@@ -925,7 +933,12 @@ int MAIN(int argc, char **argv)
 #ifndef OPENSSL_NO_DSA
 			if (strcmp(*argv,"dsa") == 0)
 			{
+#ifdef OPENSSL_FIPS
+				if (!FIPS_mode())
+#endif
+				{
 			dsa_doit[R_DSA_512]=1;
+				}
 			dsa_doit[R_DSA_1024]=1;
 			dsa_doit[R_DSA_2048]=1;
 			}
@@ -1200,30 +1213,54 @@ int MAIN(int argc, char **argv)
 	AES_set_encrypt_key(key32,256,&aes_ks3);
 #endif
 #ifndef OPENSSL_NO_CAMELLIA
+	if (doit[D_CBC_128_CML] || doit[D_CBC_192_CML] || doit[D_CBC_256_CML])
+	    {
 	Camellia_set_key(key16,128,&camellia_ks1);
 	Camellia_set_key(ckey24,192,&camellia_ks2);
 	Camellia_set_key(ckey32,256,&camellia_ks3);
+	    }
 #endif
 #ifndef OPENSSL_NO_IDEA
+	if (doit[D_CBC_IDEA])
+	    {
 	idea_set_encrypt_key(key16,&idea_ks);
+	    }
 #endif
 #ifndef OPENSSL_NO_SEED
+	if (doit[D_CBC_SEED])
+	    {
 	SEED_set_key(key16,&seed_ks);
+	    }
 #endif
 #ifndef OPENSSL_NO_RC4
+	if (doit[D_RC4])
+	    {
 	RC4_set_key(&rc4_ks,16,key16);
+	    }
 #endif
 #ifndef OPENSSL_NO_RC2
+	if (doit[D_CBC_RC2])
+	    {
 	RC2_set_key(&rc2_ks,16,key16,128);
+	    }
 #endif
 #ifndef OPENSSL_NO_RC5
+	if (doit[D_CBC_RC5])
+	    {
 	RC5_32_set_key(&rc5_ks,16,key16,12);
+	    }
 #endif
 #ifndef OPENSSL_NO_BF
+	if (doit[D_CBC_BF])
+	    {
 	BF_set_key(&bf_ks,16,key16);
+	    }
 #endif
 #ifndef OPENSSL_NO_CAST
+	if (doit[D_CBC_CAST])
+	    {
 	CAST_set_key(&cast_ks,16,key16);
+	    }
 #endif
 #ifndef OPENSSL_NO_RSA
 	memset(rsa_c,0,sizeof(rsa_c));
