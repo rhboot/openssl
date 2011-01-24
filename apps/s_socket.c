@@ -335,15 +335,16 @@ int do_server(char *port, int type, int *ret, int (*cb)(char *hostname, int s, u
 
 static int init_server(int *sock, char *port, int type)
 	{
-	struct addrinfo *res, *res0, hints;
+	struct addrinfo *res, *res0 = NULL, hints;
 	char * failed_call = NULL;
-	char port_name[8];
 	int s;
 	int e;
 
 	if (!ssl_sock_init()) return(0);
 
 	memset(&hints, '\0', sizeof(hints));
+        hints.ai_family = AF_INET6;
+tryipv4:
 	hints.ai_socktype = type;
 	hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
 	
@@ -364,6 +365,12 @@ static int init_server(int *sock, char *port, int type)
 			{
 			failed_call = "socket";
 			goto nextres;
+			}
+		if (hints.ai_family == AF_INET6)
+			{
+			int j = 0;
+			setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY,
+				   (void *) &j, sizeof j);
 			}
 #if defined SOL_SOCKET && defined SO_REUSEADDR
 		{
@@ -392,9 +399,19 @@ nextres:
 			close(s);
 		res = res->ai_next;
 	}
-	freeaddrinfo(res0);
+	if (res0)
+		freeaddrinfo(res0);
 
-	if (s == INVALID_SOCKET) { perror("socket"); return(0); }
+	if (s == INVALID_SOCKET)
+	{
+		if (hints.ai_family == AF_INET6)
+		{
+			hints.ai_family = AF_INET;
+			goto tryipv4;
+		}
+		perror("socket");
+		return(0);
+	}
 
 	perror(failed_call);
 	return(0);
