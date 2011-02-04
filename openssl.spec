@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 7%{?dist}
+Release: 8%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -63,6 +63,10 @@ Patch52: openssl-1.0.0-beta4-aesni.patch
 Patch53: openssl-1.0.0-name-hash.patch
 Patch54: openssl-1.0.0c-speed-fips.patch
 Patch55: openssl-1.0.0c-apps-ipv6listen.patch
+Patch56: openssl-1.0.0c-rsa-x931.patch
+Patch57: openssl-1.0.0-fips186-3.patch
+Patch58: openssl-1.0.0c-fips-md5-allow.patch
+Patch59: openssl-1.0.0c-pkcs12-fips-default.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-dtls1-backports.patch
 Patch61: openssl-1.0.0-init-sha256.patch
@@ -152,6 +156,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch53 -p1 -b .name-hash
 %patch54 -p1 -b .spfips
 %patch55 -p1 -b .ipv6listen
+%patch56 -p1 -b .x931
+%patch57 -p1 -b .fips186-3
+%patch58 -p1 -b .md5-allow
+%patch59 -p1 -b .fips-default
 
 %patch60 -p1 -b .dtls1
 %patch61 -p1 -b .sha256
@@ -410,6 +418,15 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Feb  4 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-8
+- add -x931 parameter to openssl genrsa command to use the ANSI X9.31
+  key generation method
+- use FIPS-186-3 method for DSA parameter generation
+- add OPENSSL_FIPS_NON_APPROVED_MD5_ALLOW environment variable
+  to allow using MD5 when the system is in the maintenance state
+  even if the /proc fips flag is on
+- make openssl pkcs12 command work by default in the FIPS mode
+
 * Mon Jan 24 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-7
 - listen on ipv6 wildcard in s_server so we accept connections
   from both ipv4 and ipv6 (#601612)
