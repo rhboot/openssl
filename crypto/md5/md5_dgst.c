@@ -75,7 +75,15 @@ const char MD5_version[]="MD5" OPENSSL_VERSION_PTEXT;
 #define INIT_DATA_C (unsigned long)0x98badcfeL
 #define INIT_DATA_D (unsigned long)0x10325476L
 
-FIPS_NON_FIPS_MD_Init(MD5)
+int MD5_Init(MD5_CTX *c)
+#ifdef OPENSSL_FIPS
+	{
+	if (FIPS_mode() && getenv("OPENSSL_FIPS_NON_APPROVED_MD5_ALLOW") == NULL)
+		FIPS_BAD_ALGORITHM(alg)
+	return private_MD5_Init(c);
+	}
+int private_MD5_Init(MD5_CTX *c)
+#endif
 	{
 	memset (c,0,sizeof(*c));
 	c->A=INIT_DATA_A;
