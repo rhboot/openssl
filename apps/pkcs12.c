@@ -67,6 +67,9 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/pkcs12.h>
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
 
 #define PROG pkcs12_main
 
@@ -129,6 +132,11 @@ int MAIN(int argc, char **argv)
 #endif
 
     apps_startup();
+
+#ifdef OPENSSL_FIPS
+    if (FIPS_mode())
+	cert_pbe = key_pbe; /* cannot use RC2 in the FIPS mode */
+#endif
 
     enc = EVP_des_ede3_cbc();
     if (bio_err == NULL ) bio_err = BIO_new_fp (stderr, BIO_NOCLOSE);
