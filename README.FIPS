@@ -6,10 +6,10 @@ Red Hat Enterprise Linux - OPENSSL Module.
 
 The module files
 ================
-/lib[64]/libcrypto.so.0.9.8e
-/lib[64]/libssl.so.0.9.8e
-/lib[64]/.libcrypto.so.0.9.8e.hmac
-/lib[64]/.libssl.so.0.9.8e.hmac
+/usr/lib[64]/libcrypto.so.1.0.0
+/usr/lib[64]/libssl.so.1.0.0
+/usr/lib[64]/.libcrypto.so.1.0.0.hmac
+/usr/lib[64]/.libssl.so.1.0.0.hmac
 
 Dependencies
 ============
@@ -40,9 +40,9 @@ line contains option fips=1 the module will initialize in the FIPS approved
 mode of operation automatically. To allow for the automatic initialization the
 application using the module has to call one of the following API calls:
 
-- void OPENSSL_init(void) - this will do only a basic initialization of the
-library and does initialization of the FIPS approved mode without setting up
-EVP API with supported algorithms.
+- void OPENSSL_init_library(void) - this will do only a basic initialization
+of the library and does initialization of the FIPS approved mode without setting
+up EVP API with supported algorithms.
 
 - void OPENSSL_add_all_algorithms(void) - this API function calls
 OPENSSL_init() implicitly and also adds all approved algorithms to the EVP API

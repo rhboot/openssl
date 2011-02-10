@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 9%{?dist}
+Release: 10%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -420,8 +420,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
-* Thu Feb 10 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-9
+* Thu Feb 10 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-10
 - fix OCSP stapling vulnerability - CVE-2011-0014 (#676063)
+- correct the README.FIPS document
 
 * Fri Feb  4 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-8
 - add -x931 parameter to openssl genrsa command to use the ANSI X9.31
