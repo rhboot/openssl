@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 17%{?dist}
+Release: 18%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -75,6 +75,7 @@ Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
 Patch88: openssl-fips-0.9.8e-cve-2010-4180.patch
+Patch89: openssl-fips-0.9.8e-ssl-sha256.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -157,6 +158,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch86 -p1 -b .nullprinc
 %patch87 -p1 -b .wexpand
 %patch88 -p1 -b .disable-nsbug
+%patch89 -p1 -b .sha256
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -410,6 +412,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Mar  9 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-18
+- add SHA-2 hashes in SSL_library_init() (#676384)
+
 * Tue Dec  7 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-17
 - fix CVE-2010-4180 - completely disable code for
   SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG (#659462)
