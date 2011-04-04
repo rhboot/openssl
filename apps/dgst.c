@@ -280,10 +280,14 @@ ERR_load_crypto_strings();
 			LN_sha512,LN_sha512);
 #endif
 #endif
+#ifndef OPENSSL_NO_MDC2
 		BIO_printf(bio_err,"-%-14s to use the %s message digest algorithm\n",
 			LN_mdc2,LN_mdc2);
+#endif
+#ifndef OPENSSL_NO_RIPEMD
 		BIO_printf(bio_err,"-%-14s to use the %s message digest algorithm\n",
 			LN_ripemd160,LN_ripemd160);
+#endif
 		err=1;
 		goto end;
 		}

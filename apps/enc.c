@@ -285,7 +285,7 @@ bad:
 			BIO_printf(bio_err,"%-14s passphrase is the next argument\n","-k");
 			BIO_printf(bio_err,"%-14s passphrase is the first line of the file argument\n","-kfile");
 			BIO_printf(bio_err,"%-14s the next argument is the md to use to create a key\n","-md");
-			BIO_printf(bio_err,"%-14s   from a passphrase.  One of md2, md5, sha or sha1\n","");
+			BIO_printf(bio_err,"%-14s   from a passphrase. See openssl dgst -h for list.\n","");
 			BIO_printf(bio_err,"%-14s key/iv in hex is the next argument\n","-K/-iv");
 			BIO_printf(bio_err,"%-14s print the iv/key (then exit if -P)\n","-[pP]");
 			BIO_printf(bio_err,"%-14s buffer size\n","-bufsize <n>");
