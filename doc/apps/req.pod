@@ -160,6 +160,7 @@ will not be encrypted.
 this specifies the message digest to sign the request with. This
 overrides the digest algorithm specified in the configuration file.
 This option is ignored for DSA requests: they always use SHA1.
+For full list of possible digests see openssl dgst -h output.
 
 =item B<-config filename>
 
