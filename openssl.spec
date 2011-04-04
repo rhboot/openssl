@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 18%{?dist}
+Release: 19%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -76,6 +76,10 @@ Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
 Patch88: openssl-fips-0.9.8e-cve-2010-4180.patch
 Patch89: openssl-fips-0.9.8e-ssl-sha256.patch
+Patch90: openssl-fips-0.9.8e-ciph-sort.patch
+Patch91: openssl-fips-0.9.8e-apps-dgst.patch
+Patch92: openssl-fips-0.9.8e-tls-version.patch
+Patch93: openssl-fips-0.9.8e-chil-fixes.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -159,6 +163,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch87 -p1 -b .wexpand
 %patch88 -p1 -b .disable-nsbug
 %patch89 -p1 -b .sha256
+%patch90 -p1 -b .sort
+%patch91 -p1 -b .dgst
+%patch92 -p1 -b .tlsver
+%patch93 -p1 -b .chil
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -412,6 +420,15 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Apr  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-19
+- presort list of ciphers available in SSL (#688901)
+- accept connection in s_server even if getaddrinfo() fails (#561260)
+- point to openssl dgst for list of supported digests (#608639)
+- fix handling of future TLS versions (#599112)
+- added VeriSign Class 3 Public Primary Certification Authority - G5
+  and StartCom Certification Authority certs to ca-bundle (#675671, #617856)
+- upstream fixes for the CHIL engine (#622003, #671484)
+
 * Wed Mar  9 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-18
 - add SHA-2 hashes in SSL_library_init() (#676384)
 
