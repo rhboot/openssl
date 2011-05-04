@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 19%{?dist}
+Release: 20%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -80,6 +80,7 @@ Patch90: openssl-fips-0.9.8e-ciph-sort.patch
 Patch91: openssl-fips-0.9.8e-apps-dgst.patch
 Patch92: openssl-fips-0.9.8e-tls-version.patch
 Patch93: openssl-fips-0.9.8e-chil-fixes.patch
+Patch94: openssl-fips-0.9.8e-dh-check.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -167,6 +168,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch91 -p1 -b .dgst
 %patch92 -p1 -b .tlsver
 %patch93 -p1 -b .chil
+%patch94 -p1 -b .dh-check
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -420,6 +422,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed May  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-20
+- add missing DH_check_pub_key() call when DH key is computed (#698175)
+
 * Mon Apr  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-19
 - presort list of ciphers available in SSL (#688901)
 - accept connection in s_server even if getaddrinfo() fails (#561260)
