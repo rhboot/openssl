@@ -85,6 +85,14 @@
 #endif
 #include "dsa_locl.h"
 
+#ifndef OPENSSL_FIPS
+static int FIPS_dsa_generate_pq(BN_CTX *ctx, size_t bits, size_t qbits,
+		const EVP_MD *evpmd, unsigned char *seed, int seed_len,
+		BIGNUM **p_ret, BIGNUM **q_ret, int *counter_ret, BN_GENCB *cb);
+static int FIPS_dsa_generate_g(BN_CTX *ctx, BIGNUM *p, BIGNUM *q,
+		BIGNUM **g_ret, unsigned long *h_ret, BN_GENCB *cb);
+#endif
+
 int DSA_generate_parameters_ex(DSA *ret, int bits,
 		const unsigned char *seed_in, int seed_len,
 		int *counter_ret, unsigned long *h_ret, BN_GENCB *cb)
@@ -113,22 +121,26 @@ int DSA_generate_parameters_ex(DSA *ret, int bits,
 		}
 	}
 
+#ifdef OPENSSL_FIPS
+int FIPS_dsa_builtin_paramgen(DSA *ret, size_t bits, size_t qbits,
+	const EVP_MD *evpmd, const unsigned char *seed_in, size_t seed_len,
+	int *counter_ret, unsigned long *h_ret, BN_GENCB *cb)
+	{
+	return dsa_builtin_paramgen(ret, bits, qbits,
+		evpmd, seed_in, seed_len,
+		counter_ret, h_ret, cb);
+	}
+#endif
+
 int dsa_builtin_paramgen(DSA *ret, size_t bits, size_t qbits,
 	const EVP_MD *evpmd, const unsigned char *seed_in, size_t seed_len,
 	int *counter_ret, unsigned long *h_ret, BN_GENCB *cb)
 	{
 	int ok=0;
 	unsigned char seed[SHA256_DIGEST_LENGTH];
-	unsigned char md[SHA256_DIGEST_LENGTH];
-	unsigned char buf[SHA256_DIGEST_LENGTH];
-	BIGNUM *r0,*W,*X,*c,*test;
 	BIGNUM *g=NULL,*q=NULL,*p=NULL;
-	BN_MONT_CTX *mont=NULL;
-	int i, k,n=0,b,m=0, qsize = qbits >> 3;
-	int counter=0;
-	int r=0;
+	size_t qsize = qbits >> 3;
 	BN_CTX *ctx=NULL;
-	unsigned int h=2;
 
 #ifdef OPENSSL_FIPS
 	if(FIPS_selftest_failed())
@@ -148,6 +160,65 @@ int dsa_builtin_paramgen(DSA *ret, size_t bits, size_t qbits,
 		goto err;
 		}
 #endif
+	if (seed_len && (seed_len < (size_t)qsize))
+		seed_in = NULL;		/* seed buffer too small -- ignore */
+	if (seed_len > sizeof(seed)) 
+		seed_len = sizeof(seed);	/* App. 2.2 of FIPS PUB 186 allows larger SEED,
+						 * but our internal buffers are restricted to 256 bits*/
+	if (seed_in != NULL)
+		memcpy(seed, seed_in, seed_len);
+	else
+		seed_len = 0;
+
+	if ((ctx=BN_CTX_new()) == NULL)
+		goto err;
+
+	BN_CTX_start(ctx);
+
+	if (!FIPS_dsa_generate_pq(ctx, bits, qbits, evpmd,
+		seed, seed_len, &p, &q, counter_ret, cb))
+		goto err;
+
+	if (!FIPS_dsa_generate_g(ctx, p, q, &g, h_ret, cb))
+		goto err;
+
+	ok=1;
+err:
+	if (ok)
+		{
+		if(ret->p) BN_free(ret->p);
+		if(ret->q) BN_free(ret->q);
+		if(ret->g) BN_free(ret->g);
+		ret->p=BN_dup(p);
+		ret->q=BN_dup(q);
+		ret->g=BN_dup(g);
+		if (ret->p == NULL || ret->q == NULL || ret->g == NULL)
+			ok=0;
+		}
+	if(ctx)
+		{
+		BN_CTX_end(ctx);
+		BN_CTX_free(ctx);
+		}
+	return ok;
+	}
+
+#ifndef OPENSSL_FIPS
+static
+#endif
+int FIPS_dsa_generate_pq(BN_CTX *ctx, size_t bits, size_t qbits,
+		const EVP_MD *evpmd, unsigned char *seed, int seed_len,
+		BIGNUM **p_ret, BIGNUM **q_ret, int *counter_ret, BN_GENCB *cb)
+	{
+	int ok=0;
+	unsigned char md[SHA256_DIGEST_LENGTH];
+	unsigned char buf[SHA256_DIGEST_LENGTH];
+	BIGNUM *r0,*W,*X,*c,*test;
+	BIGNUM *g=NULL,*q=NULL,*p=NULL;
+	BN_MONT_CTX *mont=NULL;
+	int i, k, b, n=0, m=0, qsize = qbits >> 3;
+	int counter=0;
+	int r=0;
 
 	if (qsize != SHA_DIGEST_LENGTH && qsize != SHA224_DIGEST_LENGTH &&
 	    qsize != SHA256_DIGEST_LENGTH)
@@ -169,28 +240,12 @@ int dsa_builtin_paramgen(DSA *ret, size_t bits, size_t qbits,
 
 	bits = (bits+63)/64*64;
 
-	if (seed_len && (seed_len < (size_t)qsize))
-		seed_in = NULL;		/* seed buffer too small -- ignore */
-	if (seed_len > (size_t)qsize) 
-		seed_len = qsize;	/* App. 2.2 of FIPS PUB 186 allows larger SEED,
-					 * but our internal buffers are restricted to 256 bits*/
-	if (seed_in != NULL)
-		memcpy(seed, seed_in, seed_len);
-
-	if ((ctx=BN_CTX_new()) == NULL)
-		goto err;
-
-	if ((mont=BN_MONT_CTX_new()) == NULL)
-		goto err;
-
-	BN_CTX_start(ctx);
 	r0 = BN_CTX_get(ctx);
-	g = BN_CTX_get(ctx);
 	W = BN_CTX_get(ctx);
-	q = BN_CTX_get(ctx);
+	*q_ret = q = BN_CTX_get(ctx);
 	X = BN_CTX_get(ctx);
 	c = BN_CTX_get(ctx);
-	p = BN_CTX_get(ctx);
+	*p_ret = p = BN_CTX_get(ctx);
 	test = BN_CTX_get(ctx);
 
 	if (!BN_lshift(test,BN_value_one(),bits-1))
@@ -312,7 +367,33 @@ end:
 	if(!BN_GENCB_call(cb, 2, 1))
 		goto err;
 
-	/* We now need to generate g */
+	ok=1;
+err:
+	if (ok)
+		{
+		if (counter_ret != NULL) *counter_ret=counter;
+		}
+	return ok;
+	}
+
+#ifndef OPENSSL_FIPS
+static
+#endif
+int FIPS_dsa_generate_g(BN_CTX *ctx, BIGNUM *p, BIGNUM *q,
+		BIGNUM **g_ret, unsigned long *h_ret, BN_GENCB *cb)
+	{
+	int ok=0;
+	BIGNUM *r0, *test, *g = NULL;
+	BN_MONT_CTX *mont;
+	unsigned int h=2;
+
+	if ((mont=BN_MONT_CTX_new()) == NULL)
+		goto err;
+
+	r0 = BN_CTX_get(ctx);
+	*g_ret = g = BN_CTX_get(ctx);
+	test = BN_CTX_get(ctx);
+
 	/* Set r0=(p-1)/q */
 	if (!BN_sub(test,p,BN_value_one())) goto err;
 	if (!BN_div(r0,NULL,test,q,ctx)) goto err;
@@ -336,24 +417,7 @@ end:
 err:
 	if (ok)
 		{
-		if(ret->p) BN_free(ret->p);
-		if(ret->q) BN_free(ret->q);
-		if(ret->g) BN_free(ret->g);
-		ret->p=BN_dup(p);
-		ret->q=BN_dup(q);
-		ret->g=BN_dup(g);
-		if (ret->p == NULL || ret->q == NULL || ret->g == NULL)
-			{
-			ok=0;
-			goto err;
-			}
-		if (counter_ret != NULL) *counter_ret=counter;
 		if (h_ret != NULL) *h_ret=h;
-		}
-	if(ctx)
-		{
-		BN_CTX_end(ctx);
-		BN_CTX_free(ctx);
 		}
 	if (mont != NULL) BN_MONT_CTX_free(mont);
 	return ok;

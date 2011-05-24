@@ -266,6 +266,17 @@ int	DSA_print_fp(FILE *bp, const DSA *x, int off);
 DH *DSA_dup_DH(const DSA *r);
 #endif
 
+#ifdef OPENSSL_FIPS
+int FIPS_dsa_builtin_paramgen(DSA *ret, size_t bits, size_t qbits,
+	const EVP_MD *evpmd, const unsigned char *seed_in, size_t seed_len,
+	int *counter_ret, unsigned long *h_ret, BN_GENCB *cb);
+int FIPS_dsa_generate_pq(BN_CTX *ctx, size_t bits, size_t qbits,
+		const EVP_MD *evpmd, unsigned char *seed, int seed_len,
+		BIGNUM **p_ret, BIGNUM **q_ret, int *counter_ret, BN_GENCB *cb);
+int FIPS_dsa_generate_g(BN_CTX *ctx, BIGNUM *p, BIGNUM *q,
+		BIGNUM **g_ret, unsigned long *h_ret, BN_GENCB *cb);
+#endif
+
 #define EVP_PKEY_CTX_set_dsa_paramgen_bits(ctx, nbits) \
 	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_DSA, EVP_PKEY_OP_PARAMGEN, \
 				EVP_PKEY_CTRL_DSA_PARAMGEN_BITS, nbits, NULL)
