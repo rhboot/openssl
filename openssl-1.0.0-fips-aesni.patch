@@ -1,0 +1,14 @@
+diff -up openssl-1.0.0/crypto/engine/eng_all.c.fips-aesni openssl-1.0.0/crypto/engine/eng_all.c
+--- openssl-1.0.0/crypto/engine/eng_all.c.fips-aesni	2011-06-06 13:29:58.000000000 +0200
++++ openssl-1.0.0/crypto/engine/eng_all.c	2011-06-06 13:30:08.000000000 +0200
+@@ -67,6 +67,10 @@ void ENGINE_load_builtin_engines(void)
+ #ifdef OPENSSL_FIPS
+ 	OPENSSL_init_library();
+ 	if (FIPS_mode()) {
++		/* AES-NI engine should be validated. */
++#if !defined(OPENSSL_NO_HW) && !defined(OPENSSL_NO_HW_AESNI)
++		ENGINE_load_aesni();
++#endif
+ 		/* We allow loading dynamic engine as a third party
+ 		   engine might be FIPS validated.
+ 		   User is disallowed to load non-validated engines
