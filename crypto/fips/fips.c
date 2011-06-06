@@ -55,6 +55,7 @@
 #include <openssl/bio.h>
 #include <openssl/hmac.h>
 #include <openssl/rsa.h>
+#include <openssl/engine.h>
 #include <string.h>
 #include <limits.h>
 #include <dlfcn.h>
@@ -444,14 +445,17 @@ int FIPS_mode_set(int onoff)
 	    }
 
 	if(FIPS_selftest())
-	    fips_set_mode(1);
-	else
 	    {
-	    fips_selftest_fail = 1;
-	    ret = 0;
-	    goto end;
+	    ENGINE_load_aesni();
+	    if (FIPS_selftest_aes())
+		{
+		fips_set_mode(1);
+		ret = 1;
+		goto end;
+		}
 	    }
-	ret = 1;
+	fips_selftest_fail = 1;
+	ret = 0;
 	goto end;
 	}
     fips_set_mode(0);
