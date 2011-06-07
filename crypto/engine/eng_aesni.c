@@ -323,7 +323,7 @@ static const EVP_CIPHER aesni_##ksize##_##lmode = {	\
 	EVP_CIPHER_block_size_##umode,			\
 	ksize / 8,					\
 	AES_BLOCK_SIZE,					\
-	0 | EVP_CIPH_##umode##_MODE,			\
+	EVP_CIPH_FLAG_FIPS | EVP_CIPH_##umode##_MODE,			\
 	aesni_init_key,				\
 	aesni_cipher_##lmode,				\
 	NULL,						\
