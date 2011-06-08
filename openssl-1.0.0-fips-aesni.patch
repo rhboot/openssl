@@ -10,17 +10,30 @@ diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.fips-aesni openssl-1.0.0/crypto
  	aesni_init_key,				\
  	aesni_cipher_##lmode,				\
  	NULL,						\
-diff -up openssl-1.0.0/crypto/engine/eng_all.c.fips-aesni openssl-1.0.0/crypto/engine/eng_all.c
---- openssl-1.0.0/crypto/engine/eng_all.c.fips-aesni	2011-06-06 13:29:58.000000000 +0200
-+++ openssl-1.0.0/crypto/engine/eng_all.c	2011-06-06 13:30:08.000000000 +0200
-@@ -67,6 +67,10 @@ void ENGINE_load_builtin_engines(void)
- #ifdef OPENSSL_FIPS
- 	OPENSSL_init_library();
- 	if (FIPS_mode()) {
-+		/* AES-NI engine should be validated. */
-+#if !defined(OPENSSL_NO_HW) && !defined(OPENSSL_NO_HW_AESNI)
-+		ENGINE_load_aesni();
-+#endif
- 		/* We allow loading dynamic engine as a third party
- 		   engine might be FIPS validated.
- 		   User is disallowed to load non-validated engines
+diff -up openssl-1.0.0/crypto/fips/fips.c.fips-aesni openssl-1.0.0/crypto/fips/fips.c
+--- openssl-1.0.0/crypto/fips/fips.c.fips-aesni	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/fips/fips.c	2011-06-08 17:11:44.000000000 +0200
+@@ -444,14 +444,17 @@ int FIPS_mode_set(int onoff)
+ 	    }
+ 
+ 	if(FIPS_selftest())
+-	    fips_set_mode(1);
+-	else
+ 	    {
+-	    fips_selftest_fail = 1;
+-	    ret = 0;
+-	    goto end;
++	    ENGINE_load_aesni();
++	    if (fips_selftest_aes())
++		{
++		fips_set_mode(1);
++		ret = 1;
++		goto end;
++		}
+ 	    }
+-	ret = 1;
++	fips_selftest_fail = 1;
++	ret = 0;
+ 	goto end;
+ 	}
+     fips_set_mode(0);
