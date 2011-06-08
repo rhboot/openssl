@@ -1,3 +1,15 @@
+diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.fips-aesni openssl-1.0.0/crypto/engine/eng_aesni.c
+--- openssl-1.0.0/crypto/engine/eng_aesni.c.fips-aesni	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/engine/eng_aesni.c	2011-06-08 14:19:22.000000000 +0200
+@@ -323,7 +323,7 @@ static const EVP_CIPHER aesni_##ksize##_
+ 	EVP_CIPHER_block_size_##umode,			\
+ 	ksize / 8,					\
+ 	AES_BLOCK_SIZE,					\
+-	0 | EVP_CIPH_##umode##_MODE,			\
++	EVP_CIPH_FLAG_FIPS | EVP_CIPH_##umode##_MODE,			\
+ 	aesni_init_key,				\
+ 	aesni_cipher_##lmode,				\
+ 	NULL,						\
 diff -up openssl-1.0.0/crypto/engine/eng_all.c.fips-aesni openssl-1.0.0/crypto/engine/eng_all.c
 --- openssl-1.0.0/crypto/engine/eng_all.c.fips-aesni	2011-06-06 13:29:58.000000000 +0200
 +++ openssl-1.0.0/crypto/engine/eng_all.c	2011-06-06 13:30:08.000000000 +0200
