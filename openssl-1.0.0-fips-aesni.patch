@@ -12,8 +12,16 @@ diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.fips-aesni openssl-1.0.0/crypto
  	NULL,						\
 diff -up openssl-1.0.0/crypto/fips/fips.c.fips-aesni openssl-1.0.0/crypto/fips/fips.c
 --- openssl-1.0.0/crypto/fips/fips.c.fips-aesni	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/fips/fips.c	2011-06-08 17:11:44.000000000 +0200
-@@ -444,14 +444,17 @@ int FIPS_mode_set(int onoff)
++++ openssl-1.0.0/crypto/fips/fips.c	2011-06-08 17:31:35.000000000 +0200
+@@ -55,6 +55,7 @@
+ #include <openssl/bio.h>
+ #include <openssl/hmac.h>
+ #include <openssl/rsa.h>
++#include <openssl/engine.h>
+ #include <string.h>
+ #include <limits.h>
+ #include <dlfcn.h>
+@@ -444,14 +445,17 @@ int FIPS_mode_set(int onoff)
  	    }
  
  	if(FIPS_selftest())
@@ -24,7 +32,7 @@ diff -up openssl-1.0.0/crypto/fips/fips.c.fips-aesni openssl-1.0.0/crypto/fips/f
 -	    ret = 0;
 -	    goto end;
 +	    ENGINE_load_aesni();
-+	    if (fips_selftest_aes())
++	    if (FIPS_selftest_aes())
 +		{
 +		fips_set_mode(1);
 +		ret = 1;
