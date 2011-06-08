@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 10%{?dist}.2
+Release: 10%{?dist}.3
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -424,7 +424,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
-* Tue Jun  7 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-10.2
+* Wed Jun  8 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-10.3
 - allow the AES-NI engine in the FIPS mode
 
 * Mon May 30 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-10.1
