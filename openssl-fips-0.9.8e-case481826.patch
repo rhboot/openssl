@@ -1,0 +1,12 @@
+diff -up openssl-fips-0.9.8e/apps/apps.c.original openssl-fips-0.9.8e/apps/apps.c
+--- openssl-fips-0.9.8e/apps/apps.c.original	2011-07-29 16:19:29.000000000 +0900
++++ openssl-fips-0.9.8e/apps/apps.c	2011-07-29 16:19:36.000000000 +0900
+@@ -2010,7 +2010,7 @@ int parse_yesno(const char *str, int def
+ 		case 'y': /* yes */
+ 		case 'Y': /* YES */
+ 		case '1': /* 1 */
+-			ret = 0;
++			ret = 1;
+ 			break;
+ 		default:
+ 			ret = def;

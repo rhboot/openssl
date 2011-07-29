@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 20%{?dist}
+Release: 20%{?dist}.CASE481826.0
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -81,6 +81,7 @@ Patch91: openssl-fips-0.9.8e-apps-dgst.patch
 Patch92: openssl-fips-0.9.8e-tls-version.patch
 Patch93: openssl-fips-0.9.8e-chil-fixes.patch
 Patch94: openssl-fips-0.9.8e-dh-check.patch
+Patch95: openssl-fips-0.9.8e-case481826.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -169,6 +170,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch92 -p1 -b .tlsver
 %patch93 -p1 -b .chil
 %patch94 -p1 -b .dh-check
+%patch95 -p1
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
