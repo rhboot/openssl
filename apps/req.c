@@ -421,7 +421,7 @@ bad:
 #ifndef OPENSSL_NO_ECDSA
 		BIO_printf(bio_err," -newkey ec:file generate a new EC key, parameters taken from CA in 'file'\n");
 #endif
-		BIO_printf(bio_err," -[digest]      Digest to sign with (md5, sha1, md2, mdc2, md4)\n");
+		BIO_printf(bio_err," -[digest]      Digest to sign with (see openssl dgst -h for list)\n");
 		BIO_printf(bio_err," -config file   request template file.\n");
 		BIO_printf(bio_err," -subj arg      set or modify request subject\n");
 		BIO_printf(bio_err," -multivalue-rdn enable support for multivalued RDNs\n");
