@@ -200,7 +200,8 @@ will not be encrypted.
 =item B<-[digest]>
 
 this specifies the message digest to sign the request with (such as
-B<-md5>, B<-sha1>). This overrides the digest algorithm specified in
+B<-md5>, B<-sha1>). For full list of possible digests see
+openssl dgst -h output. This overrides the digest algorithm specified in
 the configuration file.
 
 Some public key algorithms may override this choice. For instance, DSA

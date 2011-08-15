@@ -157,7 +157,7 @@ static const char *ca_usage[]={
 " -startdate YYMMDDHHMMSSZ  - certificate validity notBefore\n",
 " -enddate YYMMDDHHMMSSZ    - certificate validity notAfter (overrides -days)\n",
 " -days arg       - number of days to certify the certificate for\n",
-" -md arg         - md to use, one of md2, md5, sha or sha1\n",
+" -md arg         - md to use, see openssl dgst -h for list\n",
 " -policy arg     - The CA 'policy' to support\n",
 " -keyfile arg    - private key file\n",
 " -keyform arg    - private key file format (PEM or ENGINE)\n",
