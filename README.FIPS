@@ -73,3 +73,10 @@ state, 0 otherwise.
 To zeroize the FIPS RNG key and internal state the application calls:
 
 - void RAND_cleanup(void)
+
+Disabling the AES-NI CPU instructions support
+=============================================
+
+If the environment variable OPENSSL_DISABLE_AES_NI is set, the AES-NI CPU
+instructions support is disabled and the software AES implementation is used
+instead.

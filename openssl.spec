@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 14%{?dist}
+Release: 15%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -32,6 +32,8 @@ Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 Source11: README.FIPS
+# Intel acceleration engine backported from upstream by Intel
+Source12: intel-accel-1.3.tar.gz
 # Build changes
 Patch0: openssl-1.0.0-beta4-redhat.patch
 Patch1: openssl-1.0.0-beta3-defaults.patch
@@ -39,6 +41,7 @@ Patch3: openssl-1.0.0-beta3-soversion.patch
 Patch4: openssl-1.0.0-beta5-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
+Patch10: intel-accel-1.3-build.patch
 # Bug fixes
 Patch23: openssl-1.0.0-beta4-default-paths.patch
 Patch24: openssl-0.9.8j-bad-mime.patch
@@ -69,6 +72,7 @@ Patch58: openssl-1.0.0c-fips-md5-allow.patch
 Patch59: openssl-1.0.0c-pkcs12-fips-default.patch
 Patch90: openssl-1.0.0-cavs.patch
 Patch91: openssl-1.0.0-fips-aesni.patch
+Patch92: openssl-1.0.0-apps-dgst.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-dtls1-backports.patch
 Patch61: openssl-1.0.0-init-sha256.patch
@@ -77,6 +81,7 @@ Patch63: openssl-1.0.0-cve-2010-1633.patch
 Patch64: openssl-1.0.0-cve-2010-3864.patch
 Patch65: openssl-1.0.0-cve-2010-4180.patch
 Patch66: openssl-1.0.0-cve-2011-0014.patch
+Patch67: openssl-1.0.0-chil-fixes.patch
 
 
 License: OpenSSL
@@ -127,15 +132,18 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name}-%{version} -a 12
 
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
 %patch1 -p1 -b .defaults
 %patch3 -p1 -b .soversion
-%patch4 -p1 -b .enginesdir
+%patch4 -p1 -b .enginesdir %{?_rawbuild}
 %patch5 -p1 -b .no-rpath
 %patch6 -p1 -b .use-localhost
+pushd intel-accel-1.3
+%patch10 -p1 -b .iabuild %{?_rawbuild}
+popd
 
 %patch23 -p1 -b .default-paths
 %patch24 -p1 -b .bad-mime
@@ -166,6 +174,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch59 -p1 -b .fips-default
 %patch90 -p1 -b .cavs
 %patch91 -p1 -b .fips-aesni
+%patch92 -p1 -b .dgst
 
 %patch60 -p1 -b .dtls1
 %patch61 -p1 -b .sha256
@@ -174,6 +183,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch64 -p1 -b .extrace
 %patch65 -p1 -b .disable-nsbug
 %patch66 -p0 -b .ocsp-stapling
+%patch67 -p1 -b .chil
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -221,7 +231,7 @@ sslarch=linux-generic32
 	zlib enable-camellia enable-seed enable-tlsext enable-rfc3779 \
 	enable-cms enable-md2 no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa \
 	--with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
-	--with-krb5-dir=/usr shared  ${sslarch} fips
+	--with-krb5-dir=/usr shared  ${sslarch} %{?!nofips:fips}
 
 # Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
 # marked as not requiring an executable stack.
@@ -234,6 +244,12 @@ make rehash
 
 # Overwrite FIPS README
 cp -f %{SOURCE11} .
+
+%ifarch %ix86 x86_64
+pushd intel-accel-1.3
+make
+popd
+%endif
 
 %check
 # Verify that what was compiled actually works.
@@ -366,6 +382,12 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/fips_premain.*
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 
+%ifarch %ix86 x86_64
+pushd intel-accel-1.3
+install -m755 libintel-accel.so $RPM_BUILD_ROOT%{_libdir}/openssl/engines
+popd
+%endif
+
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
@@ -425,6 +447,15 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Aug 15 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-15
+- better documentation of the available digests in apps (#693858)
+- backported CHIL engine fixes (#693863)
+- allow testing build without downstream patches (#708511)
+- enable partial RELRO when linking (#723994)
+- add intelx engine with improved performance on new Intel CPUs
+- add OPENSSL_DISABLE_AES_NI environment variable which disables
+  the AES-NI support (does not affect the intelx engine)
+
 * Wed Jun  8 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-14
 - use the AES-NI engine in the FIPS mode
 

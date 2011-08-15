@@ -1,0 +1,17 @@
+diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.disable-aesni openssl-1.0.0/crypto/engine/eng_aesni.c
+--- openssl-1.0.0/crypto/engine/eng_aesni.c.disable-aesni	2011-06-08 14:19:22.000000000 +0200
++++ openssl-1.0.0/crypto/engine/eng_aesni.c	2011-08-15 10:19:48.000000000 +0200
+@@ -169,6 +169,13 @@ aesni_bind_helper(ENGINE *e)
+ 		engage = (OPENSSL_ia32_cpuid() >> 57) & 1;
+ 	}
+ 
++	/* Disable the AES-NI support if the environment variable
++	 * OPENSSL_DISABLE_AES_NI is set to any value
++	 */
++	if (getenv("OPENSSL_DISABLE_AES_NI") != NULL) {
++		engage = 0;
++	}
++
+ 	/* Register everything or return with an error */
+ 	if (!ENGINE_set_id(e, aesni_id) ||
+ 	    !ENGINE_set_name(e, engage ? aesni_name : no_aesni_name) ||

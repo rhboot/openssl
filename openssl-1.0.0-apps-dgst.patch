@@ -1,0 +1,85 @@
+diff -up openssl-1.0.0/apps/ca.c.dgst openssl-1.0.0/apps/ca.c
+--- openssl-1.0.0/apps/ca.c.dgst	2009-12-02 15:41:24.000000000 +0100
++++ openssl-1.0.0/apps/ca.c	2011-08-15 09:37:05.000000000 +0200
+@@ -157,7 +157,7 @@ static const char *ca_usage[]={
+ " -startdate YYMMDDHHMMSSZ  - certificate validity notBefore\n",
+ " -enddate YYMMDDHHMMSSZ    - certificate validity notAfter (overrides -days)\n",
+ " -days arg       - number of days to certify the certificate for\n",
+-" -md arg         - md to use, one of md2, md5, sha or sha1\n",
++" -md arg         - md to use, see openssl dgst -h for list\n",
+ " -policy arg     - The CA 'policy' to support\n",
+ " -keyfile arg    - private key file\n",
+ " -keyform arg    - private key file format (PEM or ENGINE)\n",
+diff -up openssl-1.0.0/apps/enc.c.dgst openssl-1.0.0/apps/enc.c
+--- openssl-1.0.0/apps/enc.c.dgst	2009-10-04 18:43:21.000000000 +0200
++++ openssl-1.0.0/apps/enc.c	2011-08-15 09:39:47.000000000 +0200
+@@ -305,7 +305,7 @@ bad:
+ 			BIO_printf(bio_err,"%-14s passphrase is the next argument\n","-k");
+ 			BIO_printf(bio_err,"%-14s passphrase is the first line of the file argument\n","-kfile");
+ 			BIO_printf(bio_err,"%-14s the next argument is the md to use to create a key\n","-md");
+-			BIO_printf(bio_err,"%-14s   from a passphrase.  One of md2, md5, sha or sha1\n","");
++			BIO_printf(bio_err,"%-14s   from a passphrase. See openssl dgst -h for list.\n","");
+ 			BIO_printf(bio_err,"%-14s salt in hex is the next argument\n","-S");
+ 			BIO_printf(bio_err,"%-14s key/iv in hex is the next argument\n","-K/-iv");
+ 			BIO_printf(bio_err,"%-14s print the iv/key (then exit if -P)\n","-[pP]");
+diff -up openssl-1.0.0/apps/req.c.dgst openssl-1.0.0/apps/req.c
+--- openssl-1.0.0/apps/req.c.dgst	2010-03-10 14:48:21.000000000 +0100
++++ openssl-1.0.0/apps/req.c	2011-08-15 09:37:05.000000000 +0200
+@@ -421,7 +421,7 @@ bad:
+ #ifndef OPENSSL_NO_ECDSA
+ 		BIO_printf(bio_err," -newkey ec:file generate a new EC key, parameters taken from CA in 'file'\n");
+ #endif
+-		BIO_printf(bio_err," -[digest]      Digest to sign with (md5, sha1, md2, mdc2, md4)\n");
++		BIO_printf(bio_err," -[digest]      Digest to sign with (see openssl dgst -h for list)\n");
+ 		BIO_printf(bio_err," -config file   request template file.\n");
+ 		BIO_printf(bio_err," -subj arg      set or modify request subject\n");
+ 		BIO_printf(bio_err," -multivalue-rdn enable support for multivalued RDNs\n");
+diff -up openssl-1.0.0/apps/x509.c.dgst openssl-1.0.0/apps/x509.c
+--- openssl-1.0.0/apps/x509.c.dgst	2010-01-12 18:27:09.000000000 +0100
++++ openssl-1.0.0/apps/x509.c	2011-08-15 09:37:06.000000000 +0200
+@@ -141,7 +141,7 @@ static const char *x509_usage[]={
+ " -set_serial     - serial number to use\n",
+ " -text           - print the certificate in text form\n",
+ " -C              - print out C code forms\n",
+-" -md2/-md5/-sha1/-mdc2 - digest to use\n",
++" -<dgst>         - digest to use, see openssl dgst -h output for list\n",
+ " -extfile        - configuration file with X509V3 extensions to add\n",
+ " -extensions     - section from config file with X509V3 extensions to add\n",
+ " -clrext         - delete extensions before signing and input certificate\n",
+diff -up openssl-1.0.0/doc/apps/ca.pod.dgst openssl-1.0.0/doc/apps/ca.pod
+--- openssl-1.0.0/doc/apps/ca.pod.dgst	2009-04-10 13:25:53.000000000 +0200
++++ openssl-1.0.0/doc/apps/ca.pod	2011-08-15 09:37:06.000000000 +0200
+@@ -160,7 +160,8 @@ the number of days to certify the certif
+ =item B<-md alg>
+ 
+ the message digest to use. Possible values include md5, sha1 and mdc2.
+-This option also applies to CRLs.
++For full list of digests see openssl dgst -h output. This option also
++applies to CRLs.
+ 
+ =item B<-policy arg>
+ 
+diff -up openssl-1.0.0/doc/apps/req.pod.dgst openssl-1.0.0/doc/apps/req.pod
+--- openssl-1.0.0/doc/apps/req.pod.dgst	2009-04-10 18:42:28.000000000 +0200
++++ openssl-1.0.0/doc/apps/req.pod	2011-08-15 09:42:24.000000000 +0200
+@@ -200,7 +200,8 @@ will not be encrypted.
+ =item B<-[digest]>
+ 
+ this specifies the message digest to sign the request with (such as
+-B<-md5>, B<-sha1>). This overrides the digest algorithm specified in
++B<-md5>, B<-sha1>). For full list of possible digests see
++openssl dgst -h output. This overrides the digest algorithm specified in
+ the configuration file.
+ 
+ Some public key algorithms may override this choice. For instance, DSA
+diff -up openssl-1.0.0/doc/apps/x509.pod.dgst openssl-1.0.0/doc/apps/x509.pod
+--- openssl-1.0.0/doc/apps/x509.pod.dgst	2010-01-12 18:27:11.000000000 +0100
++++ openssl-1.0.0/doc/apps/x509.pod	2011-08-15 09:37:06.000000000 +0200
+@@ -101,6 +101,7 @@ the digest to use. This affects any sign
+ digest, such as the B<-fingerprint>, B<-signkey> and B<-CA> options. If not
+ specified then SHA1 is used. If the key being used to sign with is a DSA key
+ then this option has no effect: SHA1 is always used with DSA keys.
++For full list of digests see openssl dgst -h output.
+ 
+ =item B<-engine id>
+ 
