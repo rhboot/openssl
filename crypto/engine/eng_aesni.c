@@ -157,16 +157,20 @@ typedef unsigned __int64 IA32CAP;
 typedef unsigned long long IA32CAP;
 #endif
 
+extern IA32CAP OPENSSL_ia32cap_X;
+
 /* Prepare the ENGINE structure for registration */
 static int
 aesni_bind_helper(ENGINE *e)
 {
 	int engage;
-	if (sizeof(OPENSSL_ia32cap_P) > 4) {
-		engage = (OPENSSL_ia32cap_P >> 57) & 1;
-	} else {
-		IA32CAP OPENSSL_ia32_cpuid(void);
-		engage = (OPENSSL_ia32_cpuid() >> 57) & 1;
+	engage = (OPENSSL_ia32cap_X >> 57) & 1;
+
+	/* Disable the AES-NI support if the environment variable
+	 * OPENSSL_DISABLE_AES_NI is set to any value
+	 */
+	if (getenv("OPENSSL_DISABLE_AES_NI") != NULL) {
+		engage = 0;
 	}
 
 	/* Register everything or return with an error */
