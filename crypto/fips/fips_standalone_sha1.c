@@ -62,6 +62,8 @@ void OPENSSL_cleanse(void *p,size_t len) {}
 
 #ifdef OPENSSL_FIPS
 
+unsigned long long OPENSSL_ia32cap_X = 0;
+
 static void hmac_init(SHA256_CTX *md_ctx,SHA256_CTX *o_ctx,
 		      const char *key)
     {

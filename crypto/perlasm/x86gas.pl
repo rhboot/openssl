@@ -91,6 +91,7 @@ sub ::DWP
 }
 sub ::QWP	{ &::DWP(@_);	}
 sub ::BP	{ &::DWP(@_);	}
+sub ::WP	{ &::DWP(@_);	}
 sub ::BC	{ @_;		}
 sub ::DWC	{ @_;		}
 
@@ -161,10 +162,16 @@ sub ::file_end
 	    {	push(@out,"$non_lazy_ptr{$i}:\n.indirect_symbol\t$i\n.long\t0\n");   }
 	}
     }
+    if (grep {/\b${nmdecor}OPENSSL_ia32cap_X\b/i} @out) {
+	my $tmp=".comm\t${nmdecor}OPENSSL_ia32cap_X,8";
+	if ($::elf)	{ push (@out,"$tmp,4\n"); }
+	else		{ push (@out,"$tmp\n"); }
+    }
     push(@out,$initseg) if ($initseg);
 }
 
 sub ::data_byte	{   push(@out,".byte\t".join(',',@_)."\n");   }
+sub ::data_short{   push(@out,".value\t".join(',',@_)."\n");  }
 sub ::data_word {   push(@out,".long\t".join(',',@_)."\n");   }
 
 sub ::align
