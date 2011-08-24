@@ -1,6 +1,6 @@
 diff -up openssl-1.0.0/crypto/aes/asm/aesni-x86.pl.intelopts openssl-1.0.0/crypto/aes/asm/aesni-x86.pl
---- openssl-1.0.0/crypto/aes/asm/aesni-x86.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/aes/asm/aesni-x86.pl	2011-08-24 16:00:37.000000000 +0200
+--- openssl-1.0.0/crypto/aes/asm/aesni-x86.pl.intelopts	2011-08-24 16:23:53.000000000 +0200
++++ openssl-1.0.0/crypto/aes/asm/aesni-x86.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -11,10 +11,37 @@
  # OpenSSL context it's used with Intel engine, but can also be used as
  # drop-in replacement for crypto/aes/asm/aes-586.pl [see below for
@@ -1015,8 +1015,8 @@ diff -up openssl-1.0.0/crypto/aes/asm/aesni-x86.pl.intelopts openssl-1.0.0/crypt
  
  	&$movekey	("xmm0",&QWP(0,$key));	# inverse middle
 diff -up openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl.intelopts openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl
---- openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl	2011-08-24 16:00:47.000000000 +0200
+--- openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl.intelopts	2011-08-24 16:23:53.000000000 +0200
++++ openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -11,6 +11,145 @@
  # OpenSSL context it's used with Intel engine, but can also be used as
  # drop-in replacement for crypto/aes/asm/aes-x86_64.pl [see below for
@@ -2303,7 +2303,7 @@ diff -up openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl.intelopts openssl-1.0.0/cr
  ___
 diff -up openssl-1.0.0/crypto/cryptlib.c.intelopts openssl-1.0.0/crypto/cryptlib.c
 --- openssl-1.0.0/crypto/cryptlib.c.intelopts	2009-09-13 13:27:25.000000000 +0200
-+++ openssl-1.0.0/crypto/cryptlib.c	2011-08-24 16:00:47.000000000 +0200
++++ openssl-1.0.0/crypto/cryptlib.c	2011-08-24 16:23:53.000000000 +0200
 @@ -662,22 +662,23 @@ const char *CRYPTO_get_lock_name(int typ
  	defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
  
@@ -2332,8 +2332,8 @@ diff -up openssl-1.0.0/crypto/cryptlib.c.intelopts openssl-1.0.0/crypto/cryptlib
       * |(1<<10) sets a reserved bit to signal that variable
       * was initialized already... This is to avoid interference
 diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.intelopts openssl-1.0.0/crypto/engine/eng_aesni.c
---- openssl-1.0.0/crypto/engine/eng_aesni.c.intelopts	2011-08-15 10:19:48.000000000 +0200
-+++ openssl-1.0.0/crypto/engine/eng_aesni.c	2011-08-24 16:00:47.000000000 +0200
+--- openssl-1.0.0/crypto/engine/eng_aesni.c.intelopts	2011-08-24 16:23:53.000000000 +0200
++++ openssl-1.0.0/crypto/engine/eng_aesni.c	2011-08-24 21:16:16.000000000 +0200
 @@ -157,16 +157,20 @@ typedef unsigned __int64 IA32CAP;
  typedef unsigned long long IA32CAP;
  #endif
@@ -2359,10 +2359,10 @@ diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.intelopts openssl-1.0.0/crypto/
 +		engage = 0;
  	}
  
- 	/* Disable the AES-NI support if the environment variable
+ 	/* Register everything or return with an error */
 diff -up openssl-1.0.0/crypto/fips/fips_standalone_sha1.c.intelopts openssl-1.0.0/crypto/fips/fips_standalone_sha1.c
---- openssl-1.0.0/crypto/fips/fips_standalone_sha1.c.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/fips/fips_standalone_sha1.c	2011-08-24 16:00:47.000000000 +0200
+--- openssl-1.0.0/crypto/fips/fips_standalone_sha1.c.intelopts	2011-08-24 16:23:53.000000000 +0200
++++ openssl-1.0.0/crypto/fips/fips_standalone_sha1.c	2011-08-24 16:23:53.000000000 +0200
 @@ -62,6 +62,8 @@ void OPENSSL_cleanse(void *p,size_t len)
  
  #ifdef OPENSSL_FIPS
@@ -2373,8 +2373,8 @@ diff -up openssl-1.0.0/crypto/fips/fips_standalone_sha1.c.intelopts openssl-1.0.
  		      const char *key)
      {
 diff -up openssl-1.0.0/crypto/perlasm/x86asm.pl.intelopts openssl-1.0.0/crypto/perlasm/x86asm.pl
---- openssl-1.0.0/crypto/perlasm/x86asm.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/perlasm/x86asm.pl	2011-08-24 16:01:05.000000000 +0200
+--- openssl-1.0.0/crypto/perlasm/x86asm.pl.intelopts	2008-12-17 20:56:47.000000000 +0100
++++ openssl-1.0.0/crypto/perlasm/x86asm.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -80,6 +80,57 @@ sub ::movq
      {	&::generic("movq",@_);			}
  }
@@ -2434,8 +2434,8 @@ diff -up openssl-1.0.0/crypto/perlasm/x86asm.pl.intelopts openssl-1.0.0/crypto/p
  $lbdecor="L";		# local label decoration, set by package
  $label="000";
 diff -up openssl-1.0.0/crypto/perlasm/x86gas.pl.intelopts openssl-1.0.0/crypto/perlasm/x86gas.pl
---- openssl-1.0.0/crypto/perlasm/x86gas.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/perlasm/x86gas.pl	2011-08-24 16:01:10.000000000 +0200
+--- openssl-1.0.0/crypto/perlasm/x86gas.pl.intelopts	2008-12-17 20:56:47.000000000 +0100
++++ openssl-1.0.0/crypto/perlasm/x86gas.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -91,6 +91,7 @@ sub ::DWP
  }
  sub ::QWP	{ &::DWP(@_);	}
@@ -2462,8 +2462,8 @@ diff -up openssl-1.0.0/crypto/perlasm/x86gas.pl.intelopts openssl-1.0.0/crypto/p
  
  sub ::align
 diff -up openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl.intelopts openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl
---- openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl	2011-08-24 16:10:17.000000000 +0200
+--- openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl.intelopts	2010-02-03 19:19:05.000000000 +0100
++++ openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -55,6 +55,8 @@
  #    Win64 prologue copies %rsp value to %rax. For further details
  #    see SEH paragraph at the end.
@@ -2822,8 +2822,8 @@ diff -up openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl.intelopts openssl-1.0.0/cr
  	    printf "\t%s",$opcode->out();
  	}
 diff -up openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl.intelopts openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl
---- openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl	2011-08-24 16:01:29.000000000 +0200
+--- openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl.intelopts	2011-08-24 16:23:53.000000000 +0200
++++ openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -7,6 +7,8 @@
  # details see http://www.openssl.org/~appro/cryptogams/.
  # ====================================================================
@@ -3264,8 +3264,8 @@ diff -up openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl.intelopts openssl-1.0.0/cryp
  
  print $code;
 diff -up openssl-1.0.0/crypto/rc4/asm/rc4-586.pl.intelopts openssl-1.0.0/crypto/rc4/asm/rc4-586.pl
---- openssl-1.0.0/crypto/rc4/asm/rc4-586.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/rc4/asm/rc4-586.pl	2011-08-24 16:01:42.000000000 +0200
+--- openssl-1.0.0/crypto/rc4/asm/rc4-586.pl.intelopts	2011-08-24 16:23:53.000000000 +0200
++++ openssl-1.0.0/crypto/rc4/asm/rc4-586.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -28,6 +28,33 @@
  #
  #					<appro@fy.chalmers.se>
@@ -3477,8 +3477,8 @@ diff -up openssl-1.0.0/crypto/rc4/asm/rc4-586.pl.intelopts openssl-1.0.0/crypto/
  &align	(64);
  &function_end_B("RC4_options");
 diff -up openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl.intelopts openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl
---- openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl	2011-08-24 16:01:46.000000000 +0200
+--- openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl.intelopts	2010-01-17 17:58:56.000000000 +0100
++++ openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -16,7 +16,7 @@
  # There was suggestion to mechanically translate 32-bit code, but I
  # dismissed it, reasoning that x86_64 offers enough register bank
@@ -4787,8 +4787,8 @@ diff -up openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl.intelopts openssl-1.0.0/cry
  }
  
 diff -up openssl-1.0.0/crypto/sha/asm/sha1-586.pl.intelopts openssl-1.0.0/crypto/sha/asm/sha1-586.pl
---- openssl-1.0.0/crypto/sha/asm/sha1-586.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/sha/asm/sha1-586.pl	2011-08-24 16:01:51.000000000 +0200
+--- openssl-1.0.0/crypto/sha/asm/sha1-586.pl.intelopts	2008-07-17 11:50:56.000000000 +0200
++++ openssl-1.0.0/crypto/sha/asm/sha1-586.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -12,6 +12,8 @@
  # commentary below], and in 2006 the rest was rewritten in order to
  # gain freedom to liberate licensing terms.
@@ -5988,8 +5988,8 @@ diff -up openssl-1.0.0/crypto/sha/asm/sha1-586.pl.intelopts openssl-1.0.0/crypto
  
  &asm_finish();
 diff -up openssl-1.0.0/crypto/x86cpuid.pl.intelopts openssl-1.0.0/crypto/x86cpuid.pl
---- openssl-1.0.0/crypto/x86cpuid.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/x86cpuid.pl	2011-08-24 16:01:54.000000000 +0200
+--- openssl-1.0.0/crypto/x86cpuid.pl.intelopts	2010-02-12 18:02:12.000000000 +0100
++++ openssl-1.0.0/crypto/x86cpuid.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -20,7 +20,7 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA3
  	&pop	("eax");
  	&xor	("ecx","eax");
@@ -6107,8 +6107,8 @@ diff -up openssl-1.0.0/crypto/x86cpuid.pl.intelopts openssl-1.0.0/crypto/x86cpui
  		&pxor	("xmm1","xmm1");
  		&pxor	("xmm2","xmm2");
 diff -up openssl-1.0.0/crypto/x86_64cpuid.pl.intelopts openssl-1.0.0/crypto/x86_64cpuid.pl
---- openssl-1.0.0/crypto/x86_64cpuid.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
-+++ openssl-1.0.0/crypto/x86_64cpuid.pl	2011-08-24 16:01:56.000000000 +0200
+--- openssl-1.0.0/crypto/x86_64cpuid.pl.intelopts	2010-02-12 18:02:12.000000000 +0100
++++ openssl-1.0.0/crypto/x86_64cpuid.pl	2011-08-24 16:23:53.000000000 +0200
 @@ -7,12 +7,18 @@ if ($flavour =~ /\./) { $output = $flavo
  $win64=0; $win64=1 if ($flavour =~ /[nm]asm|mingw64/ || $output =~ /\.asm$/);
  
