@@ -662,22 +662,23 @@ const char *CRYPTO_get_lock_name(int type)
 	defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
 
 unsigned long  OPENSSL_ia32cap_P=0;
+unsigned long long  OPENSSL_ia32cap_X=0;
 unsigned long *OPENSSL_ia32cap_loc(void) { return &OPENSSL_ia32cap_P; }
 
 #if defined(OPENSSL_CPUID_OBJ) && !defined(OPENSSL_NO_ASM) && !defined(I386_ONLY)
 #define OPENSSL_CPUID_SETUP
 void OPENSSL_cpuid_setup(void)
 { static int trigger=0;
-  unsigned long OPENSSL_ia32_cpuid(void);
+  unsigned long long OPENSSL_ia32_cpuid(void);
   char *env;
 
     if (trigger)	return;
 
     trigger=1;
     if ((env=getenv("OPENSSL_ia32cap")))
-	OPENSSL_ia32cap_P = strtoul(env,NULL,0)|(1<<10);
+	OPENSSL_ia32cap_X = OPENSSL_ia32cap_P = strtoul(env,NULL,0)|(1<<10);
     else
-	OPENSSL_ia32cap_P = OPENSSL_ia32_cpuid()|(1<<10);
+	OPENSSL_ia32cap_P = OPENSSL_ia32cap_X = OPENSSL_ia32_cpuid()|(1<<10);
     /*
      * |(1<<10) sets a reserved bit to signal that variable
      * was initialized already... This is to avoid interference
