@@ -1,0 +1,6233 @@
+diff -up openssl-1.0.0/crypto/aes/asm/aesni-x86.pl.intelopts openssl-1.0.0/crypto/aes/asm/aesni-x86.pl
+--- openssl-1.0.0/crypto/aes/asm/aesni-x86.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/aes/asm/aesni-x86.pl	2011-08-24 16:00:37.000000000 +0200
+@@ -11,10 +11,37 @@
+ # OpenSSL context it's used with Intel engine, but can also be used as
+ # drop-in replacement for crypto/aes/asm/aes-586.pl [see below for
+ # details].
++#
++# Performance.
++#
++# To start with see corresponding paragraph in aesni-x86_64.pl...
++# Instead of filling table similar to one found there I've chosen to
++# summarize *comparison* results for raw ECB, CTR and CBC benchmarks.
++# The simplified table below represents 32-bit performance relative
++# to 64-bit one in every given point. Ratios vary for different
++# encryption modes, therefore interval values.
++#
++#	16-byte     64-byte     256-byte    1-KB        8-KB
++#	53-67%      67-84%      91-94%      95-98%      97-99.5%
++#
++# Lower ratios for smaller block sizes are perfectly understandable,
++# because function call overhead is higher in 32-bit mode. Largest
++# 8-KB block performance is virtually same: 32-bit code is less than
++# 1% slower for ECB, CBC and CCM, and ~3% slower otherwise.
++
++# January 2011
++#
++# See aesni-x86_64.pl for details. Unlike x86_64 version this module
++# interleaves at most 6 aes[enc|dec] instructions, because there are
++# not enough registers for 8x interleave [which should be optimal for
++# Sandy Bridge]. Actually, performance results for 6x interleave
++# factor presented in aesni-x86_64.pl (except for CTR) are for this
++# module.
+ 
+ $PREFIX="aesni";	# if $PREFIX is set to "AES", the script
+ 			# generates drop-in replacement for
+ 			# crypto/aes/asm/aes-586.pl:-)
++$inline=1;		# inline _aesni_[en|de]crypt
+ 
+ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
+ push(@INC,"${dir}","${dir}../../perlasm");
+@@ -22,7 +49,8 @@ require "x86asm.pl";
+ 
+ &asm_init($ARGV[0],$0);
+ 
+-$movekey = eval($RREFIX eq "aseni" ? "*movaps" : "*movups");
++if ($PREFIX eq "aesni")	{ $movekey=*movups; }
++else			{ $movekey=*movups; }
+ 
+ $len="eax";
+ $rounds="ecx";
+@@ -32,114 +60,144 @@ $out="edi";
+ $rounds_="ebx";	# backup copy for $rounds
+ $key_="ebp";	# backup copy for $key
+ 
+-$inout0="xmm0";
+-$inout1="xmm1";
+-$inout2="xmm2";
+-$rndkey0="xmm3";
+-$rndkey1="xmm4";
+-$ivec="xmm5";
+-$in0="xmm6";
+-$in1="xmm7";	$inout3="xmm7";
+-
++$rndkey0="xmm0";
++$rndkey1="xmm1";
++$inout0="xmm2";
++$inout1="xmm3";
++$inout2="xmm4";
++$inout3="xmm5";	$in1="xmm5";
++$inout4="xmm6";	$in0="xmm6";
++$inout5="xmm7";	$ivec="xmm7";
++
++# AESNI extenstion
++sub aeskeygenassist
++{ my($dst,$src,$imm)=@_;
++    if ("$dst:$src" =~ /xmm([0-7]):xmm([0-7])/)
++    {	&data_byte(0x66,0x0f,0x3a,0xdf,0xc0|($1<<3)|$2,$imm);	}
++}
++sub aescommon
++{ my($opcodelet,$dst,$src)=@_;
++    if ("$dst:$src" =~ /xmm([0-7]):xmm([0-7])/)
++    {	&data_byte(0x66,0x0f,0x38,$opcodelet,0xc0|($1<<3)|$2);}
++}
++sub aesimc	{ aescommon(0xdb,@_); }
++sub aesenc	{ aescommon(0xdc,@_); }
++sub aesenclast	{ aescommon(0xdd,@_); }
++sub aesdec	{ aescommon(0xde,@_); }
++sub aesdeclast	{ aescommon(0xdf,@_); }
++
+ # Inline version of internal aesni_[en|de]crypt1
++{ my $sn;
+ sub aesni_inline_generate1
+-{ my $p=shift;
++{ my ($p,$inout,$ivec)=@_; $inout=$inout0 if (!defined($inout));
++  $sn++;
+ 
+     &$movekey		($rndkey0,&QWP(0,$key));
+     &$movekey		($rndkey1,&QWP(16,$key));
++    &xorps		($ivec,$rndkey0)	if (defined($ivec));
+     &lea		($key,&DWP(32,$key));
+-    &pxor		($inout0,$rndkey0);
+-    &set_label("${p}1_loop");
+-	eval"&aes${p}	($inout0,$rndkey1)";
++    &xorps		($inout,$ivec)		if (defined($ivec));
++    &xorps		($inout,$rndkey0)	if (!defined($ivec));
++    &set_label("${p}1_loop_$sn");
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&dec		($rounds);
+ 	&$movekey	($rndkey1,&QWP(0,$key));
+ 	&lea		($key,&DWP(16,$key));
+-    &jnz		(&label("${p}1_loop"));
+-    eval"&aes${p}last	($inout0,$rndkey1)";
+-}
++    &jnz		(&label("${p}1_loop_$sn"));
++    eval"&aes${p}last	($inout,$rndkey1)";
++}}
+ 
+ sub aesni_generate1	# fully unrolled loop
+-{ my $p=shift;
++{ my ($p,$inout)=@_; $inout=$inout0 if (!defined($inout));
+ 
+     &function_begin_B("_aesni_${p}rypt1");
+-	&$movekey	($rndkey0,&QWP(0,$key));
++	&movups		($rndkey0,&QWP(0,$key));
+ 	&$movekey	($rndkey1,&QWP(0x10,$key));
+-	&cmp		($rounds,11);
+-	&pxor		($inout0,$rndkey0);
++	&xorps		($inout,$rndkey0);
+ 	&$movekey	($rndkey0,&QWP(0x20,$key));
+ 	&lea		($key,&DWP(0x30,$key));
++	&cmp		($rounds,11);
+ 	&jb		(&label("${p}128"));
+ 	&lea		($key,&DWP(0x20,$key));
+ 	&je		(&label("${p}192"));
+ 	&lea		($key,&DWP(0x20,$key));
+-	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(-0x40,$key));
+-	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey0)";
+ 	&$movekey	($rndkey0,&QWP(-0x30,$key));
+     &set_label("${p}192");
+-	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(-0x20,$key));
+-	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey0)";
+ 	&$movekey	($rndkey0,&QWP(-0x10,$key));
+     &set_label("${p}128");
+-	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(0,$key));
+-	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey0)";
+ 	&$movekey	($rndkey0,&QWP(0x10,$key));
+-	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(0x20,$key));
+-	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey0)";
+ 	&$movekey	($rndkey0,&QWP(0x30,$key));
+-	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(0x40,$key));
+-	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey0)";
+ 	&$movekey	($rndkey0,&QWP(0x50,$key));
+-	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(0x60,$key));
+-	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey0)";
+ 	&$movekey	($rndkey0,&QWP(0x70,$key));
+-	eval"&aes${p}	($inout0,$rndkey1)";
+-    eval"&aes${p}last	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout,$rndkey1)";
++    eval"&aes${p}last	($inout,$rndkey0)";
+     &ret();
+     &function_end_B("_aesni_${p}rypt1");
+ }
+-
++
+ # void $PREFIX_encrypt (const void *inp,void *out,const AES_KEY *key);
+-# &aesni_generate1("dec");
++&aesni_generate1("enc") if (!$inline);
+ &function_begin_B("${PREFIX}_encrypt");
+ 	&mov	("eax",&wparam(0));
+ 	&mov	($key,&wparam(2));
+ 	&movups	($inout0,&QWP(0,"eax"));
+ 	&mov	($rounds,&DWP(240,$key));
+ 	&mov	("eax",&wparam(1));
+-	&aesni_inline_generate1("enc");	# &call	("_aesni_encrypt1");
++	if ($inline)
++	{   &aesni_inline_generate1("enc");	}
++	else
++	{   &call	("_aesni_encrypt1");	}
+ 	&movups	(&QWP(0,"eax"),$inout0);
+ 	&ret	();
+ &function_end_B("${PREFIX}_encrypt");
+ 
+ # void $PREFIX_decrypt (const void *inp,void *out,const AES_KEY *key);
+-# &aesni_generate1("dec");
++&aesni_generate1("dec") if(!$inline);
+ &function_begin_B("${PREFIX}_decrypt");
+ 	&mov	("eax",&wparam(0));
+ 	&mov	($key,&wparam(2));
+ 	&movups	($inout0,&QWP(0,"eax"));
+ 	&mov	($rounds,&DWP(240,$key));
+ 	&mov	("eax",&wparam(1));
+-	&aesni_inline_generate1("dec");	# &call	("_aesni_decrypt1");
++	if ($inline)
++	{   &aesni_inline_generate1("dec");	}
++	else
++	{   &call	("_aesni_decrypt1");	}
+ 	&movups	(&QWP(0,"eax"),$inout0);
+ 	&ret	();
+ &function_end_B("${PREFIX}_decrypt");
+-
+-# _aesni_[en|de]crypt[34] are private interfaces, N denotes interleave
+-# factor. Why 3x subroutine is used in loops? Even though aes[enc|dec]
+-# latency is 6, it turned out that it can be scheduled only every
+-# *second* cycle. Thus 3x interleave is the one providing optimal
++
++# _aesni_[en|de]cryptN are private interfaces, N denotes interleave
++# factor. Why 3x subroutine were originally used in loops? Even though
++# aes[enc|dec] latency was originally 6, it could be scheduled only
++# every *2nd* cycle. Thus 3x interleave was the one providing optimal
+ # utilization, i.e. when subroutine's throughput is virtually same as
+ # of non-interleaved subroutine [for number of input blocks up to 3].
+-# This is why it makes no sense to implement 2x subroutine. As soon
+-# as/if Intel improves throughput by making it possible to schedule
+-# the instructions in question *every* cycles I would have to
+-# implement 6x interleave and use it in loop...
++# This is why it makes no sense to implement 2x subroutine.
++# aes[enc|dec] latency in next processor generation is 8, but the
++# instructions can be scheduled every cycle. Optimal interleave for
++# new processor is therefore 8x, but it's unfeasible to accommodate it
++# in XMM registers addreassable in 32-bit mode and therefore 6x is
++# used instead...
++
+ sub aesni_generate3
+ { my $p=shift;
+ 
+@@ -148,24 +206,24 @@ sub aesni_generate3
+ 	&shr		($rounds,1);
+ 	&$movekey	($rndkey1,&QWP(16,$key));
+ 	&lea		($key,&DWP(32,$key));
+-	&pxor		($inout0,$rndkey0);
++	&xorps		($inout0,$rndkey0);
+ 	&pxor		($inout1,$rndkey0);
+ 	&pxor		($inout2,$rndkey0);
+-	&jmp		(&label("${p}3_loop"));
+-    &set_label("${p}3_loop",16);
+-	eval"&aes${p}	($inout0,$rndkey1)";
+ 	&$movekey	($rndkey0,&QWP(0,$key));
++
++    &set_label("${p}3_loop");
++	eval"&aes${p}	($inout0,$rndkey1)";
+ 	eval"&aes${p}	($inout1,$rndkey1)";
+ 	&dec		($rounds);
+ 	eval"&aes${p}	($inout2,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(16,$key));
+ 	eval"&aes${p}	($inout0,$rndkey0)";
+-	&lea		($key,&DWP(32,$key));
+ 	eval"&aes${p}	($inout1,$rndkey0)";
++	&lea		($key,&DWP(32,$key));
+ 	eval"&aes${p}	($inout2,$rndkey0)";
++	&$movekey	($rndkey0,&QWP(0,$key));
+ 	&jnz		(&label("${p}3_loop"));
+     eval"&aes${p}	($inout0,$rndkey1)";
+-    &$movekey		($rndkey0,&QWP(0,$key));
+     eval"&aes${p}	($inout1,$rndkey1)";
+     eval"&aes${p}	($inout2,$rndkey1)";
+     eval"&aes${p}last	($inout0,$rndkey0)";
+@@ -187,27 +245,28 @@ sub aesni_generate4
+ 	&$movekey	($rndkey1,&QWP(16,$key));
+ 	&shr		($rounds,1);
+ 	&lea		($key,&DWP(32,$key));
+-	&pxor		($inout0,$rndkey0);
++	&xorps		($inout0,$rndkey0);
+ 	&pxor		($inout1,$rndkey0);
+ 	&pxor		($inout2,$rndkey0);
+ 	&pxor		($inout3,$rndkey0);
+-	&jmp		(&label("${p}3_loop"));
+-    &set_label("${p}3_loop",16);
+-	eval"&aes${p}	($inout0,$rndkey1)";
+ 	&$movekey	($rndkey0,&QWP(0,$key));
++
++    &set_label("${p}4_loop");
++	eval"&aes${p}	($inout0,$rndkey1)";
+ 	eval"&aes${p}	($inout1,$rndkey1)";
+ 	&dec		($rounds);
+ 	eval"&aes${p}	($inout2,$rndkey1)";
+ 	eval"&aes${p}	($inout3,$rndkey1)";
+ 	&$movekey	($rndkey1,&QWP(16,$key));
+ 	eval"&aes${p}	($inout0,$rndkey0)";
+-	&lea		($key,&DWP(32,$key));
+ 	eval"&aes${p}	($inout1,$rndkey0)";
++	&lea		($key,&DWP(32,$key));
+ 	eval"&aes${p}	($inout2,$rndkey0)";
+ 	eval"&aes${p}	($inout3,$rndkey0)";
+-	&jnz		(&label("${p}3_loop"));
++	&$movekey	($rndkey0,&QWP(0,$key));
++    &jnz		(&label("${p}4_loop"));
++
+     eval"&aes${p}	($inout0,$rndkey1)";
+-    &$movekey		($rndkey0,&QWP(0,$key));
+     eval"&aes${p}	($inout1,$rndkey1)";
+     eval"&aes${p}	($inout2,$rndkey1)";
+     eval"&aes${p}	($inout3,$rndkey1)";
+@@ -218,12 +277,76 @@ sub aesni_generate4
+     &ret();
+     &function_end_B("_aesni_${p}rypt4");
+ }
++
++sub aesni_generate6
++{ my $p=shift;
++
++    &function_begin_B("_aesni_${p}rypt6");
++    &static_label("_aesni_${p}rypt6_enter");
++	&$movekey	($rndkey0,&QWP(0,$key));
++	&shr		($rounds,1);
++	&$movekey	($rndkey1,&QWP(16,$key));
++	&lea		($key,&DWP(32,$key));
++	&xorps		($inout0,$rndkey0);
++	&pxor		($inout1,$rndkey0);	# pxor does better here
++	eval"&aes${p}	($inout0,$rndkey1)";
++	&pxor		($inout2,$rndkey0);
++	eval"&aes${p}	($inout1,$rndkey1)";
++	&pxor		($inout3,$rndkey0);
++	&dec		($rounds);
++	eval"&aes${p}	($inout2,$rndkey1)";
++	&pxor		($inout4,$rndkey0);
++	eval"&aes${p}	($inout3,$rndkey1)";
++	&pxor		($inout5,$rndkey0);
++	eval"&aes${p}	($inout4,$rndkey1)";
++	&$movekey	($rndkey0,&QWP(0,$key));
++	eval"&aes${p}	($inout5,$rndkey1)";
++	&jmp		(&label("_aesni_${p}rypt6_enter"));
++
++    &set_label("${p}6_loop",16);
++	eval"&aes${p}	($inout0,$rndkey1)";
++	eval"&aes${p}	($inout1,$rndkey1)";
++	&dec		($rounds);
++	eval"&aes${p}	($inout2,$rndkey1)";
++	eval"&aes${p}	($inout3,$rndkey1)";
++	eval"&aes${p}	($inout4,$rndkey1)";
++	eval"&aes${p}	($inout5,$rndkey1)";
++    &set_label("_aesni_${p}rypt6_enter",16);
++	&$movekey	($rndkey1,&QWP(16,$key));
++	eval"&aes${p}	($inout0,$rndkey0)";
++	eval"&aes${p}	($inout1,$rndkey0)";
++	&lea		($key,&DWP(32,$key));
++	eval"&aes${p}	($inout2,$rndkey0)";
++	eval"&aes${p}	($inout3,$rndkey0)";
++	eval"&aes${p}	($inout4,$rndkey0)";
++	eval"&aes${p}	($inout5,$rndkey0)";
++	&$movekey	($rndkey0,&QWP(0,$key));
++    &jnz		(&label("${p}6_loop"));
++
++    eval"&aes${p}	($inout0,$rndkey1)";
++    eval"&aes${p}	($inout1,$rndkey1)";
++    eval"&aes${p}	($inout2,$rndkey1)";
++    eval"&aes${p}	($inout3,$rndkey1)";
++    eval"&aes${p}	($inout4,$rndkey1)";
++    eval"&aes${p}	($inout5,$rndkey1)";
++    eval"&aes${p}last	($inout0,$rndkey0)";
++    eval"&aes${p}last	($inout1,$rndkey0)";
++    eval"&aes${p}last	($inout2,$rndkey0)";
++    eval"&aes${p}last	($inout3,$rndkey0)";
++    eval"&aes${p}last	($inout4,$rndkey0)";
++    eval"&aes${p}last	($inout5,$rndkey0)";
++    &ret();
++    &function_end_B("_aesni_${p}rypt6");
++}
+ &aesni_generate3("enc") if ($PREFIX eq "aesni");
+ &aesni_generate3("dec");
+ &aesni_generate4("enc") if ($PREFIX eq "aesni");
+ &aesni_generate4("dec");
+-
++&aesni_generate6("enc") if ($PREFIX eq "aesni");
++&aesni_generate6("dec");
++
+ if ($PREFIX eq "aesni") {
++######################################################################
+ # void aesni_ecb_encrypt (const void *in, void *out,
+ #                         size_t length, const AES_KEY *key,
+ #                         int enc);
+@@ -232,62 +355,93 @@ if ($PREFIX eq "aesni") {
+ 	&mov	($out,&wparam(1));
+ 	&mov	($len,&wparam(2));
+ 	&mov	($key,&wparam(3));
+-	&mov	($rounds,&wparam(4));
+-	&cmp	($len,16);
+-	&jb	(&label("ecb_ret"));
++	&mov	($rounds_,&wparam(4));
+ 	&and	($len,-16);
+-	&test	($rounds,$rounds)
++	&jz	(&label("ecb_ret"));
+ 	&mov	($rounds,&DWP(240,$key));
++	&test	($rounds_,$rounds_);
++	&jz	(&label("ecb_decrypt"));
++
+ 	&mov	($key_,$key);		# backup $key
+ 	&mov	($rounds_,$rounds);	# backup $rounds
+-	&jz	(&label("ecb_decrypt"));
++	&cmp	($len,0x60);
++	&jb	(&label("ecb_enc_tail"));
+ 
+-	&sub	($len,0x40);
+-	&jbe	(&label("ecb_enc_tail"));
+-	&jmp	(&label("ecb_enc_loop3"));
++	&movdqu	($inout0,&QWP(0,$inp));
++	&movdqu	($inout1,&QWP(0x10,$inp));
++	&movdqu	($inout2,&QWP(0x20,$inp));
++	&movdqu	($inout3,&QWP(0x30,$inp));
++	&movdqu	($inout4,&QWP(0x40,$inp));
++	&movdqu	($inout5,&QWP(0x50,$inp));
++	&lea	($inp,&DWP(0x60,$inp));
++	&sub	($len,0x60);
++	&jmp	(&label("ecb_enc_loop6_enter"));
++
++&set_label("ecb_enc_loop6",16);
++	&movups	(&QWP(0,$out),$inout0);
++	&movdqu	($inout0,&QWP(0,$inp));
++	&movups	(&QWP(0x10,$out),$inout1);
++	&movdqu	($inout1,&QWP(0x10,$inp));
++	&movups	(&QWP(0x20,$out),$inout2);
++	&movdqu	($inout2,&QWP(0x20,$inp));
++	&movups	(&QWP(0x30,$out),$inout3);
++	&movdqu	($inout3,&QWP(0x30,$inp));
++	&movups	(&QWP(0x40,$out),$inout4);
++	&movdqu	($inout4,&QWP(0x40,$inp));
++	&movups	(&QWP(0x50,$out),$inout5);
++	&lea	($out,&DWP(0x60,$out));
++	&movdqu	($inout5,&QWP(0x50,$inp));
++	&lea	($inp,&DWP(0x60,$inp));
++&set_label("ecb_enc_loop6_enter");
++
++	&call	("_aesni_encrypt6");
+ 
+-&set_label("ecb_enc_loop3",16);
+-	&movups	($inout0,&QWP(0,$inp));
+-	&movups	($inout1,&QWP(0x10,$inp));
+-	&movups	($inout2,&QWP(0x20,$inp));
+-	&call	("_aesni_encrypt3");
+-	&sub	($len,0x30);
+-	&lea	($inp,&DWP(0x30,$inp));
+-	&lea	($out,&DWP(0x30,$out));
+-	&movups	(&QWP(-0x30,$out),$inout0);
+ 	&mov	($key,$key_);		# restore $key
+-	&movups	(&QWP(-0x20,$out),$inout1);
+ 	&mov	($rounds,$rounds_);	# restore $rounds
+-	&movups	(&QWP(-0x10,$out),$inout2);
+-	&ja	(&label("ecb_enc_loop3"));
++	&sub	($len,0x60);
++	&jnc	(&label("ecb_enc_loop6"));
+ 
+-&set_label("ecb_enc_tail");
+-	&add	($len,0x40);
++	&movups	(&QWP(0,$out),$inout0);
++	&movups	(&QWP(0x10,$out),$inout1);
++	&movups	(&QWP(0x20,$out),$inout2);
++	&movups	(&QWP(0x30,$out),$inout3);
++	&movups	(&QWP(0x40,$out),$inout4);
++	&movups	(&QWP(0x50,$out),$inout5);
++	&lea	($out,&DWP(0x60,$out));
++	&add	($len,0x60);
+ 	&jz	(&label("ecb_ret"));
+ 
+-	&cmp	($len,0x10);
++&set_label("ecb_enc_tail");
+ 	&movups	($inout0,&QWP(0,$inp));
+-	&je	(&label("ecb_enc_one"));
+ 	&cmp	($len,0x20);
++	&jb	(&label("ecb_enc_one"));
+ 	&movups	($inout1,&QWP(0x10,$inp));
+ 	&je	(&label("ecb_enc_two"));
+-	&cmp	($len,0x30);
+ 	&movups	($inout2,&QWP(0x20,$inp));
+-	&je	(&label("ecb_enc_three"));
++	&cmp	($len,0x40);
++	&jb	(&label("ecb_enc_three"));
+ 	&movups	($inout3,&QWP(0x30,$inp));
+-	&call	("_aesni_encrypt4");
++	&je	(&label("ecb_enc_four"));
++	&movups	($inout4,&QWP(0x40,$inp));
++	&xorps	($inout5,$inout5);
++	&call	("_aesni_encrypt6");
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&movups	(&QWP(0x10,$out),$inout1);
+ 	&movups	(&QWP(0x20,$out),$inout2);
+ 	&movups	(&QWP(0x30,$out),$inout3);
++	&movups	(&QWP(0x40,$out),$inout4);
+ 	jmp	(&label("ecb_ret"));
+ 
+ &set_label("ecb_enc_one",16);
+-	&aesni_inline_generate1("enc");	# &call	("_aesni_encrypt1");
++	if ($inline)
++	{   &aesni_inline_generate1("enc");	}
++	else
++	{   &call	("_aesni_encrypt1");	}
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&jmp	(&label("ecb_ret"));
+ 
+ &set_label("ecb_enc_two",16);
++	&xorps	($inout2,$inout2);
+ 	&call	("_aesni_encrypt3");
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&movups	(&QWP(0x10,$out),$inout1);
+@@ -300,53 +454,95 @@ if ($PREFIX eq "aesni") {
+ 	&movups	(&QWP(0x20,$out),$inout2);
+ 	&jmp	(&label("ecb_ret"));
+ 
++&set_label("ecb_enc_four",16);
++	&call	("_aesni_encrypt4");
++	&movups	(&QWP(0,$out),$inout0);
++	&movups	(&QWP(0x10,$out),$inout1);
++	&movups	(&QWP(0x20,$out),$inout2);
++	&movups	(&QWP(0x30,$out),$inout3);
++	&jmp	(&label("ecb_ret"));
++######################################################################
+ &set_label("ecb_decrypt",16);
+-	&sub	($len,0x40);
+-	&jbe	(&label("ecb_dec_tail"));
+-	&jmp	(&label("ecb_dec_loop3"));
++	&mov	($key_,$key);		# backup $key
++	&mov	($rounds_,$rounds);	# backup $rounds
++	&cmp	($len,0x60);
++	&jb	(&label("ecb_dec_tail"));
++
++	&movdqu	($inout0,&QWP(0,$inp));
++	&movdqu	($inout1,&QWP(0x10,$inp));
++	&movdqu	($inout2,&QWP(0x20,$inp));
++	&movdqu	($inout3,&QWP(0x30,$inp));
++	&movdqu	($inout4,&QWP(0x40,$inp));
++	&movdqu	($inout5,&QWP(0x50,$inp));
++	&lea	($inp,&DWP(0x60,$inp));
++	&sub	($len,0x60);
++	&jmp	(&label("ecb_dec_loop6_enter"));
++
++&set_label("ecb_dec_loop6",16);
++	&movups	(&QWP(0,$out),$inout0);
++	&movdqu	($inout0,&QWP(0,$inp));
++	&movups	(&QWP(0x10,$out),$inout1);
++	&movdqu	($inout1,&QWP(0x10,$inp));
++	&movups	(&QWP(0x20,$out),$inout2);
++	&movdqu	($inout2,&QWP(0x20,$inp));
++	&movups	(&QWP(0x30,$out),$inout3);
++	&movdqu	($inout3,&QWP(0x30,$inp));
++	&movups	(&QWP(0x40,$out),$inout4);
++	&movdqu	($inout4,&QWP(0x40,$inp));
++	&movups	(&QWP(0x50,$out),$inout5);
++	&lea	($out,&DWP(0x60,$out));
++	&movdqu	($inout5,&QWP(0x50,$inp));
++	&lea	($inp,&DWP(0x60,$inp));
++&set_label("ecb_dec_loop6_enter");
++
++	&call	("_aesni_decrypt6");
+ 
+-&set_label("ecb_dec_loop3",16);
+-	&movups	($inout0,&QWP(0,$inp));
+-	&movups	($inout1,&QWP(0x10,$inp));
+-	&movups	($inout2,&QWP(0x20,$inp));
+-	&call	("_aesni_decrypt3");
+-	&sub	($len,0x30);
+-	&lea	($inp,&DWP(0x30,$inp));
+-	&lea	($out,&DWP(0x30,$out));
+-	&movups	(&QWP(-0x30,$out),$inout0);
+ 	&mov	($key,$key_);		# restore $key
+-	&movups	(&QWP(-0x20,$out),$inout1);
+ 	&mov	($rounds,$rounds_);	# restore $rounds
+-	&movups	(&QWP(-0x10,$out),$inout2);
+-	&ja	(&label("ecb_dec_loop3"));
++	&sub	($len,0x60);
++	&jnc	(&label("ecb_dec_loop6"));
+ 
+-&set_label("ecb_dec_tail");
+-	&add	($len,0x40);
++	&movups	(&QWP(0,$out),$inout0);
++	&movups	(&QWP(0x10,$out),$inout1);
++	&movups	(&QWP(0x20,$out),$inout2);
++	&movups	(&QWP(0x30,$out),$inout3);
++	&movups	(&QWP(0x40,$out),$inout4);
++	&movups	(&QWP(0x50,$out),$inout5);
++	&lea	($out,&DWP(0x60,$out));
++	&add	($len,0x60);
+ 	&jz	(&label("ecb_ret"));
+ 
+-	&cmp	($len,0x10);
++&set_label("ecb_dec_tail");
+ 	&movups	($inout0,&QWP(0,$inp));
+-	&je	(&label("ecb_dec_one"));
+ 	&cmp	($len,0x20);
++	&jb	(&label("ecb_dec_one"));
+ 	&movups	($inout1,&QWP(0x10,$inp));
+ 	&je	(&label("ecb_dec_two"));
+-	&cmp	($len,0x30);
+ 	&movups	($inout2,&QWP(0x20,$inp));
+-	&je	(&label("ecb_dec_three"));
++	&cmp	($len,0x40);
++	&jb	(&label("ecb_dec_three"));
+ 	&movups	($inout3,&QWP(0x30,$inp));
+-	&call	("_aesni_decrypt4");
++	&je	(&label("ecb_dec_four"));
++	&movups	($inout4,&QWP(0x40,$inp));
++	&xorps	($inout5,$inout5);
++	&call	("_aesni_decrypt6");
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&movups	(&QWP(0x10,$out),$inout1);
+ 	&movups	(&QWP(0x20,$out),$inout2);
+ 	&movups	(&QWP(0x30,$out),$inout3);
++	&movups	(&QWP(0x40,$out),$inout4);
+ 	&jmp	(&label("ecb_ret"));
+ 
+ &set_label("ecb_dec_one",16);
+-	&aesni_inline_generate1("dec");	# &call	("_aesni_decrypt3");
++	if ($inline)
++	{   &aesni_inline_generate1("dec");	}
++	else
++	{   &call	("_aesni_decrypt1");	}
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&jmp	(&label("ecb_ret"));
+ 
+ &set_label("ecb_dec_two",16);
++	&xorps	($inout2,$inout2);
+ 	&call	("_aesni_decrypt3");
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&movups	(&QWP(0x10,$out),$inout1);
+@@ -357,28 +553,42 @@ if ($PREFIX eq "aesni") {
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&movups	(&QWP(0x10,$out),$inout1);
+ 	&movups	(&QWP(0x20,$out),$inout2);
++	&jmp	(&label("ecb_ret"));
++
++&set_label("ecb_dec_four",16);
++	&call	("_aesni_decrypt4");
++	&movups	(&QWP(0,$out),$inout0);
++	&movups	(&QWP(0x10,$out),$inout1);
++	&movups	(&QWP(0x20,$out),$inout2);
++	&movups	(&QWP(0x30,$out),$inout3);
+ 
+ &set_label("ecb_ret");
+ &function_end("aesni_ecb_encrypt");
+ }
+ 
++######################################################################
+ # void $PREFIX_cbc_encrypt (const void *inp, void *out,
+ #                           size_t length, const AES_KEY *key,
+ #                           unsigned char *ivp,const int enc);
+ &function_begin("${PREFIX}_cbc_encrypt");
+ 	&mov	($inp,&wparam(0));
++	&mov	($rounds_,"esp");
+ 	&mov	($out,&wparam(1));
++	&sub	($rounds_,24);
+ 	&mov	($len,&wparam(2));
++	&and	($rounds_,-16);
+ 	&mov	($key,&wparam(3));
+-	&test	($len,$len);
+ 	&mov	($key_,&wparam(4));
+-	&jz	(&label("cbc_ret"));
++	&test	($len,$len);
++	&jz	(&label("cbc_abort"));
+ 
+ 	&cmp	(&wparam(5),0);
+-	&movups	($ivec,&QWP(0,$key_));	# load IV
++	&xchg	($rounds_,"esp");		# alloca
++	&movups	($ivec,&QWP(0,$key_));		# load IV
+ 	&mov	($rounds,&DWP(240,$key));
+-	&mov	($key_,$key);		# backup $key
+-	&mov	($rounds_,$rounds);	# backup $rounds
++	&mov	($key_,$key);			# backup $key
++	&mov	(&DWP(16,"esp"),$rounds_);	# save original %esp
++	&mov	($rounds_,$rounds);		# backup $rounds
+ 	&je	(&label("cbc_decrypt"));
+ 
+ 	&movaps	($inout0,$ivec);
+@@ -388,15 +598,17 @@ if ($PREFIX eq "aesni") {
+ 	&jmp	(&label("cbc_enc_loop"));
+ 
+ &set_label("cbc_enc_loop",16);
+-	&movups	($ivec,&QWP(0,$inp));
++	&movups	($ivec,&QWP(0,$inp));		# input actually
+ 	&lea	($inp,&DWP(16,$inp));
+-	&pxor	($inout0,$ivec);
+-	&aesni_inline_generate1("enc");	# &call	("_aesni_encrypt3");
+-	&sub	($len,16);
+-	&lea	($out,&DWP(16,$out));
++	if ($inline)
++	{   &aesni_inline_generate1("enc",$inout0,$ivec);	}
++	else
++	{   &xorps($inout0,$ivec); &call("_aesni_encrypt1");	}
+ 	&mov	($rounds,$rounds_);	# restore $rounds
+ 	&mov	($key,$key_);		# restore $key
+-	&movups	(&QWP(-16,$out),$inout0);
++	&movups	(&QWP(0,$out),$inout0);	# store output
++	&lea	($out,&DWP(16,$out));
++	&sub	($len,16);
+ 	&jnc	(&label("cbc_enc_loop"));
+ 	&add	($len,16);
+ 	&jnz	(&label("cbc_enc_tail"));
+@@ -415,90 +627,151 @@ if ($PREFIX eq "aesni") {
+ 	&mov	($inp,$out);		# $inp and $out are the same
+ 	&mov	($key,$key_);		# restore $key
+ 	&jmp	(&label("cbc_enc_loop"));
+-
++######################################################################
+ &set_label("cbc_decrypt",16);
+-	&sub	($len,0x40);
++	&cmp	($len,0x50);
+ 	&jbe	(&label("cbc_dec_tail"));
+-	&jmp	(&label("cbc_dec_loop3"));
++	&movaps	(&QWP(0,"esp"),$ivec);		# save IV
++	&sub	($len,0x50);
++	&jmp	(&label("cbc_dec_loop6_enter"));
++
++&set_label("cbc_dec_loop6",16);
++	&movaps	(&QWP(0,"esp"),$rndkey0);	# save IV
++	&movups	(&QWP(0,$out),$inout5);
++	&lea	($out,&DWP(0x10,$out));
++&set_label("cbc_dec_loop6_enter");
++	&movdqu	($inout0,&QWP(0,$inp));
++	&movdqu	($inout1,&QWP(0x10,$inp));
++	&movdqu	($inout2,&QWP(0x20,$inp));
++	&movdqu	($inout3,&QWP(0x30,$inp));
++	&movdqu	($inout4,&QWP(0x40,$inp));
++	&movdqu	($inout5,&QWP(0x50,$inp));
+ 
+-&set_label("cbc_dec_loop3",16);
+-	&movups	($inout0,&QWP(0,$inp));
+-	&movups	($inout1,&QWP(0x10,$inp));
+-	&movups	($inout2,&QWP(0x20,$inp));
+-	&movaps	($in0,$inout0);
+-	&movaps	($in1,$inout1);
+-	&call	("_aesni_decrypt3");
+-	&sub	($len,0x30);
+-	&lea	($inp,&DWP(0x30,$inp));
+-	&lea	($out,&DWP(0x30,$out));
+-	&pxor	($inout0,$ivec);
+-	&pxor	($inout1,$in0);
+-	&movups	($ivec,&QWP(-0x10,$inp));
+-	&pxor	($inout2,$in1);
+-	&movups	(&QWP(-0x30,$out),$inout0);
+-	&mov	($rounds,$rounds_)	# restore $rounds
+-	&movups	(&QWP(-0x20,$out),$inout1);
+-	&mov	($key,$key_);		# restore $key
+-	&movups	(&QWP(-0x10,$out),$inout2);
+-	&ja	(&label("cbc_dec_loop3"));
++	&call	("_aesni_decrypt6");
+ 
++	&movups	($rndkey1,&QWP(0,$inp));
++	&movups	($rndkey0,&QWP(0x10,$inp));
++	&xorps	($inout0,&QWP(0,"esp"));	# ^=IV
++	&xorps	($inout1,$rndkey1);
++	&movups	($rndkey1,&QWP(0x20,$inp));
++	&xorps	($inout2,$rndkey0);
++	&movups	($rndkey0,&QWP(0x30,$inp));
++	&xorps	($inout3,$rndkey1);
++	&movups	($rndkey1,&QWP(0x40,$inp));
++	&xorps	($inout4,$rndkey0);
++	&movups	($rndkey0,&QWP(0x50,$inp));	# IV
++	&xorps	($inout5,$rndkey1);
++	&movups	(&QWP(0,$out),$inout0);
++	&movups	(&QWP(0x10,$out),$inout1);
++	&lea	($inp,&DWP(0x60,$inp));
++	&movups	(&QWP(0x20,$out),$inout2);
++	&mov	($rounds,$rounds_)		# restore $rounds
++	&movups	(&QWP(0x30,$out),$inout3);
++	&mov	($key,$key_);			# restore $key
++	&movups	(&QWP(0x40,$out),$inout4);
++	&lea	($out,&DWP(0x50,$out));
++	&sub	($len,0x60);
++	&ja	(&label("cbc_dec_loop6"));
++
++	&movaps	($inout0,$inout5);
++	&movaps	($ivec,$rndkey0);
++	&add	($len,0x50);
++	&jle	(&label("cbc_dec_tail_collected"));
++	&movups	(&QWP(0,$out),$inout0);
++	&lea	($out,&DWP(0x10,$out));
+ &set_label("cbc_dec_tail");
+-	&add	($len,0x40);
+-	&jz	(&label("cbc_ret"));
+-
+ 	&movups	($inout0,&QWP(0,$inp));
+-	&cmp	($len,0x10);
+ 	&movaps	($in0,$inout0);
++	&cmp	($len,0x10);
+ 	&jbe	(&label("cbc_dec_one"));
++
+ 	&movups	($inout1,&QWP(0x10,$inp));
+-	&cmp	($len,0x20);
+ 	&movaps	($in1,$inout1);
++	&cmp	($len,0x20);
+ 	&jbe	(&label("cbc_dec_two"));
++
+ 	&movups	($inout2,&QWP(0x20,$inp));
+ 	&cmp	($len,0x30);
+ 	&jbe	(&label("cbc_dec_three"));
++
+ 	&movups	($inout3,&QWP(0x30,$inp));
+-	&call	("_aesni_decrypt4");
++	&cmp	($len,0x40);
++	&jbe	(&label("cbc_dec_four"));
++
++	&movups	($inout4,&QWP(0x40,$inp));
++	&movaps	(&QWP(0,"esp"),$ivec);		# save IV
++	&movups	($inout0,&QWP(0,$inp));
++	&xorps	($inout5,$inout5);
++	&call	("_aesni_decrypt6");
++	&movups	($rndkey1,&QWP(0,$inp));
+ 	&movups	($rndkey0,&QWP(0x10,$inp));
++	&xorps	($inout0,&QWP(0,"esp"));	# ^= IV
++	&xorps	($inout1,$rndkey1);
+ 	&movups	($rndkey1,&QWP(0x20,$inp));
+-	&pxor	($inout0,$ivec);
+-	&pxor	($inout1,$in0);
+-	&movups	($ivec,&QWP(0x30,$inp));
++	&xorps	($inout2,$rndkey0);
++	&movups	($rndkey0,&QWP(0x30,$inp));
++	&xorps	($inout3,$rndkey1);
++	&movups	($ivec,&QWP(0x40,$inp));	# IV
++	&xorps	($inout4,$rndkey0);
+ 	&movups	(&QWP(0,$out),$inout0);
+-	&pxor	($inout2,$rndkey0);
+-	&pxor	($inout3,$rndkey1);
+ 	&movups	(&QWP(0x10,$out),$inout1);
+ 	&movups	(&QWP(0x20,$out),$inout2);
+-	&movaps	($inout0,$inout3);
+-	&lea	($out,&DWP(0x30,$out));
++	&movups	(&QWP(0x30,$out),$inout3);
++	&lea	($out,&DWP(0x40,$out));
++	&movaps	($inout0,$inout4);
++	&sub	($len,0x50);
+ 	&jmp	(&label("cbc_dec_tail_collected"));
+ 
+-&set_label("cbc_dec_one");
+-	&aesni_inline_generate1("dec");	# &call	("_aesni_decrypt3");
+-	&pxor	($inout0,$ivec);
++&set_label("cbc_dec_one",16);
++	if ($inline)
++	{   &aesni_inline_generate1("dec");	}
++	else
++	{   &call	("_aesni_decrypt1");	}
++	&xorps	($inout0,$ivec);
+ 	&movaps	($ivec,$in0);
++	&sub	($len,0x10);
+ 	&jmp	(&label("cbc_dec_tail_collected"));
+ 
+-&set_label("cbc_dec_two");
++&set_label("cbc_dec_two",16);
++	&xorps	($inout2,$inout2);
+ 	&call	("_aesni_decrypt3");
+-	&pxor	($inout0,$ivec);
+-	&pxor	($inout1,$in0);
++	&xorps	($inout0,$ivec);
++	&xorps	($inout1,$in0);
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&movaps	($inout0,$inout1);
+-	&movaps	($ivec,$in1);
+ 	&lea	($out,&DWP(0x10,$out));
++	&movaps	($ivec,$in1);
++	&sub	($len,0x20);
+ 	&jmp	(&label("cbc_dec_tail_collected"));
+ 
+-&set_label("cbc_dec_three");
++&set_label("cbc_dec_three",16);
+ 	&call	("_aesni_decrypt3");
+-	&pxor	($inout0,$ivec);
+-	&pxor	($inout1,$in0);
+-	&pxor	($inout2,$in1);
++	&xorps	($inout0,$ivec);
++	&xorps	($inout1,$in0);
++	&xorps	($inout2,$in1);
+ 	&movups	(&QWP(0,$out),$inout0);
+-	&movups	(&QWP(0x10,$out),$inout1);
+ 	&movaps	($inout0,$inout2);
+-	&movups	($ivec,&QWP(0x20,$inp));
++	&movups	(&QWP(0x10,$out),$inout1);
+ 	&lea	($out,&DWP(0x20,$out));
++	&movups	($ivec,&QWP(0x20,$inp));
++	&sub	($len,0x30);
++	&jmp	(&label("cbc_dec_tail_collected"));
++
++&set_label("cbc_dec_four",16);
++	&call	("_aesni_decrypt4");
++	&movups	($rndkey1,&QWP(0x10,$inp));
++	&movups	($rndkey0,&QWP(0x20,$inp));
++	&xorps	($inout0,$ivec);
++	&movups	($ivec,&QWP(0x30,$inp));
++	&xorps	($inout1,$in0);
++	&movups	(&QWP(0,$out),$inout0);
++	&xorps	($inout2,$rndkey1);
++	&movups	(&QWP(0x10,$out),$inout1);
++	&xorps	($inout3,$rndkey0);
++	&movups	(&QWP(0x20,$out),$inout2);
++	&lea	($out,&DWP(0x30,$out));
++	&movaps	($inout0,$inout3);
++	&sub	($len,0x40);
+ 
+ &set_label("cbc_dec_tail_collected");
+ 	&and	($len,15);
+@@ -506,21 +779,21 @@ if ($PREFIX eq "aesni") {
+ 	&movups	(&QWP(0,$out),$inout0);
+ 	&jmp	(&label("cbc_ret"));
+ 
+-&set_label("cbc_dec_tail_partial");
+-	&mov	($key_,"esp");
+-	&sub	("esp",16);
+-	&and	("esp",-16);
++&set_label("cbc_dec_tail_partial",16);
+ 	&movaps	(&QWP(0,"esp"),$inout0);
++	&mov	("ecx",16);
+ 	&mov	($inp,"esp");
+-	&mov	("ecx",$len);
++	&sub	("ecx",$len);
+ 	&data_word(0xA4F3F689);		# rep movsb
+-	&mov	("esp",$key_);
+ 
+ &set_label("cbc_ret");
++	&mov	("esp",&DWP(16,"esp"));	# pull original %esp
+ 	&mov	($key_,&wparam(4));
+ 	&movups	(&QWP(0,$key_),$ivec);	# output IV
++&set_label("cbc_abort");
+ &function_end("${PREFIX}_cbc_encrypt");
+-
++
++######################################################################
+ # Mechanical port from aesni-x86_64.pl.
+ #
+ # _aesni_set_encrypt_key is private interface,
+@@ -539,7 +812,7 @@ if ($PREFIX eq "aesni") {
+ 	&jz	(&label("bad_pointer"));
+ 
+ 	&movups	("xmm0",&QWP(0,"eax"));	# pull first 128 bits of *userKey
+-	&pxor	("xmm4","xmm4");	# low dword of xmm4 is assumed 0
++	&xorps	("xmm4","xmm4");	# low dword of xmm4 is assumed 0
+ 	&lea	($key,&DWP(16,$key));
+ 	&cmp	($rounds,256);
+ 	&je	(&label("14rounds"));
+@@ -581,11 +854,11 @@ if ($PREFIX eq "aesni") {
+ 	&lea		($key,&DWP(16,$key));
+ &set_label("key_128_cold");
+ 	&shufps		("xmm4","xmm0",0b00010000);
+-	&pxor		("xmm0","xmm4");
+-	&shufps		("xmm4","xmm0",0b10001100,);
+-	&pxor		("xmm0","xmm4");
+-	&pshufd		("xmm1","xmm1",0b11111111);	# critical path
+-	&pxor		("xmm0","xmm1");
++	&xorps		("xmm0","xmm4");
++	&shufps		("xmm4","xmm0",0b10001100);
++	&xorps		("xmm0","xmm4");
++	&shufps		("xmm1","xmm1",0b11111111);	# critical path
++	&xorps		("xmm0","xmm1");
+ 	&ret();
+ 
+ &set_label("12rounds",16);
+@@ -620,11 +893,11 @@ if ($PREFIX eq "aesni") {
+ 	&movaps		("xmm5","xmm2");
+ &set_label("key_192b_warm");
+ 	&shufps		("xmm4","xmm0",0b00010000);
+-	&movaps		("xmm3","xmm2");
+-	&pxor		("xmm0","xmm4");
++	&movdqa		("xmm3","xmm2");
++	&xorps		("xmm0","xmm4");
+ 	&shufps		("xmm4","xmm0",0b10001100);
+ 	&pslldq		("xmm3",4);
+-	&pxor		("xmm0","xmm4");
++	&xorps		("xmm0","xmm4");
+ 	&pshufd		("xmm1","xmm1",0b01010101);	# critical path
+ 	&pxor		("xmm2","xmm3");
+ 	&pxor		("xmm0","xmm1");
+@@ -683,11 +956,11 @@ if ($PREFIX eq "aesni") {
+ 	&lea		($key,&DWP(16,$key));
+ &set_label("key_256a_cold");
+ 	&shufps		("xmm4","xmm0",0b00010000);
+-	&pxor		("xmm0","xmm4");
++	&xorps		("xmm0","xmm4");
+ 	&shufps		("xmm4","xmm0",0b10001100);
+-	&pxor		("xmm0","xmm4");
+-	&pshufd		("xmm1","xmm1",0b11111111);	# critical path
+-	&pxor		("xmm0","xmm1");
++	&xorps		("xmm0","xmm4");
++	&shufps		("xmm1","xmm1",0b11111111);	# critical path
++	&xorps		("xmm0","xmm1");
+ 	&ret();
+ 
+ &set_label("key_256b",16);
+@@ -695,11 +968,11 @@ if ($PREFIX eq "aesni") {
+ 	&lea		($key,&DWP(16,$key));
+ 
+ 	&shufps		("xmm4","xmm2",0b00010000);
+-	&pxor		("xmm2","xmm4");
++	&xorps		("xmm2","xmm4");
+ 	&shufps		("xmm4","xmm2",0b10001100);
+-	&pxor		("xmm2","xmm4");
+-	&pshufd		("xmm1","xmm1",0b10101010);	# critical path
+-	&pxor		("xmm2","xmm1");
++	&xorps		("xmm2","xmm4");
++	&shufps		("xmm1","xmm1",0b10101010);	# critical path
++	&xorps		("xmm2","xmm1");
+ 	&ret();
+ 
+ &set_label("bad_pointer",4);
+@@ -747,9 +1020,9 @@ if ($PREFIX eq "aesni") {
+ 	&aesimc		("xmm1","xmm1");
+ 	&lea		($key,&DWP(16,$key));
+ 	&lea		("eax",&DWP(-16,"eax"));
+-	&cmp		("eax",$key);
+ 	&$movekey	(&QWP(16,"eax"),"xmm0");
+ 	&$movekey	(&QWP(-16,$key),"xmm1");
++	&cmp		("eax",$key);
+ 	&ja		(&label("dec_key_inverse"));
+ 
+ 	&$movekey	("xmm0",&QWP(0,$key));	# inverse middle
+diff -up openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl.intelopts openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl
+--- openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/aes/asm/aesni-x86_64.pl	2011-08-24 16:00:47.000000000 +0200
+@@ -11,6 +11,145 @@
+ # OpenSSL context it's used with Intel engine, but can also be used as
+ # drop-in replacement for crypto/aes/asm/aes-x86_64.pl [see below for
+ # details].
++#
++# Performance.
++#
++# Given aes(enc|dec) instructions' latency asymptotic performance for
++# non-parallelizable modes such as CBC encrypt is 3.75 cycles per byte
++# processed with 128-bit key. And given their throughput asymptotic
++# performance for parallelizable modes is 1.25 cycles per byte. Being
++# asymptotic limit it's not something you commonly achieve in reality,
++# but how close does one get? Below are results collected for
++# different modes and block sized. Pairs of numbers are for en-/
++# decryption.
++#
++#	16-byte     64-byte     256-byte    1-KB        8-KB
++# ECB	4.25/4.25   1.38/1.38   1.28/1.28   1.26/1.26	1.26/1.26
++# CTR	5.42/5.42   1.92/1.92   1.44/1.44   1.28/1.28   1.26/1.26
++# CBC	4.38/4.43   4.15/1.43   4.07/1.32   4.07/1.29   4.06/1.28
++# CCM	5.66/9.42   4.42/5.41   4.16/4.40   4.09/4.15   4.06/4.07   
++# OFB	5.42/5.42   4.64/4.64   4.44/4.44   4.39/4.39   4.38/4.38
++# CFB	5.73/5.85   5.56/5.62   5.48/5.56   5.47/5.55   5.47/5.55
++#
++# ECB, CTR, CBC and CCM results are free from EVP overhead. This means
++# that otherwise used 'openssl speed -evp aes-128-??? -engine aesni
++# [-decrypt]' will exhibit 10-15% worse results for smaller blocks.
++# The results were collected with specially crafted speed.c benchmark
++# in order to compare them with results reported in "Intel Advanced
++# Encryption Standard (AES) New Instruction Set" White Paper Revision
++# 3.0 dated May 2010. All above results are consistently better. This
++# module also provides better performance for block sizes smaller than
++# 128 bytes in points *not* represented in the above table.
++#
++# Looking at the results for 8-KB buffer.
++#
++# CFB and OFB results are far from the limit, because implementation
++# uses "generic" CRYPTO_[c|o]fb128_encrypt interfaces relying on
++# single-block aesni_encrypt, which is not the most optimal way to go.
++# CBC encrypt result is unexpectedly high and there is no documented
++# explanation for it. Seemingly there is a small penalty for feeding
++# the result back to AES unit the way it's done in CBC mode. There is
++# nothing one can do and the result appears optimal. CCM result is
++# identical to CBC, because CBC-MAC is essentially CBC encrypt without
++# saving output. CCM CTR "stays invisible," because it's neatly
++# interleaved wih CBC-MAC. This provides ~30% improvement over
++# "straghtforward" CCM implementation with CTR and CBC-MAC performed
++# disjointly. Parallelizable modes practically achieve the theoretical
++# limit.
++#
++# Looking at how results vary with buffer size.
++#
++# Curves are practically saturated at 1-KB buffer size. In most cases
++# "256-byte" performance is >95%, and "64-byte" is ~90% of "8-KB" one.
++# CTR curve doesn't follow this pattern and is "slowest" changing one
++# with "256-byte" result being 87% of "8-KB." This is because overhead
++# in CTR mode is most computationally intensive. Small-block CCM
++# decrypt is slower than encrypt, because first CTR and last CBC-MAC
++# iterations can't be interleaved.
++#
++# Results for 192- and 256-bit keys.
++#
++# EVP-free results were observed to scale perfectly with number of
++# rounds for larger block sizes, i.e. 192-bit result being 10/12 times
++# lower and 256-bit one - 10/14. Well, in CBC encrypt case differences
++# are a tad smaller, because the above mentioned penalty biases all
++# results by same constant value. In similar way function call
++# overhead affects small-block performance, as well as OFB and CFB
++# results. Differences are not large, most common coefficients are
++# 10/11.7 and 10/13.4 (as opposite to 10/12.0 and 10/14.0), but one
++# observe even 10/11.2 and 10/12.4 (CTR, OFB, CFB)...
++
++# January 2011
++#
++# While Westmere processor features 6 cycles latency for aes[enc|dec]
++# instructions, which can be scheduled every second cycle, Sandy
++# Bridge spends 8 cycles per instruction, but it can schedule them
++# every cycle. This means that code targeting Westmere would perform
++# suboptimally on Sandy Bridge. Therefore this update.
++#
++# In addition, non-parallelizable CBC encrypt (as well as CCM) is
++# optimized. Relative improvement might appear modest, 8% on Westmere,
++# but in absolute terms it's 3.77 cycles per byte encrypted with
++# 128-bit key on Westmere, and 5.07 - on Sandy Bridge. These numbers
++# should be compared to asymptotic limits of 3.75 for Westmere and
++# 5.00 for Sandy Bridge. Actually, the fact that they get this close
++# to asymptotic limits is quite amazing. Indeed, the limit is
++# calculated as latency times number of rounds, 10 for 128-bit key,
++# and divided by 16, the number of bytes in block, or in other words
++# it accounts *solely* for aesenc instructions. But there are extra
++# instructions, and numbers so close to the asymptotic limits mean
++# that it's as if it takes as little as *one* additional cycle to
++# execute all of them. How is it possible? It is possible thanks to
++# out-of-order execution logic, which manages to overlap post-
++# processing of previous block, things like saving the output, with
++# actual encryption of current block, as well as pre-processing of
++# current block, things like fetching input and xor-ing it with
++# 0-round element of the key schedule, with actual encryption of
++# previous block. Keep this in mind...
++#
++# For parallelizable modes, such as ECB, CBC decrypt, CTR, higher
++# performance is achieved by interleaving instructions working on
++# independent blocks. In which case asymptotic limit for such modes
++# can be obtained by dividing above mentioned numbers by AES
++# instructions' interleave factor. Westmere can execute at most 3 
++# instructions at a time, meaning that optimal interleave factor is 3,
++# and that's where the "magic" number of 1.25 come from. "Optimal
++# interleave factor" means that increase of interleave factor does
++# not improve performance. The formula has proven to reflect reality
++# pretty well on Westmere... Sandy Bridge on the other hand can
++# execute up to 8 AES instructions at a time, so how does varying
++# interleave factor affect the performance? Here is table for ECB
++# (numbers are cycles per byte processed with 128-bit key):
++#
++# instruction interleave factor		3x	6x	8x
++# theoretical asymptotic limit		1.67	0.83	0.625
++# measured performance for 8KB block	1.05	0.86	0.84
++#
++# "as if" interleave factor		4.7x	5.8x	6.0x
++#
++# Further data for other parallelizable modes:
++#
++# CBC decrypt				1.16	0.93	0.93
++# CTR					1.14	0.91	n/a
++#
++# Well, given 3x column it's probably inappropriate to call the limit
++# asymptotic, if it can be surpassed, isn't it? What happens there?
++# Rewind to CBC paragraph for the answer. Yes, out-of-order execution
++# magic is responsible for this. Processor overlaps not only the
++# additional instructions with AES ones, but even AES instuctions
++# processing adjacent triplets of independent blocks. In the 6x case
++# additional instructions  still claim disproportionally small amount
++# of additional cycles, but in 8x case number of instructions must be
++# a tad too high for out-of-order logic to cope with, and AES unit
++# remains underutilized... As you can see 8x interleave is hardly
++# justifiable, so there no need to feel bad that 32-bit aesni-x86.pl
++# utilizies 6x interleave because of limited register bank capacity.
++#
++# Higher interleave factors do have negative impact on Westmere
++# performance. While for ECB mode it's negligible ~1.5%, other
++# parallelizables perform ~5% worse, which is outweighed by ~25%
++# improvement on Sandy Bridge. To balance regression on Westmere
++# CTR mode was implemented with 6x aesenc interleave factor.
+ 
+ $PREFIX="aesni";	# if $PREFIX is set to "AES", the script
+ 			# generates drop-in replacement for
+@@ -29,7 +168,7 @@ die "can't locate x86_64-xlate.pl";
+ 
+ open STDOUT,"| $^X $xlate $flavour $output";
+ 
+-$movkey = $PREFIX eq "aesni" ? "movaps" : "movups";
++$movkey = $PREFIX eq "aesni" ? "movups" : "movups";
+ @_4args=$win64?	("%rcx","%rdx","%r8", "%r9") :	# Win64 order
+ 		("%rdi","%rsi","%rdx","%rcx");	# Unix order
+ 
+@@ -41,18 +180,20 @@ $inp="%rdi";
+ $out="%rsi";
+ $len="%rdx";
+ $key="%rcx";	# input to and changed by aesni_[en|de]cryptN !!!
+-$ivp="%r8";	# cbc
++$ivp="%r8";	# cbc, ctr, ...
+ 
+ $rnds_="%r10d";	# backup copy for $rounds
+ $key_="%r11";	# backup copy for $key
+ 
+ # %xmm register layout
+-$inout0="%xmm0";	$inout1="%xmm1";
+-$inout2="%xmm2";	$inout3="%xmm3";
+-$rndkey0="%xmm4";	$rndkey1="%xmm5";
++$rndkey0="%xmm0";	$rndkey1="%xmm1";
++$inout0="%xmm2";	$inout1="%xmm3";
++$inout2="%xmm4";	$inout3="%xmm5";
++$inout4="%xmm6";	$inout5="%xmm7";
++$inout6="%xmm8";	$inout7="%xmm9";
+ 
+-$iv="%xmm6";		$in0="%xmm7";	# used in CBC decrypt
+-$in1="%xmm8";		$in2="%xmm9";
++$in2="%xmm6";		$in1="%xmm7";	# used in CBC decrypt, CTR, ...
++$in0="%xmm8";		$iv="%xmm9";
+ 
+ # Inline version of internal aesni_[en|de]crypt1.
+ #
+@@ -60,20 +201,29 @@ $in1="%xmm8";		$in2="%xmm9";
+ # cycles which take care of loop variables...
+ { my $sn;
+ sub aesni_generate1 {
+-my ($p,$key,$rounds)=@_;
++my ($p,$key,$rounds,$inout,$ivec)=@_;	$inout=$inout0 if (!defined($inout));
+ ++$sn;
+ $code.=<<___;
+ 	$movkey	($key),$rndkey0
+ 	$movkey	16($key),$rndkey1
++___
++$code.=<<___ if (defined($ivec));
++	xorps	$rndkey0,$ivec
+ 	lea	32($key),$key
+-	pxor	$rndkey0,$inout0
++	xorps	$ivec,$inout
++___
++$code.=<<___ if (!defined($ivec));
++	lea	32($key),$key
++	xorps	$rndkey0,$inout
++___
++$code.=<<___;
+ .Loop_${p}1_$sn:
+-	aes${p}	$rndkey1,$inout0
++	aes${p}	$rndkey1,$inout
+ 	dec	$rounds
+ 	$movkey	($key),$rndkey1
+ 	lea	16($key),$key
+ 	jnz	.Loop_${p}1_$sn	# loop body is 16 bytes
+-	aes${p}last	$rndkey1,$inout0
++	aes${p}last	$rndkey1,$inout
+ ___
+ }}
+ # void $PREFIX_[en|de]crypt (const void *inp,void *out,const AES_KEY *key);
+@@ -86,7 +236,7 @@ $code.=<<___;
+ .align	16
+ ${PREFIX}_encrypt:
+ 	movups	($inp),$inout0		# load input
+-	mov	240($key),$rounds	# pull $rounds
++	mov	240($key),$rounds	# key->rounds
+ ___
+ 	&aesni_generate1("enc",$key,$rounds);
+ $code.=<<___;
+@@ -99,7 +249,7 @@ $code.=<<___;
+ .align	16
+ ${PREFIX}_decrypt:
+ 	movups	($inp),$inout0		# load input
+-	mov	240($key),$rounds	# pull $rounds
++	mov	240($key),$rounds	# key->rounds
+ ___
+ 	&aesni_generate1("dec",$key,$rounds);
+ $code.=<<___;
+@@ -109,16 +259,16 @@ $code.=<<___;
+ ___
+ }
+ 
+-# _aesni_[en|de]crypt[34] are private interfaces, N denotes interleave
+-# factor. Why 3x subroutine is used in loops? Even though aes[enc|dec]
+-# latency is 6, it turned out that it can be scheduled only every
+-# *second* cycle. Thus 3x interleave is the one providing optimal
++# _aesni_[en|de]cryptN are private interfaces, N denotes interleave
++# factor. Why 3x subroutine were originally used in loops? Even though
++# aes[enc|dec] latency was originally 6, it could be scheduled only
++# every *2nd* cycle. Thus 3x interleave was the one providing optimal
+ # utilization, i.e. when subroutine's throughput is virtually same as
+ # of non-interleaved subroutine [for number of input blocks up to 3].
+-# This is why it makes no sense to implement 2x subroutine. As soon
+-# as/if Intel improves throughput by making it possible to schedule
+-# the instructions in question *every* cycles I would have to
+-# implement 6x interleave and use it in loop...
++# This is why it makes no sense to implement 2x subroutine.
++# aes[enc|dec] latency in next processor generation is 8, but the
++# instructions can be scheduled every cycle. Optimal interleave for
++# new processor is therefore 8x...
+ sub aesni_generate3 {
+ my $dir=shift;
+ # As already mentioned it takes in $key and $rounds, which are *not*
+@@ -131,25 +281,25 @@ _aesni_${dir}rypt3:
+ 	shr	\$1,$rounds
+ 	$movkey	16($key),$rndkey1
+ 	lea	32($key),$key
+-	pxor	$rndkey0,$inout0
+-	pxor	$rndkey0,$inout1
+-	pxor	$rndkey0,$inout2
++	xorps	$rndkey0,$inout0
++	xorps	$rndkey0,$inout1
++	xorps	$rndkey0,$inout2
++	$movkey		($key),$rndkey0
+ 
+ .L${dir}_loop3:
+ 	aes${dir}	$rndkey1,$inout0
+-	$movkey		($key),$rndkey0
+ 	aes${dir}	$rndkey1,$inout1
+ 	dec		$rounds
+ 	aes${dir}	$rndkey1,$inout2
+-	aes${dir}	$rndkey0,$inout0
+ 	$movkey		16($key),$rndkey1
++	aes${dir}	$rndkey0,$inout0
+ 	aes${dir}	$rndkey0,$inout1
+ 	lea		32($key),$key
+ 	aes${dir}	$rndkey0,$inout2
++	$movkey		($key),$rndkey0
+ 	jnz		.L${dir}_loop3
+ 
+ 	aes${dir}	$rndkey1,$inout0
+-	$movkey		($key),$rndkey0
+ 	aes${dir}	$rndkey1,$inout1
+ 	aes${dir}	$rndkey1,$inout2
+ 	aes${dir}last	$rndkey0,$inout0
+@@ -175,28 +325,28 @@ _aesni_${dir}rypt4:
+ 	shr	\$1,$rounds
+ 	$movkey	16($key),$rndkey1
+ 	lea	32($key),$key
+-	pxor	$rndkey0,$inout0
+-	pxor	$rndkey0,$inout1
+-	pxor	$rndkey0,$inout2
+-	pxor	$rndkey0,$inout3
++	xorps	$rndkey0,$inout0
++	xorps	$rndkey0,$inout1
++	xorps	$rndkey0,$inout2
++	xorps	$rndkey0,$inout3
++	$movkey	($key),$rndkey0
+ 
+ .L${dir}_loop4:
+ 	aes${dir}	$rndkey1,$inout0
+-	$movkey		($key),$rndkey0
+ 	aes${dir}	$rndkey1,$inout1
+ 	dec		$rounds
+ 	aes${dir}	$rndkey1,$inout2
+ 	aes${dir}	$rndkey1,$inout3
+-	aes${dir}	$rndkey0,$inout0
+ 	$movkey		16($key),$rndkey1
++	aes${dir}	$rndkey0,$inout0
+ 	aes${dir}	$rndkey0,$inout1
+ 	lea		32($key),$key
+ 	aes${dir}	$rndkey0,$inout2
+ 	aes${dir}	$rndkey0,$inout3
++	$movkey		($key),$rndkey0
+ 	jnz		.L${dir}_loop4
+ 
+ 	aes${dir}	$rndkey1,$inout0
+-	$movkey		($key),$rndkey0
+ 	aes${dir}	$rndkey1,$inout1
+ 	aes${dir}	$rndkey1,$inout2
+ 	aes${dir}	$rndkey1,$inout3
+@@ -208,12 +358,158 @@ _aesni_${dir}rypt4:
+ .size	_aesni_${dir}rypt4,.-_aesni_${dir}rypt4
+ ___
+ }
++sub aesni_generate6 {
++my $dir=shift;
++# As already mentioned it takes in $key and $rounds, which are *not*
++# preserved. $inout[0-5] is cipher/clear text...
++$code.=<<___;
++.type	_aesni_${dir}rypt6,\@abi-omnipotent
++.align	16
++_aesni_${dir}rypt6:
++	$movkey		($key),$rndkey0
++	shr		\$1,$rounds
++	$movkey		16($key),$rndkey1
++	lea		32($key),$key
++	xorps		$rndkey0,$inout0
++	pxor		$rndkey0,$inout1
++	aes${dir}	$rndkey1,$inout0
++	pxor		$rndkey0,$inout2
++	aes${dir}	$rndkey1,$inout1
++	pxor		$rndkey0,$inout3
++	aes${dir}	$rndkey1,$inout2
++	pxor		$rndkey0,$inout4
++	aes${dir}	$rndkey1,$inout3
++	pxor		$rndkey0,$inout5
++	dec		$rounds
++	aes${dir}	$rndkey1,$inout4
++	$movkey		($key),$rndkey0
++	aes${dir}	$rndkey1,$inout5
++	jmp		.L${dir}_loop6_enter
++.align	16
++.L${dir}_loop6:
++	aes${dir}	$rndkey1,$inout0
++	aes${dir}	$rndkey1,$inout1
++	dec		$rounds
++	aes${dir}	$rndkey1,$inout2
++	aes${dir}	$rndkey1,$inout3
++	aes${dir}	$rndkey1,$inout4
++	aes${dir}	$rndkey1,$inout5
++.L${dir}_loop6_enter:				# happens to be 16-byte aligned
++	$movkey		16($key),$rndkey1
++	aes${dir}	$rndkey0,$inout0
++	aes${dir}	$rndkey0,$inout1
++	lea		32($key),$key
++	aes${dir}	$rndkey0,$inout2
++	aes${dir}	$rndkey0,$inout3
++	aes${dir}	$rndkey0,$inout4
++	aes${dir}	$rndkey0,$inout5
++	$movkey		($key),$rndkey0
++	jnz		.L${dir}_loop6
++
++	aes${dir}	$rndkey1,$inout0
++	aes${dir}	$rndkey1,$inout1
++	aes${dir}	$rndkey1,$inout2
++	aes${dir}	$rndkey1,$inout3
++	aes${dir}	$rndkey1,$inout4
++	aes${dir}	$rndkey1,$inout5
++	aes${dir}last	$rndkey0,$inout0
++	aes${dir}last	$rndkey0,$inout1
++	aes${dir}last	$rndkey0,$inout2
++	aes${dir}last	$rndkey0,$inout3
++	aes${dir}last	$rndkey0,$inout4
++	aes${dir}last	$rndkey0,$inout5
++	ret
++.size	_aesni_${dir}rypt6,.-_aesni_${dir}rypt6
++___
++}
++sub aesni_generate8 {
++my $dir=shift;
++# As already mentioned it takes in $key and $rounds, which are *not*
++# preserved. $inout[0-7] is cipher/clear text...
++$code.=<<___;
++.type	_aesni_${dir}rypt8,\@abi-omnipotent
++.align	16
++_aesni_${dir}rypt8:
++	$movkey		($key),$rndkey0
++	shr		\$1,$rounds
++	$movkey		16($key),$rndkey1
++	lea		32($key),$key
++	xorps		$rndkey0,$inout0
++	xorps		$rndkey0,$inout1
++	aes${dir}	$rndkey1,$inout0
++	pxor		$rndkey0,$inout2
++	aes${dir}	$rndkey1,$inout1
++	pxor		$rndkey0,$inout3
++	aes${dir}	$rndkey1,$inout2
++	pxor		$rndkey0,$inout4
++	aes${dir}	$rndkey1,$inout3
++	pxor		$rndkey0,$inout5
++	dec		$rounds
++	aes${dir}	$rndkey1,$inout4
++	pxor		$rndkey0,$inout6
++	aes${dir}	$rndkey1,$inout5
++	pxor		$rndkey0,$inout7
++	$movkey		($key),$rndkey0
++	aes${dir}	$rndkey1,$inout6
++	aes${dir}	$rndkey1,$inout7
++	$movkey		16($key),$rndkey1
++	jmp		.L${dir}_loop8_enter
++.align	16
++.L${dir}_loop8:
++	aes${dir}	$rndkey1,$inout0
++	aes${dir}	$rndkey1,$inout1
++	dec		$rounds
++	aes${dir}	$rndkey1,$inout2
++	aes${dir}	$rndkey1,$inout3
++	aes${dir}	$rndkey1,$inout4
++	aes${dir}	$rndkey1,$inout5
++	aes${dir}	$rndkey1,$inout6
++	aes${dir}	$rndkey1,$inout7
++	$movkey		16($key),$rndkey1
++.L${dir}_loop8_enter:				# happens to be 16-byte aligned
++	aes${dir}	$rndkey0,$inout0
++	aes${dir}	$rndkey0,$inout1
++	lea		32($key),$key
++	aes${dir}	$rndkey0,$inout2
++	aes${dir}	$rndkey0,$inout3
++	aes${dir}	$rndkey0,$inout4
++	aes${dir}	$rndkey0,$inout5
++	aes${dir}	$rndkey0,$inout6
++	aes${dir}	$rndkey0,$inout7
++	$movkey		($key),$rndkey0
++	jnz		.L${dir}_loop8
++
++	aes${dir}	$rndkey1,$inout0
++	aes${dir}	$rndkey1,$inout1
++	aes${dir}	$rndkey1,$inout2
++	aes${dir}	$rndkey1,$inout3
++	aes${dir}	$rndkey1,$inout4
++	aes${dir}	$rndkey1,$inout5
++	aes${dir}	$rndkey1,$inout6
++	aes${dir}	$rndkey1,$inout7
++	aes${dir}last	$rndkey0,$inout0
++	aes${dir}last	$rndkey0,$inout1
++	aes${dir}last	$rndkey0,$inout2
++	aes${dir}last	$rndkey0,$inout3
++	aes${dir}last	$rndkey0,$inout4
++	aes${dir}last	$rndkey0,$inout5
++	aes${dir}last	$rndkey0,$inout6
++	aes${dir}last	$rndkey0,$inout7
++	ret
++.size	_aesni_${dir}rypt8,.-_aesni_${dir}rypt8
++___
++}
+ &aesni_generate3("enc") if ($PREFIX eq "aesni");
+ &aesni_generate3("dec");
+ &aesni_generate4("enc") if ($PREFIX eq "aesni");
+ &aesni_generate4("dec");
++&aesni_generate6("enc") if ($PREFIX eq "aesni");
++&aesni_generate6("dec");
++&aesni_generate8("enc") if ($PREFIX eq "aesni");
++&aesni_generate8("dec");
+ 
+ if ($PREFIX eq "aesni") {
++########################################################################
+ # void aesni_ecb_encrypt (const void *in, void *out,
+ #			  size_t length, const AES_KEY *key,
+ #			  int enc);
+@@ -222,54 +518,98 @@ $code.=<<___;
+ .type	aesni_ecb_encrypt,\@function,5
+ .align	16
+ aesni_ecb_encrypt:
+-	cmp	\$16,$len		# check length
+-	jb	.Lecb_ret
+-
+-	mov	240($key),$rounds	# pull $rounds
+ 	and	\$-16,$len
++	jz	.Lecb_ret
++
++	mov	240($key),$rounds	# key->rounds
++	$movkey	($key),$rndkey0
+ 	mov	$key,$key_		# backup $key
+-	test	%r8d,%r8d		# 5th argument
+ 	mov	$rounds,$rnds_		# backup $rounds
++	test	%r8d,%r8d		# 5th argument
+ 	jz	.Lecb_decrypt
+ #--------------------------- ECB ENCRYPT ------------------------------#
+-	sub	\$0x40,$len
+-	jbe	.Lecb_enc_tail
+-	jmp	.Lecb_enc_loop3
++	cmp	\$0x80,$len
++	jb	.Lecb_enc_tail
++
++	movdqu	($inp),$inout0
++	movdqu	0x10($inp),$inout1
++	movdqu	0x20($inp),$inout2
++	movdqu	0x30($inp),$inout3
++	movdqu	0x40($inp),$inout4
++	movdqu	0x50($inp),$inout5
++	movdqu	0x60($inp),$inout6
++	movdqu	0x70($inp),$inout7
++	lea	0x80($inp),$inp
++	sub	\$0x80,$len
++	jmp	.Lecb_enc_loop8_enter
+ .align 16
+-.Lecb_enc_loop3:
+-	movups	($inp),$inout0
+-	movups	0x10($inp),$inout1
+-	movups	0x20($inp),$inout2
+-	call	_aesni_encrypt3
+-	sub	\$0x30,$len
+-	lea	0x30($inp),$inp
+-	lea	0x30($out),$out
+-	movups	$inout0,-0x30($out)
+-	mov	$rnds_,$rounds		# restore $rounds
+-	movups	$inout1,-0x20($out)
++.Lecb_enc_loop8:
++	movups	$inout0,($out)
+ 	mov	$key_,$key		# restore $key
+-	movups	$inout2,-0x10($out)
+-	ja	.Lecb_enc_loop3
++	movdqu	($inp),$inout0
++	mov	$rnds_,$rounds		# restore $rounds
++	movups	$inout1,0x10($out)
++	movdqu	0x10($inp),$inout1
++	movups	$inout2,0x20($out)
++	movdqu	0x20($inp),$inout2
++	movups	$inout3,0x30($out)
++	movdqu	0x30($inp),$inout3
++	movups	$inout4,0x40($out)
++	movdqu	0x40($inp),$inout4
++	movups	$inout5,0x50($out)
++	movdqu	0x50($inp),$inout5
++	movups	$inout6,0x60($out)
++	movdqu	0x60($inp),$inout6
++	movups	$inout7,0x70($out)
++	lea	0x80($out),$out
++	movdqu	0x70($inp),$inout7
++	lea	0x80($inp),$inp
++.Lecb_enc_loop8_enter:
+ 
+-.Lecb_enc_tail:
+-	add	\$0x40,$len
++	call	_aesni_encrypt8
++
++	sub	\$0x80,$len
++	jnc	.Lecb_enc_loop8
++
++	movups	$inout0,($out)
++	mov	$key_,$key		# restore $key
++	movups	$inout1,0x10($out)
++	mov	$rnds_,$rounds		# restore $rounds
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
++	movups	$inout6,0x60($out)
++	movups	$inout7,0x70($out)
++	lea	0x80($out),$out
++	add	\$0x80,$len
+ 	jz	.Lecb_ret
+ 
+-	cmp	\$0x10,$len
++.Lecb_enc_tail:
+ 	movups	($inp),$inout0
+-	je	.Lecb_enc_one
+ 	cmp	\$0x20,$len
++	jb	.Lecb_enc_one
+ 	movups	0x10($inp),$inout1
+ 	je	.Lecb_enc_two
+-	cmp	\$0x30,$len
+ 	movups	0x20($inp),$inout2
+-	je	.Lecb_enc_three
++	cmp	\$0x40,$len
++	jb	.Lecb_enc_three
+ 	movups	0x30($inp),$inout3
+-	call	_aesni_encrypt4
++	je	.Lecb_enc_four
++	movups	0x40($inp),$inout4
++	cmp	\$0x60,$len
++	jb	.Lecb_enc_five
++	movups	0x50($inp),$inout5
++	je	.Lecb_enc_six
++	movdqu	0x60($inp),$inout6
++	call	_aesni_encrypt8
+ 	movups	$inout0,($out)
+ 	movups	$inout1,0x10($out)
+ 	movups	$inout2,0x20($out)
+ 	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
++	movups	$inout6,0x60($out)
+ 	jmp	.Lecb_ret
+ .align	16
+ .Lecb_enc_one:
+@@ -280,6 +620,7 @@ $code.=<<___;
+ 	jmp	.Lecb_ret
+ .align	16
+ .Lecb_enc_two:
++	xorps	$inout2,$inout2
+ 	call	_aesni_encrypt3
+ 	movups	$inout0,($out)
+ 	movups	$inout1,0x10($out)
+@@ -291,47 +632,121 @@ $code.=<<___;
+ 	movups	$inout1,0x10($out)
+ 	movups	$inout2,0x20($out)
+ 	jmp	.Lecb_ret
++.align	16
++.Lecb_enc_four:
++	call	_aesni_encrypt4
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	jmp	.Lecb_ret
++.align	16
++.Lecb_enc_five:
++	xorps	$inout5,$inout5
++	call	_aesni_encrypt6
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	jmp	.Lecb_ret
++.align	16
++.Lecb_enc_six:
++	call	_aesni_encrypt6
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
++	jmp	.Lecb_ret
+ #--------------------------- ECB DECRYPT ------------------------------#
+ .align	16
+ .Lecb_decrypt:
+-	sub	\$0x40,$len
+-	jbe	.Lecb_dec_tail
+-	jmp	.Lecb_dec_loop3
++	cmp	\$0x80,$len
++	jb	.Lecb_dec_tail
++
++	movdqu	($inp),$inout0
++	movdqu	0x10($inp),$inout1
++	movdqu	0x20($inp),$inout2
++	movdqu	0x30($inp),$inout3
++	movdqu	0x40($inp),$inout4
++	movdqu	0x50($inp),$inout5
++	movdqu	0x60($inp),$inout6
++	movdqu	0x70($inp),$inout7
++	lea	0x80($inp),$inp
++	sub	\$0x80,$len
++	jmp	.Lecb_dec_loop8_enter
+ .align 16
+-.Lecb_dec_loop3:
+-	movups	($inp),$inout0
+-	movups	0x10($inp),$inout1
+-	movups	0x20($inp),$inout2
+-	call	_aesni_decrypt3
+-	sub	\$0x30,$len
+-	lea	0x30($inp),$inp
+-	lea	0x30($out),$out
+-	movups	$inout0,-0x30($out)
+-	mov	$rnds_,$rounds		# restore $rounds
+-	movups	$inout1,-0x20($out)
++.Lecb_dec_loop8:
++	movups	$inout0,($out)
+ 	mov	$key_,$key		# restore $key
+-	movups	$inout2,-0x10($out)
+-	ja	.Lecb_dec_loop3
++	movdqu	($inp),$inout0
++	mov	$rnds_,$rounds		# restore $rounds
++	movups	$inout1,0x10($out)
++	movdqu	0x10($inp),$inout1
++	movups	$inout2,0x20($out)
++	movdqu	0x20($inp),$inout2
++	movups	$inout3,0x30($out)
++	movdqu	0x30($inp),$inout3
++	movups	$inout4,0x40($out)
++	movdqu	0x40($inp),$inout4
++	movups	$inout5,0x50($out)
++	movdqu	0x50($inp),$inout5
++	movups	$inout6,0x60($out)
++	movdqu	0x60($inp),$inout6
++	movups	$inout7,0x70($out)
++	lea	0x80($out),$out
++	movdqu	0x70($inp),$inout7
++	lea	0x80($inp),$inp
++.Lecb_dec_loop8_enter:
++
++	call	_aesni_decrypt8
++
++	$movkey	($key_),$rndkey0
++	sub	\$0x80,$len
++	jnc	.Lecb_dec_loop8
+ 
+-.Lecb_dec_tail:
+-	add	\$0x40,$len
++	movups	$inout0,($out)
++	mov	$key_,$key		# restore $key
++	movups	$inout1,0x10($out)
++	mov	$rnds_,$rounds		# restore $rounds
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
++	movups	$inout6,0x60($out)
++	movups	$inout7,0x70($out)
++	lea	0x80($out),$out
++	add	\$0x80,$len
+ 	jz	.Lecb_ret
+ 
+-	cmp	\$0x10,$len
++.Lecb_dec_tail:
+ 	movups	($inp),$inout0
+-	je	.Lecb_dec_one
+ 	cmp	\$0x20,$len
++	jb	.Lecb_dec_one
+ 	movups	0x10($inp),$inout1
+ 	je	.Lecb_dec_two
+-	cmp	\$0x30,$len
+ 	movups	0x20($inp),$inout2
+-	je	.Lecb_dec_three
++	cmp	\$0x40,$len
++	jb	.Lecb_dec_three
+ 	movups	0x30($inp),$inout3
+-	call	_aesni_decrypt4
++	je	.Lecb_dec_four
++	movups	0x40($inp),$inout4
++	cmp	\$0x60,$len
++	jb	.Lecb_dec_five
++	movups	0x50($inp),$inout5
++	je	.Lecb_dec_six
++	movups	0x60($inp),$inout6
++	$movkey	($key),$rndkey0
++	call	_aesni_decrypt8
+ 	movups	$inout0,($out)
+ 	movups	$inout1,0x10($out)
+ 	movups	$inout2,0x20($out)
+ 	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
++	movups	$inout6,0x60($out)
+ 	jmp	.Lecb_ret
+ .align	16
+ .Lecb_dec_one:
+@@ -342,6 +757,7 @@ $code.=<<___;
+ 	jmp	.Lecb_ret
+ .align	16
+ .Lecb_dec_two:
++	xorps	$inout2,$inout2
+ 	call	_aesni_decrypt3
+ 	movups	$inout0,($out)
+ 	movups	$inout1,0x10($out)
+@@ -352,6 +768,34 @@ $code.=<<___;
+ 	movups	$inout0,($out)
+ 	movups	$inout1,0x10($out)
+ 	movups	$inout2,0x20($out)
++	jmp	.Lecb_ret
++.align	16
++.Lecb_dec_four:
++	call	_aesni_decrypt4
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	jmp	.Lecb_ret
++.align	16
++.Lecb_dec_five:
++	xorps	$inout5,$inout5
++	call	_aesni_decrypt6
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	jmp	.Lecb_ret
++.align	16
++.Lecb_dec_six:
++	call	_aesni_decrypt6
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
+ 
+ .Lecb_ret:
+ 	ret
+@@ -362,7 +806,8 @@ ___
+ # void $PREFIX_cbc_encrypt (const void *inp, void *out,
+ #			    size_t length, const AES_KEY *key,
+ #			    unsigned char *ivp,const int enc);
+-$reserved = $win64?0x40:-0x18;	# used in decrypt
++{
++my $reserved = $win64?0x40:-0x18;	# used in decrypt
+ $code.=<<___;
+ .globl	${PREFIX}_cbc_encrypt
+ .type	${PREFIX}_cbc_encrypt,\@function,6
+@@ -371,30 +816,30 @@ ${PREFIX}_cbc_encrypt:
+ 	test	$len,$len		# check length
+ 	jz	.Lcbc_ret
+ 
+-	mov	240($key),$rnds_	# pull $rounds
++	mov	240($key),$rnds_	# key->rounds
+ 	mov	$key,$key_		# backup $key
+ 	test	%r9d,%r9d		# 6th argument
+ 	jz	.Lcbc_decrypt
+ #--------------------------- CBC ENCRYPT ------------------------------#
+ 	movups	($ivp),$inout0		# load iv as initial state
+-	cmp	\$16,$len
+ 	mov	$rnds_,$rounds
++	cmp	\$16,$len
+ 	jb	.Lcbc_enc_tail
+ 	sub	\$16,$len
+ 	jmp	.Lcbc_enc_loop
+-.align 16
++.align	16
+ .Lcbc_enc_loop:
+ 	movups	($inp),$inout1		# load input
+ 	lea	16($inp),$inp
+-	pxor	$inout1,$inout0
++	#xorps	$inout1,$inout0
+ ___
+-	&aesni_generate1("enc",$key,$rounds);
++	&aesni_generate1("enc",$key,$rounds,$inout0,$inout1);
+ $code.=<<___;
+-	sub	\$16,$len
+-	lea	16($out),$out
+ 	mov	$rnds_,$rounds		# restore $rounds
+ 	mov	$key_,$key		# restore $key
+-	movups	$inout0,-16($out)	# store output
++	movups	$inout0,0($out)		# store output
++	lea	16($out),$out
++	sub	\$16,$len
+ 	jnc	.Lcbc_enc_loop
+ 	add	\$16,$len
+ 	jnz	.Lcbc_enc_tail
+@@ -429,92 +874,238 @@ $code.=<<___ if ($win64);
+ ___
+ $code.=<<___;
+ 	movups	($ivp),$iv
+-	sub	\$0x40,$len
+ 	mov	$rnds_,$rounds
++	cmp	\$0x70,$len
+ 	jbe	.Lcbc_dec_tail
+-	jmp	.Lcbc_dec_loop3
+-.align 16
+-.Lcbc_dec_loop3:
+-	movups	($inp),$inout0
++	shr	\$1,$rnds_
++	sub	\$0x70,$len
++	mov	$rnds_,$rounds
++	movaps	$iv,$reserved(%rsp)
++	jmp	.Lcbc_dec_loop8_enter
++.align	16
++.Lcbc_dec_loop8:
++	movaps	$rndkey0,$reserved(%rsp)	# save IV
++	movups	$inout7,($out)
++	lea	0x10($out),$out
++.Lcbc_dec_loop8_enter:
++	$movkey		($key),$rndkey0
++	movups	($inp),$inout0			# load input
+ 	movups	0x10($inp),$inout1
+-	movups	0x20($inp),$inout2
+-	movaps	$inout0,$in0
+-	movaps	$inout1,$in1
+-	movaps	$inout2,$in2
+-	call	_aesni_decrypt3
+-	sub	\$0x30,$len
+-	lea	0x30($inp),$inp
+-	lea	0x30($out),$out
+-	pxor	$iv,$inout0
+-	pxor	$in0,$inout1
+-	movaps	$in2,$iv
+-	pxor	$in1,$inout2
+-	movups	$inout0,-0x30($out)
+-	mov	$rnds_,$rounds	# restore $rounds
+-	movups	$inout1,-0x20($out)
+-	mov	$key_,$key	# restore $key
+-	movups	$inout2,-0x10($out)
+-	ja	.Lcbc_dec_loop3
++	$movkey		16($key),$rndkey1
+ 
+-.Lcbc_dec_tail:
+-	add	\$0x40,$len
+-	movups	$iv,($ivp)
+-	jz	.Lcbc_dec_ret
++	lea		32($key),$key
++	movdqu	0x20($inp),$inout2
++	xorps		$rndkey0,$inout0
++	movdqu	0x30($inp),$inout3
++	xorps		$rndkey0,$inout1
++	movdqu	0x40($inp),$inout4
++	aesdec		$rndkey1,$inout0
++	pxor		$rndkey0,$inout2
++	movdqu	0x50($inp),$inout5
++	aesdec		$rndkey1,$inout1
++	pxor		$rndkey0,$inout3
++	movdqu	0x60($inp),$inout6
++	aesdec		$rndkey1,$inout2
++	pxor		$rndkey0,$inout4
++	movdqu	0x70($inp),$inout7
++	aesdec		$rndkey1,$inout3
++	pxor		$rndkey0,$inout5
++	dec		$rounds
++	aesdec		$rndkey1,$inout4
++	pxor		$rndkey0,$inout6
++	aesdec		$rndkey1,$inout5
++	pxor		$rndkey0,$inout7
++	$movkey		($key),$rndkey0
++	aesdec		$rndkey1,$inout6
++	aesdec		$rndkey1,$inout7
++	$movkey		16($key),$rndkey1
++
++	call		.Ldec_loop8_enter
+ 
++	movups	($inp),$rndkey1		# re-load input
++	movups	0x10($inp),$rndkey0
++	xorps	$reserved(%rsp),$inout0	# ^= IV
++	xorps	$rndkey1,$inout1
++	movups	0x20($inp),$rndkey1
++	xorps	$rndkey0,$inout2
++	movups	0x30($inp),$rndkey0
++	xorps	$rndkey1,$inout3
++	movups	0x40($inp),$rndkey1
++	xorps	$rndkey0,$inout4
++	movups	0x50($inp),$rndkey0
++	xorps	$rndkey1,$inout5
++	movups	0x60($inp),$rndkey1
++	xorps	$rndkey0,$inout6
++	movups	0x70($inp),$rndkey0	# IV
++	xorps	$rndkey1,$inout7
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	mov	$rnds_,$rounds		# restore $rounds
++	movups	$inout4,0x40($out)
++	mov	$key_,$key		# restore $key
++	movups	$inout5,0x50($out)
++	lea	0x80($inp),$inp
++	movups	$inout6,0x60($out)
++	lea	0x70($out),$out
++	sub	\$0x80,$len
++	ja	.Lcbc_dec_loop8
++
++	movaps	$inout7,$inout0
++	movaps	$rndkey0,$iv
++	add	\$0x70,$len
++	jle	.Lcbc_dec_tail_collected
++	movups	$inout0,($out)
++	lea	1($rnds_,$rnds_),$rounds
++	lea	0x10($out),$out
++.Lcbc_dec_tail:
+ 	movups	($inp),$inout0
+-	cmp	\$0x10,$len
+ 	movaps	$inout0,$in0
++	cmp	\$0x10,$len
+ 	jbe	.Lcbc_dec_one
++
+ 	movups	0x10($inp),$inout1
+-	cmp	\$0x20,$len
+ 	movaps	$inout1,$in1
++	cmp	\$0x20,$len
+ 	jbe	.Lcbc_dec_two
++
+ 	movups	0x20($inp),$inout2
+-	cmp	\$0x30,$len
+ 	movaps	$inout2,$in2
++	cmp	\$0x30,$len
+ 	jbe	.Lcbc_dec_three
++
+ 	movups	0x30($inp),$inout3
+-	call	_aesni_decrypt4
+-	pxor	$iv,$inout0
+-	movups	0x30($inp),$iv
+-	pxor	$in0,$inout1
++	cmp	\$0x40,$len
++	jbe	.Lcbc_dec_four
++
++	movups	0x40($inp),$inout4
++	cmp	\$0x50,$len
++	jbe	.Lcbc_dec_five
++
++	movups	0x50($inp),$inout5
++	cmp	\$0x60,$len
++	jbe	.Lcbc_dec_six
++
++	movups	0x60($inp),$inout6
++	movaps	$iv,$reserved(%rsp)	# save IV
++	call	_aesni_decrypt8
++	movups	($inp),$rndkey1
++	movups	0x10($inp),$rndkey0
++	xorps	$reserved(%rsp),$inout0	# ^= IV
++	xorps	$rndkey1,$inout1
++	movups	0x20($inp),$rndkey1
++	xorps	$rndkey0,$inout2
++	movups	0x30($inp),$rndkey0
++	xorps	$rndkey1,$inout3
++	movups	0x40($inp),$rndkey1
++	xorps	$rndkey0,$inout4
++	movups	0x50($inp),$rndkey0
++	xorps	$rndkey1,$inout5
++	movups	0x60($inp),$iv		# IV
++	xorps	$rndkey0,$inout6
+ 	movups	$inout0,($out)
+-	pxor	$in1,$inout2
+ 	movups	$inout1,0x10($out)
+-	pxor	$in2,$inout3
+ 	movups	$inout2,0x20($out)
+-	movaps	$inout3,$inout0
+-	lea	0x30($out),$out
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	movups	$inout5,0x50($out)
++	lea	0x60($out),$out
++	movaps	$inout6,$inout0
++	sub	\$0x70,$len
+ 	jmp	.Lcbc_dec_tail_collected
+ .align	16
+ .Lcbc_dec_one:
+ ___
+ 	&aesni_generate1("dec",$key,$rounds);
+ $code.=<<___;
+-	pxor	$iv,$inout0
++	xorps	$iv,$inout0
+ 	movaps	$in0,$iv
++	sub	\$0x10,$len
+ 	jmp	.Lcbc_dec_tail_collected
+ .align	16
+ .Lcbc_dec_two:
++	xorps	$inout2,$inout2
+ 	call	_aesni_decrypt3
+-	pxor	$iv,$inout0
+-	pxor	$in0,$inout1
++	xorps	$iv,$inout0
++	xorps	$in0,$inout1
+ 	movups	$inout0,($out)
+ 	movaps	$in1,$iv
+ 	movaps	$inout1,$inout0
+ 	lea	0x10($out),$out
++	sub	\$0x20,$len
+ 	jmp	.Lcbc_dec_tail_collected
+ .align	16
+ .Lcbc_dec_three:
+ 	call	_aesni_decrypt3
+-	pxor	$iv,$inout0
+-	pxor	$in0,$inout1
++	xorps	$iv,$inout0
++	xorps	$in0,$inout1
+ 	movups	$inout0,($out)
+-	pxor	$in1,$inout2
++	xorps	$in1,$inout2
+ 	movups	$inout1,0x10($out)
+ 	movaps	$in2,$iv
+ 	movaps	$inout2,$inout0
+ 	lea	0x20($out),$out
++	sub	\$0x30,$len
++	jmp	.Lcbc_dec_tail_collected
++.align	16
++.Lcbc_dec_four:
++	call	_aesni_decrypt4
++	xorps	$iv,$inout0
++	movups	0x30($inp),$iv
++	xorps	$in0,$inout1
++	movups	$inout0,($out)
++	xorps	$in1,$inout2
++	movups	$inout1,0x10($out)
++	xorps	$in2,$inout3
++	movups	$inout2,0x20($out)
++	movaps	$inout3,$inout0
++	lea	0x30($out),$out
++	sub	\$0x40,$len
++	jmp	.Lcbc_dec_tail_collected
++.align	16
++.Lcbc_dec_five:
++	xorps	$inout5,$inout5
++	call	_aesni_decrypt6
++	movups	0x10($inp),$rndkey1
++	movups	0x20($inp),$rndkey0
++	xorps	$iv,$inout0
++	xorps	$in0,$inout1
++	xorps	$rndkey1,$inout2
++	movups	0x30($inp),$rndkey1
++	xorps	$rndkey0,$inout3
++	movups	0x40($inp),$iv
++	xorps	$rndkey1,$inout4
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	lea	0x40($out),$out
++	movaps	$inout4,$inout0
++	sub	\$0x50,$len
++	jmp	.Lcbc_dec_tail_collected
++.align	16
++.Lcbc_dec_six:
++	call	_aesni_decrypt6
++	movups	0x10($inp),$rndkey1
++	movups	0x20($inp),$rndkey0
++	xorps	$iv,$inout0
++	xorps	$in0,$inout1
++	xorps	$rndkey1,$inout2
++	movups	0x30($inp),$rndkey1
++	xorps	$rndkey0,$inout3
++	movups	0x40($inp),$rndkey0
++	xorps	$rndkey1,$inout4
++	movups	0x50($inp),$iv
++	xorps	$rndkey0,$inout5
++	movups	$inout0,($out)
++	movups	$inout1,0x10($out)
++	movups	$inout2,0x20($out)
++	movups	$inout3,0x30($out)
++	movups	$inout4,0x40($out)
++	lea	0x50($out),$out
++	movaps	$inout5,$inout0
++	sub	\$0x60,$len
+ 	jmp	.Lcbc_dec_tail_collected
+ .align	16
+ .Lcbc_dec_tail_collected:
+@@ -523,10 +1114,12 @@ $code.=<<___;
+ 	jnz	.Lcbc_dec_tail_partial
+ 	movups	$inout0,($out)
+ 	jmp	.Lcbc_dec_ret
++.align	16
+ .Lcbc_dec_tail_partial:
+ 	movaps	$inout0,$reserved(%rsp)
++	mov	\$16,%rcx
+ 	mov	$out,%rdi
+-	mov	$len,%rcx
++	sub	$len,%rcx
+ 	lea	$reserved(%rsp),%rsi
+ 	.long	0x9066A4F3	# rep movsb
+ 
+@@ -544,7 +1137,7 @@ $code.=<<___;
+ 	ret
+ .size	${PREFIX}_cbc_encrypt,.-${PREFIX}_cbc_encrypt
+ ___
+-
++} 
+ # int $PREFIX_set_[en|de]crypt_key (const unsigned char *userKey,
+ #				int bits, AES_KEY *key)
+ { my ($inp,$bits,$key) = @_4args;
+@@ -556,7 +1149,7 @@ $code.=<<___;
+ .align	16
+ ${PREFIX}_set_decrypt_key:
+ 	.byte	0x48,0x83,0xEC,0x08	# sub rsp,8
+-	call	_aesni_set_encrypt_key
++	call	__aesni_set_encrypt_key
+ 	shl	\$4,$bits		# rounds-1 after _aesni_set_encrypt_key
+ 	test	%eax,%eax
+ 	jnz	.Ldec_key_ret
+@@ -576,9 +1169,9 @@ ${PREFIX}_set_decrypt_key:
+ 	aesimc	%xmm1,%xmm1
+ 	lea	16($key),$key
+ 	lea	-16($inp),$inp
+-	cmp	$key,$inp
+ 	$movkey	%xmm0,16($inp)
+ 	$movkey	%xmm1,-16($key)
++	cmp	$key,$inp
+ 	ja	.Ldec_key_inverse
+ 
+ 	$movkey	($key),%xmm0		# inverse middle
+@@ -605,16 +1198,16 @@ $code.=<<___;
+ .type	${PREFIX}_set_encrypt_key,\@abi-omnipotent
+ .align	16
+ ${PREFIX}_set_encrypt_key:
+-_aesni_set_encrypt_key:
++__aesni_set_encrypt_key:
+ 	.byte	0x48,0x83,0xEC,0x08	# sub rsp,8
+-	test	$inp,$inp
+ 	mov	\$-1,%rax
++	test	$inp,$inp
+ 	jz	.Lenc_key_ret
+ 	test	$key,$key
+ 	jz	.Lenc_key_ret
+ 
+ 	movups	($inp),%xmm0		# pull first 128 bits of *userKey
+-	pxor	%xmm4,%xmm4		# low dword of xmm4 is assumed 0
++	xorps	%xmm4,%xmm4		# low dword of xmm4 is assumed 0
+ 	lea	16($key),%rax
+ 	cmp	\$256,$bits
+ 	je	.L14rounds
+@@ -729,11 +1322,11 @@ _aesni_set_encrypt_key:
+ 	lea	16(%rax),%rax
+ .Lkey_expansion_128_cold:
+ 	shufps	\$0b00010000,%xmm0,%xmm4
+-	pxor	%xmm4, %xmm0
++	xorps	%xmm4, %xmm0
+ 	shufps	\$0b10001100,%xmm0,%xmm4
+-	pxor	%xmm4, %xmm0
+-	pshufd	\$0b11111111,%xmm1,%xmm1	# critical path
+-	pxor	%xmm1,%xmm0
++	xorps	%xmm4, %xmm0
++	shufps	\$0b11111111,%xmm1,%xmm1	# critical path
++	xorps	%xmm1,%xmm0
+ 	ret
+ 
+ .align 16
+@@ -744,11 +1337,11 @@ _aesni_set_encrypt_key:
+ 	movaps	%xmm2, %xmm5
+ .Lkey_expansion_192b_warm:
+ 	shufps	\$0b00010000,%xmm0,%xmm4
+-	movaps	%xmm2,%xmm3
+-	pxor	%xmm4,%xmm0
++	movdqa	%xmm2,%xmm3
++	xorps	%xmm4,%xmm0
+ 	shufps	\$0b10001100,%xmm0,%xmm4
+ 	pslldq	\$4,%xmm3
+-	pxor	%xmm4,%xmm0
++	xorps	%xmm4,%xmm0
+ 	pshufd	\$0b01010101,%xmm1,%xmm1	# critical path
+ 	pxor	%xmm3,%xmm2
+ 	pxor	%xmm1,%xmm0
+@@ -772,11 +1365,11 @@ _aesni_set_encrypt_key:
+ 	lea	16(%rax),%rax
+ .Lkey_expansion_256a_cold:
+ 	shufps	\$0b00010000,%xmm0,%xmm4
+-	pxor	%xmm4,%xmm0
++	xorps	%xmm4,%xmm0
+ 	shufps	\$0b10001100,%xmm0,%xmm4
+-	pxor	%xmm4,%xmm0
+-	pshufd	\$0b11111111,%xmm1,%xmm1	# critical path
+-	pxor	%xmm1,%xmm0
++	xorps	%xmm4,%xmm0
++	shufps	\$0b11111111,%xmm1,%xmm1	# critical path
++	xorps	%xmm1,%xmm0
+ 	ret
+ 
+ .align 16
+@@ -785,17 +1378,28 @@ _aesni_set_encrypt_key:
+ 	lea	16(%rax),%rax
+ 
+ 	shufps	\$0b00010000,%xmm2,%xmm4
+-	pxor	%xmm4,%xmm2
++	xorps	%xmm4,%xmm2
+ 	shufps	\$0b10001100,%xmm2,%xmm4
+-	pxor	%xmm4,%xmm2
+-	pshufd	\$0b10101010,%xmm1,%xmm1	# critical path
+-	pxor	%xmm1,%xmm2
++	xorps	%xmm4,%xmm2
++	shufps	\$0b10101010,%xmm1,%xmm1	# critical path
++	xorps	%xmm1,%xmm2
+ 	ret
+ .size	${PREFIX}_set_encrypt_key,.-${PREFIX}_set_encrypt_key
++.size	__aesni_set_encrypt_key,.-__aesni_set_encrypt_key
+ ___
+ }
+ 
+ $code.=<<___;
++.align	64
++.Lbswap_mask:
++	.byte	15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
++.Lincrement32:
++	.long	6,6,6,0
++.Lincrement64:
++	.long	1,0,0,0
++.Lxts_magic:
++	.long	0x87,0,1,0
++
+ .asciz  "AES for Intel AES-NI, CRYPTOGAMS by <appro\@openssl.org>"
+ .align	64
+ ___
+diff -up openssl-1.0.0/crypto/cryptlib.c.intelopts openssl-1.0.0/crypto/cryptlib.c
+--- openssl-1.0.0/crypto/cryptlib.c.intelopts	2009-09-13 13:27:25.000000000 +0200
++++ openssl-1.0.0/crypto/cryptlib.c	2011-08-24 16:00:47.000000000 +0200
+@@ -662,22 +662,23 @@ const char *CRYPTO_get_lock_name(int typ
+ 	defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
+ 
+ unsigned long  OPENSSL_ia32cap_P=0;
++unsigned long long  OPENSSL_ia32cap_X=0;
+ unsigned long *OPENSSL_ia32cap_loc(void) { return &OPENSSL_ia32cap_P; }
+ 
+ #if defined(OPENSSL_CPUID_OBJ) && !defined(OPENSSL_NO_ASM) && !defined(I386_ONLY)
+ #define OPENSSL_CPUID_SETUP
+ void OPENSSL_cpuid_setup(void)
+ { static int trigger=0;
+-  unsigned long OPENSSL_ia32_cpuid(void);
++  unsigned long long OPENSSL_ia32_cpuid(void);
+   char *env;
+ 
+     if (trigger)	return;
+ 
+     trigger=1;
+     if ((env=getenv("OPENSSL_ia32cap")))
+-	OPENSSL_ia32cap_P = strtoul(env,NULL,0)|(1<<10);
++	OPENSSL_ia32cap_X = OPENSSL_ia32cap_P = strtoul(env,NULL,0)|(1<<10);
+     else
+-	OPENSSL_ia32cap_P = OPENSSL_ia32_cpuid()|(1<<10);
++	OPENSSL_ia32cap_P = OPENSSL_ia32cap_X = OPENSSL_ia32_cpuid()|(1<<10);
+     /*
+      * |(1<<10) sets a reserved bit to signal that variable
+      * was initialized already... This is to avoid interference
+diff -up openssl-1.0.0/crypto/engine/eng_aesni.c.intelopts openssl-1.0.0/crypto/engine/eng_aesni.c
+--- openssl-1.0.0/crypto/engine/eng_aesni.c.intelopts	2011-08-15 10:19:48.000000000 +0200
++++ openssl-1.0.0/crypto/engine/eng_aesni.c	2011-08-24 16:00:47.000000000 +0200
+@@ -157,16 +157,20 @@ typedef unsigned __int64 IA32CAP;
+ typedef unsigned long long IA32CAP;
+ #endif
+ 
++extern IA32CAP OPENSSL_ia32cap_X;
++
+ /* Prepare the ENGINE structure for registration */
+ static int
+ aesni_bind_helper(ENGINE *e)
+ {
+ 	int engage;
+-	if (sizeof(OPENSSL_ia32cap_P) > 4) {
+-		engage = (OPENSSL_ia32cap_P >> 57) & 1;
+-	} else {
+-		IA32CAP OPENSSL_ia32_cpuid(void);
+-		engage = (OPENSSL_ia32_cpuid() >> 57) & 1;
++	engage = (OPENSSL_ia32cap_X >> 57) & 1;
++
++	/* Disable the AES-NI support if the environment variable
++	 * OPENSSL_DISABLE_AES_NI is set to any value
++	 */
++	if (getenv("OPENSSL_DISABLE_AES_NI") != NULL) {
++		engage = 0;
+ 	}
+ 
+ 	/* Disable the AES-NI support if the environment variable
+diff -up openssl-1.0.0/crypto/fips/fips_standalone_sha1.c.intelopts openssl-1.0.0/crypto/fips/fips_standalone_sha1.c
+--- openssl-1.0.0/crypto/fips/fips_standalone_sha1.c.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/fips/fips_standalone_sha1.c	2011-08-24 16:00:47.000000000 +0200
+@@ -62,6 +62,8 @@ void OPENSSL_cleanse(void *p,size_t len)
+ 
+ #ifdef OPENSSL_FIPS
+ 
++unsigned long long OPENSSL_ia32cap_X = 0;
++
+ static void hmac_init(SHA256_CTX *md_ctx,SHA256_CTX *o_ctx,
+ 		      const char *key)
+     {
+diff -up openssl-1.0.0/crypto/perlasm/x86asm.pl.intelopts openssl-1.0.0/crypto/perlasm/x86asm.pl
+--- openssl-1.0.0/crypto/perlasm/x86asm.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/perlasm/x86asm.pl	2011-08-24 16:01:05.000000000 +0200
+@@ -80,6 +80,57 @@ sub ::movq
+     {	&::generic("movq",@_);			}
+ }
+ 
++# SSE>2 instructions
++my %regrm = (	"eax"=>0, "ecx"=>1, "edx"=>2, "ebx"=>3,
++		"esp"=>4, "ebp"=>5, "esi"=>6, "edi"=>7	);
++sub ::pextrd
++{ my($dst,$src,$imm)=@_;
++    if ("$dst:$src" =~ /(e[a-dsd][ixp]):xmm([0-7])/)
++    {	&::data_byte(0x66,0x0f,0x3a,0x16,0xc0|($2<<3)|$regrm{$1},$imm);	}
++    else
++    {	&::generic("pextrd",@_);		}
++}
++
++sub ::pinsrd
++{ my($dst,$src,$imm)=@_;
++    if ("$dst:$src" =~ /xmm([0-7]):(e[a-dsd][ixp])/)
++    {	&::data_byte(0x66,0x0f,0x3a,0x22,0xc0|($1<<3)|$regrm{$2},$imm);	}
++    else
++    {	&::generic("pinsrd",@_);		}
++}
++
++sub ::pshufb
++{ my($dst,$src)=@_;
++    if ("$dst:$src" =~ /xmm([0-7]):xmm([0-7])/)
++    {	&data_byte(0x66,0x0f,0x38,0x00,0xc0|($1<<3)|$2);	}
++    else
++    {	&::generic("pshufb",@_);		}
++}
++
++sub ::palignr
++{ my($dst,$src,$imm)=@_;
++    if ("$dst:$src" =~ /xmm([0-7]):xmm([0-7])/)
++    {	&::data_byte(0x66,0x0f,0x3a,0x0f,0xc0|($1<<3)|$2,$imm);	}
++    else
++    {	&::generic("palignr",@_);		}
++}
++
++sub ::pclmulqdq
++{ my($dst,$src,$imm)=@_;
++    if ("$dst:$src" =~ /xmm([0-7]):xmm([0-7])/)
++    {	&::data_byte(0x66,0x0f,0x3a,0x44,0xc0|($1<<3)|$2,$imm);	}
++    else
++    {	&::generic("pclmulqdq",@_);		}
++}
++
++sub ::rdrand
++{ my ($dst)=@_;
++    if ($dst =~ /(e[a-dsd][ixp])/)
++    {	&::data_byte(0x0f,0xc7,0xf0|$regrm{$dst});	}
++    else
++    {	&::generic("rdrand",@_);	}
++}
++
+ # label management
+ $lbdecor="L";		# local label decoration, set by package
+ $label="000";
+diff -up openssl-1.0.0/crypto/perlasm/x86gas.pl.intelopts openssl-1.0.0/crypto/perlasm/x86gas.pl
+--- openssl-1.0.0/crypto/perlasm/x86gas.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/perlasm/x86gas.pl	2011-08-24 16:01:10.000000000 +0200
+@@ -91,6 +91,7 @@ sub ::DWP
+ }
+ sub ::QWP	{ &::DWP(@_);	}
+ sub ::BP	{ &::DWP(@_);	}
++sub ::WP	{ &::DWP(@_);	}
+ sub ::BC	{ @_;		}
+ sub ::DWC	{ @_;		}
+ 
+@@ -161,10 +162,16 @@ sub ::file_end
+ 	    {	push(@out,"$non_lazy_ptr{$i}:\n.indirect_symbol\t$i\n.long\t0\n");   }
+ 	}
+     }
++    if (grep {/\b${nmdecor}OPENSSL_ia32cap_X\b/i} @out) {
++	my $tmp=".comm\t${nmdecor}OPENSSL_ia32cap_X,8";
++	if ($::elf)	{ push (@out,"$tmp,4\n"); }
++	else		{ push (@out,"$tmp\n"); }
++    }
+     push(@out,$initseg) if ($initseg);
+ }
+ 
+ sub ::data_byte	{   push(@out,".byte\t".join(',',@_)."\n");   }
++sub ::data_short{   push(@out,".value\t".join(',',@_)."\n");  }
+ sub ::data_word {   push(@out,".long\t".join(',',@_)."\n");   }
+ 
+ sub ::align
+diff -up openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl.intelopts openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl
+--- openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/perlasm/x86_64-xlate.pl	2011-08-24 16:10:17.000000000 +0200
+@@ -55,6 +55,8 @@
+ #    Win64 prologue copies %rsp value to %rax. For further details
+ #    see SEH paragraph at the end.
+ # 9. .init segment is allowed to contain calls to functions only.
++# a. If function accepts more than 4 arguments *and* >4th argument
++#    is declared as non 64-bit value, do clear its upper part.
+ 
+ my $flavour = shift;
+ my $output  = shift;
+@@ -115,7 +117,13 @@ my %globals;
+ 		$self->{op} = $1;
+ 		$self->{sz} = "b";
+ 	    } elsif ($self->{op} =~ /call|jmp/) {
+-		$self->{sz} = ""
++		$self->{sz} = "";
++	    } elsif ($self->{op} =~ /^p/ && $' !~ /^(ush|op|insrw)/) { # SSEn
++		$self->{sz} = "";
++	    } elsif ($self->{op} =~ /^v/) { # VEX
++		$self->{sz} = "";
++	    } elsif ($self->{op} =~ /movq/ && $line =~ /%xmm/) {
++		$self->{sz} = "";
+ 	    } elsif ($self->{op} =~ /([a-z]{3,})([qlwb])$/) {
+ 		$self->{op} = $1;
+ 		$self->{sz} = $2;
+@@ -160,7 +168,7 @@ my %globals;
+ 	    } elsif ($self->{op} =~ /^(pop|push)f/) {
+ 		$self->{op} .= $self->{sz};
+ 	    } elsif ($self->{op} eq "call" && $current_segment eq ".CRT\$XCU") {
+-		$self->{op} = "ALIGN\t8\n\tDQ";
++		$self->{op} = "\tDQ";
+ 	    } 
+ 	    $self->{op};
+ 	}
+@@ -191,7 +199,7 @@ my %globals;
+ 	if ($gas) {
+ 	    # Solaris /usr/ccs/bin/as can't handle multiplications
+ 	    # in $self->{value}
+-	    $self->{value} =~ s/(?<![0-9a-f])(0[x0-9a-f]+)/oct($1)/egi;
++	    $self->{value} =~ s/(?<![\w\$\.])(0x?[0-9a-f]+)/oct($1)/egi;
+ 	    $self->{value} =~ s/([0-9]+\s*[\*\/\%]\s*[0-9]+)/eval($1)/eg;
+ 	    sprintf "\$%s",$self->{value};
+ 	} else {
+@@ -239,35 +247,38 @@ my %globals;
+ 	$self->{index} =~ s/^[er](.?[0-9xpi])[d]?$/r\1/;
+ 	$self->{base}  =~ s/^[er](.?[0-9xpi])[d]?$/r\1/;
+ 
++	# Solaris /usr/ccs/bin/as can't handle multiplications
++	# in $self->{label}, new gas requires sign extension...
++	use integer;
++	$self->{label} =~ s/(?<![\w\$\.])(0x?[0-9a-f]+)/oct($1)/egi;
++	$self->{label} =~ s/([0-9]+\s*[\*\/\%]\s*[0-9]+)/eval($1)/eg;
++	$self->{label} =~ s/([0-9]+)/$1<<32>>32/eg;
++
+ 	if ($gas) {
+-	    # Solaris /usr/ccs/bin/as can't handle multiplications
+-	    # in $self->{label}, new gas requires sign extension...
+-	    use integer;
+-	    $self->{label} =~ s/(?<![0-9a-f])(0[x0-9a-f]+)/oct($1)/egi;
+-	    $self->{label} =~ s/([0-9]+\s*[\*\/\%]\s*[0-9]+)/eval($1)/eg;
+-	    $self->{label} =~ s/([0-9]+)/$1<<32>>32/eg;
+ 	    $self->{label} =~ s/^___imp_/__imp__/   if ($flavour eq "mingw64");
+ 
+ 	    if (defined($self->{index})) {
+-		sprintf "%s%s(%%%s,%%%s,%d)",$self->{asterisk},
+-					$self->{label},$self->{base},
++		sprintf "%s%s(%s,%%%s,%d)",$self->{asterisk},
++					$self->{label},
++					$self->{base}?"%$self->{base}":"",
+ 					$self->{index},$self->{scale};
+ 	    } else {
+ 		sprintf "%s%s(%%%s)",	$self->{asterisk},$self->{label},$self->{base};
+ 	    }
+ 	} else {
+-	    %szmap = ( b=>"BYTE$PTR", w=>"WORD$PTR", l=>"DWORD$PTR", q=>"QWORD$PTR" );
++	    %szmap = (	b=>"BYTE$PTR", w=>"WORD$PTR", l=>"DWORD$PTR",
++	    		q=>"QWORD$PTR",o=>"OWORD$PTR",x=>"XMMWORD$PTR" );
+ 
+ 	    $self->{label} =~ s/\./\$/g;
+-	    $self->{label} =~ s/0x([0-9a-f]+)/0$1h/ig;
++	    $self->{label} =~ s/(?<![\w\$\.])0x([0-9a-f]+)/0$1h/ig;
+ 	    $self->{label} = "($self->{label})" if ($self->{label} =~ /[\*\+\-\/]/);
+-	    $sz="q" if ($self->{asterisk});
++	    $sz="q" if ($self->{asterisk} || opcode->mnemonic() eq "movq");
+ 
+ 	    if (defined($self->{index})) {
+-		sprintf "%s[%s%s*%d+%s]",$szmap{$sz},
++		sprintf "%s[%s%s*%d%s]",$szmap{$sz},
+ 					$self->{label}?"$self->{label}+":"",
+ 					$self->{index},$self->{scale},
+-					$self->{base};
++					$self->{base}?"+$self->{base}":"";
+ 	    } elsif ($self->{base} eq "rip") {
+ 		sprintf "%s[%s]",$szmap{$sz},$self->{label};
+ 	    } else {
+@@ -499,6 +510,11 @@ my %globals;
+ 		    }
+ 		} elsif ($dir =~ /\.(text|data)/) {
+ 		    $current_segment=".$1";
++		} elsif ($dir =~ /\.hidden/) {
++		    if    ($flavour eq "macosx")  { $self->{value} = ".private_extern\t$prefix$line"; }
++		    elsif ($flavour eq "mingw64") { $self->{value} = ""; }
++		} elsif ($dir =~ /\.comm/) {
++		    $self->{value} = "$dir\t$prefix$line";
+ 		}
+ 		$line = "";
+ 		return $self;
+@@ -538,6 +554,8 @@ my %globals;
+ 					if ($line=~/\.([px])data/) {
+ 					    $v.=" rdata align=";
+ 					    $v.=$1 eq "p"? 4 : 8;
++					} elsif ($line=~/\.CRT\$/i) {
++					    $v.=" rdata align=8";
+ 					}
+ 				    } else {
+ 					$v="$current_segment\tENDS\n" if ($current_segment);
+@@ -545,6 +563,8 @@ my %globals;
+ 					if ($line=~/\.([px])data/) {
+ 					    $v.=" READONLY";
+ 					    $v.=" ALIGN(".($1 eq "p" ? 4 : 8).")" if ($masm>=$masmref);
++					} elsif ($line=~/\.CRT\$/i) {
++					    $v.=" READONLY DWORD";
+ 					}
+ 				    }
+ 				    $current_segment = $line;
+@@ -574,11 +594,11 @@ my %globals;
+ 		/\.align/   && do { $self->{value} = "ALIGN\t".$line; last; };
+ 		/\.(value|long|rva|quad)/
+ 			    && do { my $sz  = substr($1,0,1);
+-				    my @arr = split(',',$line);
++				    my @arr = split(/,\s*/,$line);
+ 				    my $last = pop(@arr);
+ 				    my $conv = sub  {	my $var=shift;
+ 							$var=~s/^(0b[0-1]+)/oct($1)/eig;
+-							$var=~s/0x([0-9a-f]+)/0$1h/ig if ($masm);
++							$var=~s/^0x([0-9a-f]+)/0$1h/ig if ($masm);
+ 							if ($sz eq "D" && ($current_segment=~/.[px]data/ || $dir eq ".rva"))
+ 							{ $var=~s/([_a-z\$\@][_a-z0-9\$\@]*)/$nasm?"$1 wrt ..imagebase":"imagerel $1"/egi; }
+ 							$var;
+@@ -590,7 +610,7 @@ my %globals;
+ 				    $self->{value} .= &$conv($last);
+ 				    last;
+ 				  };
+-		/\.byte/    && do { my @str=split(",",$line);
++		/\.byte/    && do { my @str=split(/,\s*/,$line);
+ 				    map(s/(0b[0-1]+)/oct($1)/eig,@str);
+ 				    map(s/0x([0-9a-f]+)/0$1h/ig,@str) if ($masm);	
+ 				    while ($#str>15) {
+@@ -602,6 +622,19 @@ my %globals;
+ 						.join(",",@str) if (@str);
+ 				    last;
+ 				  };
++		/\.comm/    && do { my @str=split(/,\s*/,$line);
++				    my $v=undef;
++				    if ($nasm) {
++					$v.="common	$prefix@str[0] @str[1]";
++				    } else {
++					$v="$current_segment\tENDS\n" if ($current_segment);
++					$current_segment = "_DATA";
++					$v.="$current_segment\tSEGMENT\n";
++					$v.="COMM	@str[0]:DWORD:".@str[1]/4;
++				    }
++				    $self->{value} = $v;
++				    last;
++				  };
+ 	    }
+ 	    $line = "";
+ 	}
+@@ -614,9 +647,133 @@ my %globals;
+     }
+ }
+ 
++sub rex {
++ local *opcode=shift;
++ my ($dst,$src,$rex)=@_;
++
++   $rex|=0x04 if($dst>=8);
++   $rex|=0x01 if($src>=8);
++   push @opcode,($rex|0x40) if ($rex);
++}
++
++# older gas and ml64 don't handle SSE>2 instructions
++my %regrm = (	"%eax"=>0, "%ecx"=>1, "%edx"=>2, "%ebx"=>3,
++		"%esp"=>4, "%ebp"=>5, "%esi"=>6, "%edi"=>7	);
++
++my $movq = sub {	# elderly gas can't handle inter-register movq
++  my $arg = shift;
++  my @opcode=(0x66);
++    if ($arg =~ /%xmm([0-9]+),%r(\w+)/) {
++	my ($src,$dst)=($1,$2);
++	if ($dst !~ /[0-9]+/)	{ $dst = $regrm{"%e$dst"}; }
++	rex(\@opcode,$src,$dst,0x8);
++	push @opcode,0x0f,0x7e;
++	push @opcode,0xc0|(($src&7)<<3)|($dst&7);	# ModR/M
++	@opcode;
++    } elsif ($arg =~ /%r(\w+),%xmm([0-9]+)/) {
++	my ($src,$dst)=($2,$1);
++	if ($dst !~ /[0-9]+/)	{ $dst = $regrm{"%e$dst"}; }
++	rex(\@opcode,$src,$dst,0x8);
++	push @opcode,0x0f,0x6e;
++	push @opcode,0xc0|(($src&7)<<3)|($dst&7);	# ModR/M
++	@opcode;
++    } else {
++	();
++    }
++};
++
++my $pextrd = sub {
++    if (shift =~ /\$([0-9]+),%xmm([0-9]+),(%\w+)/) {
++      my @opcode=(0x66);
++	$imm=$1;
++	$src=$2;
++	$dst=$3;
++	if ($dst =~ /%r([0-9]+)d/)	{ $dst = $1; }
++	elsif ($dst =~ /%e/)		{ $dst = $regrm{$dst}; }
++	rex(\@opcode,$src,$dst);
++	push @opcode,0x0f,0x3a,0x16;
++	push @opcode,0xc0|(($src&7)<<3)|($dst&7);	# ModR/M
++	push @opcode,$imm;
++	@opcode;
++    } else {
++	();
++    }
++};
++
++my $pinsrd = sub {
++    if (shift =~ /\$([0-9]+),(%\w+),%xmm([0-9]+)/) {
++      my @opcode=(0x66);
++	$imm=$1;
++	$src=$2;
++	$dst=$3;
++	if ($src =~ /%r([0-9]+)/)	{ $src = $1; }
++	elsif ($src =~ /%e/)		{ $src = $regrm{$src}; }
++	rex(\@opcode,$dst,$src);
++	push @opcode,0x0f,0x3a,0x22;
++	push @opcode,0xc0|(($dst&7)<<3)|($src&7);	# ModR/M
++	push @opcode,$imm;
++	@opcode;
++    } else {
++	();
++    }
++};
++
++my $pshufb = sub {
++    if (shift =~ /%xmm([0-9]+),%xmm([0-9]+)/) {
++      my @opcode=(0x66);
++	rex(\@opcode,$2,$1);
++	push @opcode,0x0f,0x38,0x00;
++	push @opcode,0xc0|($1&7)|(($2&7)<<3);		# ModR/M
++	@opcode;
++    } else {
++	();
++    }
++};
++
++my $palignr = sub {
++    if (shift =~ /\$([0-9]+),%xmm([0-9]+),%xmm([0-9]+)/) {
++      my @opcode=(0x66);
++	rex(\@opcode,$3,$2);
++	push @opcode,0x0f,0x3a,0x0f;
++	push @opcode,0xc0|($2&7)|(($3&7)<<3);		# ModR/M
++	push @opcode,$1;
++	@opcode;
++    } else {
++	();
++    }
++};
++
++my $pclmulqdq = sub {
++    if (shift =~ /\$([x0-9a-f]+),\s*%xmm([0-9]+),\s*%xmm([0-9]+)/) {
++      my @opcode=(0x66);
++	rex(\@opcode,$3,$2);
++	push @opcode,0x0f,0x3a,0x44;
++	push @opcode,0xc0|($2&7)|(($3&7)<<3);		# ModR/M
++	my $c=$1;
++	push @opcode,$c=~/^0/?oct($c):$c;
++	@opcode;
++    } else {
++	();
++    }
++};
++
++my $rdrand = sub {
++    if (shift =~ /%[er](\w+)/) {
++      my @opcode=();
++      my $dst=$1;
++	if ($dst !~ /[0-9]+/) { $dst = $regrm{"%e$dst"}; }
++	rex(\@opcode,0,$1,8);
++	push @opcode,0x0f,0xc7,0xf0|($dst&7);
++	@opcode;
++    } else {
++	();
++    }
++};
++
+ if ($nasm) {
+     print <<___;
+ default	rel
++%define XMMWORD
+ ___
+ } elsif ($masm) {
+     print <<___;
+@@ -633,14 +790,22 @@ while($line=<>) {
+ 
+     undef $label;
+     undef $opcode;
+-    undef $sz;
+     undef @args;
+ 
+     if ($label=label->re(\$line))	{ print $label->out(); }
+ 
+     if (directive->re(\$line)) {
+ 	printf "%s",directive->out();
+-    } elsif ($opcode=opcode->re(\$line)) { ARGUMENT: while (1) {
++    } elsif ($opcode=opcode->re(\$line)) {
++	my $asm = eval("\$".$opcode->mnemonic());
++	undef @bytes;
++	
++	if ((ref($asm) eq 'CODE') && scalar(@bytes=&$asm($line))) {
++	    print $gas?".byte\t":"DB\t",join(',',@bytes),"\n";
++	    next;
++	}
++
++	ARGUMENT: while (1) {
+ 	my $arg;
+ 
+ 	if ($arg=register->re(\$line))	{ opcode->size($arg->size()); }
+@@ -656,19 +821,26 @@ while($line=<>) {
+ 	$line =~ s/^,\s*//;
+ 	} # ARGUMENT:
+ 
+-	$sz=opcode->size();
+-
+ 	if ($#args>=0) {
+ 	    my $insn;
++	    my $sz=opcode->size();
++
+ 	    if ($gas) {
+ 		$insn = $opcode->out($#args>=1?$args[$#args]->size():$sz);
++		@args = map($_->out($sz),@args);
++		printf "\t%s\t%s",$insn,join(",",@args);
+ 	    } else {
+ 		$insn = $opcode->out();
+-		$insn .= $sz if (map($_->out() =~ /xmm|mmx/,@args));
++		foreach (@args) {
++		    my $arg = $_->out();
++		    # $insn.=$sz compensates for movq, pinsrw, ...
++		    if ($arg =~ /^xmm[0-9]+$/) { $insn.=$sz; $sz="x" if(!$sz); last; }
++		    if ($arg =~ /^mm[0-9]+$/)  { $insn.=$sz; $sz="q" if(!$sz); last; }
++		}
+ 		@args = reverse(@args);
+ 		undef $sz if ($nasm && $opcode->mnemonic() eq "lea");
++		printf "\t%s\t%s",$insn,join(",",map($_->out($sz),@args));
+ 	    }
+-	    printf "\t%s\t%s",$insn,join(",",map($_->out($sz),@args));
+ 	} else {
+ 	    printf "\t%s",$opcode->out();
+ 	}
+diff -up openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl.intelopts openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl
+--- openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/rc4/asm/rc4-x86_64.pl	2011-08-24 16:01:29.000000000 +0200
+@@ -7,6 +7,8 @@
+ # details see http://www.openssl.org/~appro/cryptogams/.
+ # ====================================================================
+ #
++# July 2004
++#
+ # 2.22x RC4 tune-up:-) It should be noted though that my hand [as in
+ # "hand-coded assembler"] doesn't stand for the whole improvement
+ # coefficient. It turned out that eliminating RC4_CHAR from config
+@@ -19,6 +21,8 @@
+ # to operate on partial registers, it turned out to be the best bet.
+ # At least for AMD... How IA32E would perform remains to be seen...
+ 
++# November 2004
++#
+ # As was shown by Marc Bevand reordering of couple of load operations
+ # results in even higher performance gain of 3.3x:-) At least on
+ # Opteron... For reference, 1x in this case is RC4_CHAR C-code
+@@ -26,6 +30,8 @@
+ # Latter means that if you want to *estimate* what to expect from
+ # *your* Opteron, then multiply 54 by 3.3 and clock frequency in GHz.
+ 
++# November 2004
++#
+ # Intel P4 EM64T core was found to run the AMD64 code really slow...
+ # The only way to achieve comparable performance on P4 was to keep
+ # RC4_CHAR. Kind of ironic, huh? As it's apparently impossible to
+@@ -33,10 +39,14 @@
+ # on either AMD and Intel platforms, I implement both cases. See
+ # rc4_skey.c for further details...
+ 
++# April 2005
++#
+ # P4 EM64T core appears to be "allergic" to 64-bit inc/dec. Replacing 
+ # those with add/sub results in 50% performance improvement of folded
+ # loop...
+ 
++# May 2005
++#
+ # As was shown by Zou Nanhai loop unrolling can improve Intel EM64T
+ # performance by >30% [unlike P4 32-bit case that is]. But this is
+ # provided that loads are reordered even more aggressively! Both code
+@@ -50,6 +60,8 @@
+ # is not implemented, then this final RC4_CHAR code-path should be
+ # preferred, as it provides better *all-round* performance].
+ 
++# March 2007
++#
+ # Intel Core2 was observed to perform poorly on both code paths:-( It
+ # apparently suffers from some kind of partial register stall, which
+ # occurs in 64-bit mode only [as virtually identical 32-bit loop was
+@@ -58,6 +70,34 @@
+ # fit for Core2 and therefore the code was modified to skip cloop8 on
+ # this CPU.
+ 
++# May 2010
++#
++# Intel Westmere was observed to perform suboptimally. Adding yet
++# another movzb to cloop1 improved performance by almost 50%! Core2
++# performance is improved too, but nominally...
++
++# May 2011
++#
++# The only code path that was not modified is P4-specific one. Non-P4
++# Intel code path optimization is heavily based on submission by Maxim
++# Perminov, Maxim Locktyukhin and Jim Guilford of Intel. I've used
++# some of the ideas even in attempt to optmize the original RC4_INT
++# code path... Current performance in cycles per processed byte (less
++# is better) and improvement coefficients relative to previous
++# version of this module are:
++#
++# Opteron	5.3/+0%
++# P4		6.5
++# Core2		6.2/+15%(*)
++# Westmere	4.2/+60%
++# Sandy Bridge	4.2/+120%
++# Atom		9.3/+80%
++#
++# (*)	Note that Core2 result is ~15% lower than corresponding result
++#	for 32-bit code, meaning that it's possible to improve it,
++#	but more than likely at the cost of the others (see rc4-586.pl
++#	to get the idea)...
++
+ $flavour = shift;
+ $output  = shift;
+ if ($flavour =~ /\./) { $output = $flavour; undef $flavour; }
+@@ -76,13 +116,10 @@ $len="%rsi";	    # arg2
+ $inp="%rdx";	    # arg3
+ $out="%rcx";	    # arg4
+ 
+-@XX=("%r8","%r10");
+-@TX=("%r9","%r11");
+-$YY="%r12";
+-$TY="%r13";
+-
++{
+ $code=<<___;
+ .text
++.extern	OPENSSL_ia32cap_P
+ 
+ .globl	RC4
+ .type	RC4,\@function,4
+@@ -95,48 +132,173 @@ RC4:	or	$len,$len
+ 	push	%r12
+ 	push	%r13
+ .Lprologue:
++	mov	$len,%r11
++	mov	$inp,%r12
++	mov	$out,%r13
++___
++my $len="%r11";		# reassign input arguments
++my $inp="%r12";
++my $out="%r13";
++
++my @XX=("%r10","%rsi");
++my @TX=("%rax","%rbx");
++my $YY="%rcx";
++my $TY="%rdx";
+ 
+-	add	\$8,$dat
+-	movl	-8($dat),$XX[0]#d
+-	movl	-4($dat),$YY#d
++$code.=<<___;
++	xor	$XX[0],$XX[0]
++	xor	$YY,$YY
++
++	lea	8($dat),$dat
++	mov	-8($dat),$XX[0]#b
++	mov	-4($dat),$YY#b
+ 	cmpl	\$-1,256($dat)
+ 	je	.LRC4_CHAR
++	mov	OPENSSL_ia32cap_P(%rip),%r8d
++	xor	$TX[1],$TX[1]
+ 	inc	$XX[0]#b
++	sub	$XX[0],$TX[1]
++	sub	$inp,$out
+ 	movl	($dat,$XX[0],4),$TX[0]#d
+-	test	\$-8,$len
++	test	\$-16,$len
+ 	jz	.Lloop1
+-	jmp	.Lloop8
++	bt	\$30,%r8d	# Intel CPU?
++	jc	.Lintel
++	and	\$7,$TX[1]
++	lea	1($XX[0]),$XX[1]
++	jz	.Loop8
++	sub	$TX[1],$len
++.Loop8_warmup:
++	add	$TX[0]#b,$YY#b
++	movl	($dat,$YY,4),$TY#d
++	movl	$TX[0]#d,($dat,$YY,4)
++	movl	$TY#d,($dat,$XX[0],4)
++	add	$TY#b,$TX[0]#b
++	inc	$XX[0]#b
++	movl	($dat,$TX[0],4),$TY#d
++	movl	($dat,$XX[0],4),$TX[0]#d
++	xorb	($inp),$TY#b
++	movb	$TY#b,($out,$inp)
++	lea	1($inp),$inp
++	dec	$TX[1]
++	jnz	.Loop8_warmup
++
++	lea	1($XX[0]),$XX[1]
++	jmp	.Loop8
+ .align	16
+-.Lloop8:
++.Loop8:
+ ___
+ for ($i=0;$i<8;$i++) {
++$code.=<<___ if ($i==7);
++	add	\$8,$XX[1]#b
++___
+ $code.=<<___;
+ 	add	$TX[0]#b,$YY#b
+-	mov	$XX[0],$XX[1]
+ 	movl	($dat,$YY,4),$TY#d
+-	ror	\$8,%rax			# ror is redundant when $i=0
+-	inc	$XX[1]#b
+-	movl	($dat,$XX[1],4),$TX[1]#d
+-	cmp	$XX[1],$YY
+ 	movl	$TX[0]#d,($dat,$YY,4)
+-	cmove	$TX[0],$TX[1]
+-	movl	$TY#d,($dat,$XX[0],4)
++	movl	`4*($i==7?-1:$i)`($dat,$XX[1],4),$TX[1]#d
++	ror	\$8,%r8				# ror is redundant when $i=0
++	movl	$TY#d,4*$i($dat,$XX[0],4)
+ 	add	$TX[0]#b,$TY#b
+-	movb	($dat,$TY,4),%al
++	movb	($dat,$TY,4),%r8b
+ ___
+-push(@TX,shift(@TX)); push(@XX,shift(@XX));	# "rotate" registers
++push(@TX,shift(@TX)); #push(@XX,shift(@XX));	# "rotate" registers
+ }
+ $code.=<<___;
+-	ror	\$8,%rax
++	add	\$8,$XX[0]#b
++	ror	\$8,%r8
+ 	sub	\$8,$len
+ 
+-	xor	($inp),%rax
+-	add	\$8,$inp
+-	mov	%rax,($out)
+-	add	\$8,$out
++	xor	($inp),%r8
++	mov	%r8,($out,$inp)
++	lea	8($inp),$inp
+ 
+ 	test	\$-8,$len
+-	jnz	.Lloop8
++	jnz	.Loop8
++	cmp	\$0,$len
++	jne	.Lloop1
++	jmp	.Lexit
++
++.align	16
++.Lintel:
++	test	\$-32,$len
++	jz	.Lloop1
++	and	\$15,$TX[1]
++	jz	.Loop16_is_hot
++	sub	$TX[1],$len
++.Loop16_warmup:
++	add	$TX[0]#b,$YY#b
++	movl	($dat,$YY,4),$TY#d
++	movl	$TX[0]#d,($dat,$YY,4)
++	movl	$TY#d,($dat,$XX[0],4)
++	add	$TY#b,$TX[0]#b
++	inc	$XX[0]#b
++	movl	($dat,$TX[0],4),$TY#d
++	movl	($dat,$XX[0],4),$TX[0]#d
++	xorb	($inp),$TY#b
++	movb	$TY#b,($out,$inp)
++	lea	1($inp),$inp
++	dec	$TX[1]
++	jnz	.Loop16_warmup
++
++	mov	$YY,$TX[1]
++	xor	$YY,$YY
++	mov	$TX[1]#b,$YY#b
++
++.Loop16_is_hot:
++	lea	($dat,$XX[0],4),$XX[1]
++___
++sub RC4_loop {
++  my $i=shift;
++  my $j=$i<0?0:$i;
++  my $xmm="%xmm".($j&1);
++
++    $code.="	add	\$16,$XX[0]#b\n"		if ($i==15);
++    $code.="	movdqu	($inp),%xmm2\n"			if ($i==15);
++    $code.="	add	$TX[0]#b,$YY#b\n"		if ($i<=0);
++    $code.="	movl	($dat,$YY,4),$TY#d\n";
++    $code.="	pxor	%xmm0,%xmm2\n"			if ($i==0);
++    $code.="	psllq	\$8,%xmm1\n"			if ($i==0);
++    $code.="	pxor	$xmm,$xmm\n"			if ($i<=1);
++    $code.="	movl	$TX[0]#d,($dat,$YY,4)\n";
++    $code.="	add	$TY#b,$TX[0]#b\n";
++    $code.="	movl	`4*($j+1)`($XX[1]),$TX[1]#d\n"	if ($i<15);
++    $code.="	movz	$TX[0]#b,$TX[0]#d\n";
++    $code.="	movl	$TY#d,`4*$j`($XX[1])\n";
++    $code.="	pxor	%xmm1,%xmm2\n"			if ($i==0);
++    $code.="	lea	($dat,$XX[0],4),$XX[1]\n"	if ($i==15);
++    $code.="	add	$TX[1]#b,$YY#b\n"		if ($i<15);
++    $code.="	pinsrw	\$`$j>>1`,($dat,$TX[0],4),$xmm\n";
++    $code.="	movdqu	%xmm2,($out,$inp)\n"		if ($i==0);
++    $code.="	lea	16($inp),$inp\n"		if ($i==0);
++    $code.="	movl	($XX[1]),$TX[1]#d\n"		if ($i==15);
++}
++	RC4_loop(-1);
++$code.=<<___;
++	jmp	.Loop16_enter
++.align	16
++.Loop16:
++___
++
++for ($i=0;$i<16;$i++) {
++    $code.=".Loop16_enter:\n"		if ($i==1);
++	RC4_loop($i);
++	push(@TX,shift(@TX)); 		# "rotate" registers
++}
++$code.=<<___;
++	mov	$YY,$TX[1]
++	xor	$YY,$YY			# keyword to partial register
++	sub	\$16,$len
++	mov	$TX[1]#b,$YY#b
++	test	\$-16,$len
++	jnz	.Loop16
++
++	psllq	\$8,%xmm1
++	pxor	%xmm0,%xmm2
++	pxor	%xmm1,%xmm2
++	movdqu	%xmm2,($out,$inp)
++	lea	16($inp),$inp
++
+ 	cmp	\$0,$len
+ 	jne	.Lloop1
+ 	jmp	.Lexit
+@@ -152,9 +314,8 @@ $code.=<<___;
+ 	movl	($dat,$TX[0],4),$TY#d
+ 	movl	($dat,$XX[0],4),$TX[0]#d
+ 	xorb	($inp),$TY#b
+-	inc	$inp
+-	movb	$TY#b,($out)
+-	inc	$out
++	movb	$TY#b,($out,$inp)
++	lea	1($inp),$inp
+ 	dec	$len
+ 	jnz	.Lloop1
+ 	jmp	.Lexit
+@@ -165,13 +326,11 @@ $code.=<<___;
+ 	movzb	($dat,$XX[0]),$TX[0]#d
+ 	test	\$-8,$len
+ 	jz	.Lcloop1
+-	cmpl	\$0,260($dat)
+-	jnz	.Lcloop1
+ 	jmp	.Lcloop8
+ .align	16
+ .Lcloop8:
+-	mov	($inp),%eax
+-	mov	4($inp),%ebx
++	mov	($inp),%r8d
++	mov	4($inp),%r9d
+ ___
+ # unroll 2x4-wise, because 64-bit rotates kill Intel P4...
+ for ($i=0;$i<4;$i++) {
+@@ -188,8 +347,8 @@ $code.=<<___;
+ 	mov	$TX[0],$TX[1]
+ .Lcmov$i:
+ 	add	$TX[0]#b,$TY#b
+-	xor	($dat,$TY),%al
+-	ror	\$8,%eax
++	xor	($dat,$TY),%r8b
++	ror	\$8,%r8d
+ ___
+ push(@TX,shift(@TX)); push(@XX,shift(@XX));	# "rotate" registers
+ }
+@@ -207,16 +366,16 @@ $code.=<<___;
+ 	mov	$TX[0],$TX[1]
+ .Lcmov$i:
+ 	add	$TX[0]#b,$TY#b
+-	xor	($dat,$TY),%bl
+-	ror	\$8,%ebx
++	xor	($dat,$TY),%r9b
++	ror	\$8,%r9d
+ ___
+ push(@TX,shift(@TX)); push(@XX,shift(@XX));	# "rotate" registers
+ }
+ $code.=<<___;
+ 	lea	-8($len),$len
+-	mov	%eax,($out)
++	mov	%r8d,($out)
+ 	lea	8($inp),$inp
+-	mov	%ebx,4($out)
++	mov	%r9d,4($out)
+ 	lea	8($out),$out
+ 
+ 	test	\$-8,$len
+@@ -229,6 +388,7 @@ $code.=<<___;
+ .align	16
+ .Lcloop1:
+ 	add	$TX[0]#b,$YY#b
++	movzb	$YY#b,$YY#d
+ 	movzb	($dat,$YY),$TY#d
+ 	movb	$TX[0]#b,($dat,$YY)
+ 	movb	$TY#b,($dat,$XX[0])
+@@ -260,12 +420,12 @@ $code.=<<___;
+ 	ret
+ .size	RC4,.-RC4
+ ___
++}
+ 
+ $idx="%r8";
+ $ido="%r9";
+ 
+ $code.=<<___;
+-.extern	OPENSSL_ia32cap_P
+ .globl	RC4_set_key
+ .type	RC4_set_key,\@function,3
+ .align	16
+@@ -280,12 +440,9 @@ RC4_set_key:
+ 	xor	%r11,%r11
+ 
+ 	mov	OPENSSL_ia32cap_P(%rip),$idx#d
+-	bt	\$20,$idx#d
+-	jnc	.Lw1stloop
+-	bt	\$30,$idx#d
+-	setc	$ido#b
+-	mov	$ido#d,260($dat)
+-	jmp	.Lc1stloop
++	bt	\$20,$idx#d	# RC4_CHAR?
++	jc	.Lc1stloop
++	jmp	.Lw1stloop
+ 
+ .align	16
+ .Lw1stloop:
+@@ -348,18 +505,20 @@ RC4_options:
+ 	lea	.Lopts(%rip),%rax
+ 	mov	OPENSSL_ia32cap_P(%rip),%edx
+ 	bt	\$20,%edx
+-	jnc	.Ldone
+-	add	\$12,%rax
++	jc	.L8xchar
+ 	bt	\$30,%edx
+ 	jnc	.Ldone
+-	add	\$13,%rax
++	add	\$25,%rax
++	ret
++.L8xchar:
++	add	\$12,%rax
+ .Ldone:
+ 	ret
+ .align	64
+ .Lopts:
+ .asciz	"rc4(8x,int)"
+ .asciz	"rc4(8x,char)"
+-.asciz	"rc4(1x,char)"
++.asciz	"rc4(16x,int)"
+ .asciz	"RC4 for x86_64, CRYPTOGAMS by <appro\@openssl.org>"
+ .align	64
+ .size	RC4_options,.-RC4_options
+@@ -497,8 +656,17 @@ key_se_handler:
+ ___
+ }
+ 
+-$code =~ s/#([bwd])/$1/gm;
++sub reg_part {
++my ($reg,$conv)=@_;
++    if ($reg =~ /%r[0-9]+/)	{ $reg .= $conv; }
++    elsif ($conv eq "b")	{ $reg =~ s/%[er]([^x]+)x?/%$1l/;	}
++    elsif ($conv eq "w")	{ $reg =~ s/%[er](.+)/%$1/;		}
++    elsif ($conv eq "d")	{ $reg =~ s/%[er](.+)/%e$1/;		}
++    return $reg;
++}
+ 
++$code =~ s/(%[a-z0-9]+)#([bwd])/reg_part($1,$2)/gem;
++$code =~ s/\`([^\`]*)\`/eval $1/gem;
+ $code =~ s/RC4_set_key/private_RC4_set_key/g if ($ENV{FIPS} ne "");
+ 
+ print $code;
+diff -up openssl-1.0.0/crypto/rc4/asm/rc4-586.pl.intelopts openssl-1.0.0/crypto/rc4/asm/rc4-586.pl
+--- openssl-1.0.0/crypto/rc4/asm/rc4-586.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/rc4/asm/rc4-586.pl	2011-08-24 16:01:42.000000000 +0200
+@@ -28,6 +28,33 @@
+ #
+ #					<appro@fy.chalmers.se>
+ 
++# May 2011
++#
++# Optimize for Core2 and Westmere [and incidentally Opteron]. Current
++# performance in cycles per processed byte (less is better) is:
++#
++# Pentium	10.2			# original numbers
++# Pentium III	7.8(*)
++# Intel P4	7.5
++#
++# Opteron	6.1/+20%		# new MMX numbers
++# Core2		5.3/+67%(**)
++# Westmere	5.1/+94%(**)
++# Sandy Bridge	5.0/+8%
++# Atom		12.6/+6%
++#
++# (*)	PIII can actually deliver 6.6 cycles per byte with MMX code,
++#	but this specific code performs poorly on Core2. And vice
++#	versa, below MMX/SSE code delivering 5.8/7.1 on Core2 performs
++#	poorly on PIII, at 8.0/14.5:-( As PIII is not a "hot" CPU
++#	[anymore], I chose to discard PIII-specific code path and opt
++#	for original IALU-only code, which is why MMX/SSE code path
++#	is guarded by SSE2 bit (see below), not MMX/SSE.
++# (**)	Performance vs. block size on Core2 and Westmere had a maximum
++#	at ... 64 bytes block size. And it was quite a maximum, 40-60%
++#	in comparison to largest 8KB block size. Above improvement
++#	coefficients are for the largest block size.
++
+ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
+ push(@INC,"${dir}","${dir}../../perlasm");
+ require "x86asm.pl";
+@@ -62,6 +89,68 @@ sub RC4_loop {
+ 	&$func	($out,&DWP(0,$dat,$ty,4));
+ }
+ 
++if ($alt=0) {
++  # >20% faster on Atom and Sandy Bridge[!], 8% faster on Opteron,
++  # but ~40% slower on Core2 and Westmere... Attempt to add movz
++  # brings down Opteron by 25%, Atom and Sandy Bridge by 15%, yet
++  # on Core2 with movz it's almost 20% slower than below alternative
++  # code... Yes, it's a total mess...
++  my @XX=($xx,$out);
++  $RC4_loop_mmx = sub {		# SSE actually...
++    my $i=shift;
++    my $j=$i<=0?0:$i>>1;
++    my $mm=$i<=0?"mm0":"mm".($i&1);
++
++	&add	(&LB($yy),&LB($tx));
++	&lea	(@XX[1],&DWP(1,@XX[0]));
++	&pxor	("mm2","mm0")				if ($i==0);
++	&psllq	("mm1",8)				if ($i==0);
++	&and	(@XX[1],0xff);
++	&pxor	("mm0","mm0")				if ($i<=0);
++	&mov	($ty,&DWP(0,$dat,$yy,4));
++	&mov	(&DWP(0,$dat,$yy,4),$tx);
++	&pxor	("mm1","mm2")				if ($i==0);
++	&mov	(&DWP(0,$dat,$XX[0],4),$ty);
++	&add	(&LB($ty),&LB($tx));
++	&movd	(@XX[0],"mm7")				if ($i==0);
++	&mov	($tx,&DWP(0,$dat,@XX[1],4));
++	&pxor	("mm1","mm1")				if ($i==1);
++	&movq	("mm2",&QWP(0,$inp))			if ($i==1);
++	&movq	(&QWP(-8,(@XX[0],$inp)),"mm1")		if ($i==0);
++	&pinsrw	($mm,&DWP(0,$dat,$ty,4),$j);
++
++	push	(@XX,shift(@XX))			if ($i>=0);
++  }
++} else {
++  # Using pinsrw here improves performane on Intel CPUs by 2-3%, but
++  # brings down AMD by 7%...
++  $RC4_loop_mmx = sub {
++    my $i=shift;
++
++	&add	(&LB($yy),&LB($tx));
++	&psllq	("mm1",8*(($i-1)&7))			if (abs($i)!=1);
++	&mov	($ty,&DWP(0,$dat,$yy,4));
++	&mov	(&DWP(0,$dat,$yy,4),$tx);
++	&mov	(&DWP(0,$dat,$xx,4),$ty);
++	&inc	($xx);
++	&add	($ty,$tx);
++	&movz	($xx,&LB($xx));				# (*)
++	&movz	($ty,&LB($ty));				# (*)
++	&pxor	("mm2",$i==1?"mm0":"mm1")		if ($i>=0);
++	&movq	("mm0",&QWP(0,$inp))			if ($i<=0);
++	&movq	(&QWP(-8,($out,$inp)),"mm2")		if ($i==0);
++	&mov	($tx,&DWP(0,$dat,$xx,4));
++	&movd	($i>0?"mm1":"mm2",&DWP(0,$dat,$ty,4));
++
++	# (*)	This is the key to Core2 and Westmere performance.
++	#	Whithout movz out-of-order execution logic confuses
++	#	itself and fails to reorder loads and stores. Problem
++	#	appears to be fixed in Sandy Bridge...
++  }
++}
++
++&external_label("OPENSSL_ia32cap_P");
++
+ # void RC4(RC4_KEY *key,size_t len,const unsigned char *inp,unsigned char *out);
+ &function_begin("RC4");
+ 	&mov	($dat,&wparam(0));	# load key schedule pointer
+@@ -94,11 +183,56 @@ sub RC4_loop {
+ 	&and	($ty,-4);		# how many 4-byte chunks?
+ 	&jz	(&label("loop1"));
+ 
++	&test	($ty,-8);
++	&mov	(&wparam(3),$out);	# $out as accumulator in these loops
++	&jz	(&label("go4loop4"));
++
++	&picmeup($out,"OPENSSL_ia32cap_P");
++	&bt	(&DWP(0,$out),26);	# check SSE2 bit [could have been MMX]
++	&jnc	(&label("go4loop4"));
++
++	&mov	($out,&wparam(3))	if (!$alt);
++	&movd	("mm7",&wparam(3))	if ($alt);
++	&and	($ty,-8);
++	&lea	($ty,&DWP(-8,$inp,$ty));
++	&mov	(&DWP(-4,$dat),$ty);	# save input+(len/8)*8-8
++
++	&$RC4_loop_mmx(-1);
++	&jmp(&label("loop_mmx_enter"));
++
++	&set_label("loop_mmx",16);
++		&$RC4_loop_mmx(0);
++	&set_label("loop_mmx_enter");
++		for 	($i=1;$i<8;$i++) { &$RC4_loop_mmx($i); }
++		&mov	($ty,$yy);
++		&xor	($yy,$yy);		# this is second key to Core2
++		&mov	(&LB($yy),&LB($ty));	# and Westmere performance...
++		&cmp	($inp,&DWP(-4,$dat));
++		&lea	($inp,&DWP(8,$inp));
++	&jb	(&label("loop_mmx"));
++
++    if ($alt) {
++	&movd	($out,"mm7");
++	&pxor	("mm2","mm0");
++	&psllq	("mm1",8);
++	&pxor	("mm1","mm2");
++	&movq	(&QWP(-8,$out,$inp),"mm1");
++    } else {
++	&psllq	("mm1",56);
++	&pxor	("mm2","mm1");
++	&movq	(&QWP(-8,$out,$inp),"mm2");
++    }
++	&emms	();
++
++	&cmp	($inp,&wparam(1));	# compare to input+len
++	&je	(&label("done"));
++	&jmp	(&label("loop1"));
++
++&set_label("go4loop4",16);
+ 	&lea	($ty,&DWP(-4,$inp,$ty));
+ 	&mov	(&wparam(2),$ty);	# save input+(len/4)*4-4
+-	&mov	(&wparam(3),$out);	# $out as accumulator in this loop
+ 
+-	&set_label("loop4",16);
++	&set_label("loop4");
+ 		for ($i=0;$i<4;$i++) { RC4_loop($i); }
+ 		&ror	($out,8);
+ 		&xor	($out,&DWP(0,$inp));
+@@ -151,7 +285,7 @@ sub RC4_loop {
+ 
+ &set_label("done");
+ 	&dec	(&LB($xx));
+-	&mov	(&BP(-4,$dat),&LB($yy));	# save key->y
++	&mov	(&DWP(-4,$dat),$yy);		# save key->y
+ 	&mov	(&BP(-8,$dat),&LB($xx));	# save key->x
+ &set_label("abort");
+ &function_end("RC4");
+@@ -164,12 +298,9 @@ $idi="ebp";
+ $ido="ecx";
+ $idx="edx";
+ 
+-&external_label("OPENSSL_ia32cap_P");
+-
+ $setkeyfunc = "RC4_set_key";
+ $setkeyfunc = "private_RC4_set_key" if ($ENV{FIPS} ne "");
+ 
+-
+ # void RC4_set_key(RC4_KEY *key,int len,const unsigned char *data);
+ &function_begin($setkeyfunc);
+ 	&mov	($out,&wparam(0));		# load key
+@@ -258,14 +389,21 @@ $setkeyfunc = "private_RC4_set_key" if (
+ 	&blindpop("eax");
+ 	&lea	("eax",&DWP(&label("opts")."-".&label("pic_point"),"eax"));
+ 	&picmeup("edx","OPENSSL_ia32cap_P");
+-	&bt	(&DWP(0,"edx"),20);
+-	&jnc	(&label("skip"));
+-	  &add	("eax",12);
+-	&set_label("skip");
++	&mov	("edx",&DWP(0,"edx"));
++	&bt	("edx",20);
++	&jc	(&label("1xchar"));
++	&bt	("edx",26);
++	&jnc	(&label("ret"));
++	&add	("eax",25);
++	&ret	();
++&set_label("1xchar");
++	&add	("eax",12);
++&set_label("ret");
+ 	&ret	();
+ &set_label("opts",64);
+ &asciz	("rc4(4x,int)");
+ &asciz	("rc4(1x,char)");
++&asciz	("rc4(8x,mmx)");
+ &asciz	("RC4 for x86, CRYPTOGAMS by <appro\@openssl.org>");
+ &align	(64);
+ &function_end_B("RC4_options");
+diff -up openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl.intelopts openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl
+--- openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/sha/asm/sha1-x86_64.pl	2011-08-24 16:01:46.000000000 +0200
+@@ -16,7 +16,7 @@
+ # There was suggestion to mechanically translate 32-bit code, but I
+ # dismissed it, reasoning that x86_64 offers enough register bank
+ # capacity to fully utilize SHA-1 parallelism. Therefore this fresh
+-# implementation:-) However! While 64-bit code does performs better
++# implementation:-) However! While 64-bit code does perform better
+ # on Opteron, I failed to beat 32-bit assembler on EM64T core. Well,
+ # x86_64 does offer larger *addressable* bank, but out-of-order core
+ # reaches for even more registers through dynamic aliasing, and EM64T
+@@ -29,6 +29,38 @@
+ # Xeon P4	+65%		+0%		9.9
+ # Core2		+60%		+10%		7.0
+ 
++# August 2009.
++#
++# The code was revised to minimize code size and to maximize
++# "distance" between instructions producing input to 'lea'
++# instruction and the 'lea' instruction itself, which is essential
++# for Intel Atom core.
++
++# October 2010.
++#
++# Add SSSE3, Supplemental[!] SSE3, implementation. The idea behind it
++# is to offload message schedule denoted by Wt in NIST specification,
++# or Xupdate in OpenSSL source, to SIMD unit. See sha1-586.pl module
++# for background and implementation details. The only difference from
++# 32-bit code is that 64-bit code doesn't have to spill @X[] elements
++# to free temporary registers.
++
++# April 2011.
++#
++# Add AVX code path. See sha1-586.pl for further information.
++
++######################################################################
++# Current performance is summarized in following table. Numbers are
++# CPU clock cycles spent to process single byte (less is better).
++#
++#		x86_64		SSSE3		AVX
++# P4		9.8		-
++# Opteron	6.6		-
++# Core2		6.7		6.1/+10%	-
++# Atom		11.0		9.7/+13%	-
++# Westmere	7.1		5.6/+27%	-
++# Sandy Bridge	7.9		6.3/+25%	5.2/+51%
++
+ $flavour = shift;
+ $output  = shift;
+ if ($flavour =~ /\./) { $output = $flavour; undef $flavour; }
+@@ -40,6 +72,13 @@ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
+ ( $xlate="${dir}../../perlasm/x86_64-xlate.pl" and -f $xlate) or
+ die "can't locate x86_64-xlate.pl";
+ 
++$avx=1 if (`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
++		=~ /GNU assembler version ([2-9]\.[0-9]+)/ &&
++	   $1>=2.19);
++$avx=1 if (!$avx && $flavour =~ /nasm/ &&
++	   `nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/ &&
++	   $1>=2.03);
++
+ open STDOUT,"| $^X $xlate $flavour $output";
+ 
+ $ctx="%rdi";	# 1st arg
+@@ -51,196 +90,994 @@ $ctx="%r8";
+ $inp="%r9";
+ $num="%r10";
+ 
+-$xi="%eax";
+-$t0="%ebx";
+-$t1="%ecx";
+-$A="%edx";
+-$B="%esi";
+-$C="%edi";
+-$D="%ebp";
+-$E="%r11d";
+-$T="%r12d";
+-
+-@V=($A,$B,$C,$D,$E,$T);
++$t0="%eax";
++$t1="%ebx";
++$t2="%ecx";
++@xi=("%edx","%ebp");
++$A="%esi";
++$B="%edi";
++$C="%r11d";
++$D="%r12d";
++$E="%r13d";
+ 
+-sub PROLOGUE {
+-my $func=shift;
+-$code.=<<___;
+-.globl	$func
+-.type	$func,\@function,3
+-.align	16
+-$func:
+-	push	%rbx
+-	push	%rbp
+-	push	%r12
+-	mov	%rsp,%r11
+-	mov	%rdi,$ctx	# reassigned argument
+-	sub	\$`8+16*4`,%rsp
+-	mov	%rsi,$inp	# reassigned argument
+-	and	\$-64,%rsp
+-	mov	%rdx,$num	# reassigned argument
+-	mov	%r11,`16*4`(%rsp)
+-.Lprologue:
+-
+-	mov	0($ctx),$A
+-	mov	4($ctx),$B
+-	mov	8($ctx),$C
+-	mov	12($ctx),$D
+-	mov	16($ctx),$E
+-___
+-}
+-
+-sub EPILOGUE {
+-my $func=shift;
+-$code.=<<___;
+-	mov	`16*4`(%rsp),%rsi
+-	mov	(%rsi),%r12
+-	mov	8(%rsi),%rbp
+-	mov	16(%rsi),%rbx
+-	lea	24(%rsi),%rsp
+-.Lepilogue:
+-	ret
+-.size	$func,.-$func
+-___
+-}
++@V=($A,$B,$C,$D,$E);
+ 
+ sub BODY_00_19 {
+-my ($i,$a,$b,$c,$d,$e,$f,$host)=@_;
++my ($i,$a,$b,$c,$d,$e)=@_;
+ my $j=$i+1;
+ $code.=<<___ if ($i==0);
+-	mov	`4*$i`($inp),$xi	
+-	`"bswap	$xi"	if(!defined($host))`
+-	mov	$xi,`4*$i`(%rsp)
++	mov	`4*$i`($inp),$xi[0]
++	bswap	$xi[0]
++	mov	$xi[0],`4*$i`(%rsp)
+ ___
+ $code.=<<___ if ($i<15);
+-	lea	0x5a827999($xi,$e),$f
+ 	mov	$c,$t0
+-	mov	`4*$j`($inp),$xi
+-	mov	$a,$e
++	mov	`4*$j`($inp),$xi[1]
++	mov	$a,$t2
+ 	xor	$d,$t0
+-	`"bswap	$xi"	if(!defined($host))`	
+-	rol	\$5,$e
++	bswap	$xi[1]
++	rol	\$5,$t2
++	lea	0x5a827999($xi[0],$e),$e
+ 	and	$b,$t0
+-	mov	$xi,`4*$j`(%rsp)
+-	add	$e,$f
++	mov	$xi[1],`4*$j`(%rsp)
++	add	$t2,$e
+ 	xor	$d,$t0
+ 	rol	\$30,$b
+-	add	$t0,$f
++	add	$t0,$e
+ ___
+ $code.=<<___ if ($i>=15);
+-	lea	0x5a827999($xi,$e),$f
+-	mov	`4*($j%16)`(%rsp),$xi
++	mov	`4*($j%16)`(%rsp),$xi[1]
+ 	mov	$c,$t0
+-	mov	$a,$e
+-	xor	`4*(($j+2)%16)`(%rsp),$xi
++	mov	$a,$t2
++	xor	`4*(($j+2)%16)`(%rsp),$xi[1]
+ 	xor	$d,$t0
+-	rol	\$5,$e
+-	xor	`4*(($j+8)%16)`(%rsp),$xi
++	rol	\$5,$t2
++	xor	`4*(($j+8)%16)`(%rsp),$xi[1]
+ 	and	$b,$t0
+-	add	$e,$f
+-	xor	`4*(($j+13)%16)`(%rsp),$xi
++	lea	0x5a827999($xi[0],$e),$e
++	xor	`4*(($j+13)%16)`(%rsp),$xi[1]
+ 	xor	$d,$t0
++	rol	\$1,$xi[1]
++	add	$t2,$e
+ 	rol	\$30,$b
+-	add	$t0,$f
+-	rol	\$1,$xi
+-	mov	$xi,`4*($j%16)`(%rsp)
++	mov	$xi[1],`4*($j%16)`(%rsp)
++	add	$t0,$e
+ ___
++unshift(@xi,pop(@xi));
+ }
+ 
+ sub BODY_20_39 {
+-my ($i,$a,$b,$c,$d,$e,$f)=@_;
++my ($i,$a,$b,$c,$d,$e)=@_;
+ my $j=$i+1;
+ my $K=($i<40)?0x6ed9eba1:0xca62c1d6;
+ $code.=<<___ if ($i<79);
+-	lea	$K($xi,$e),$f
+-	mov	`4*($j%16)`(%rsp),$xi
++	mov	`4*($j%16)`(%rsp),$xi[1]
+ 	mov	$c,$t0
+-	mov	$a,$e
+-	xor	`4*(($j+2)%16)`(%rsp),$xi
++	mov	$a,$t2
++	xor	`4*(($j+2)%16)`(%rsp),$xi[1]
+ 	xor	$b,$t0
+-	rol	\$5,$e
+-	xor	`4*(($j+8)%16)`(%rsp),$xi
++	rol	\$5,$t2
++	lea	$K($xi[0],$e),$e
++	xor	`4*(($j+8)%16)`(%rsp),$xi[1]
+ 	xor	$d,$t0
+-	add	$e,$f
+-	xor	`4*(($j+13)%16)`(%rsp),$xi
++	add	$t2,$e
++	xor	`4*(($j+13)%16)`(%rsp),$xi[1]
+ 	rol	\$30,$b
+-	add	$t0,$f
+-	rol	\$1,$xi
++	add	$t0,$e
++	rol	\$1,$xi[1]
+ ___
+ $code.=<<___ if ($i<76);
+-	mov	$xi,`4*($j%16)`(%rsp)
++	mov	$xi[1],`4*($j%16)`(%rsp)
+ ___
+ $code.=<<___ if ($i==79);
+-	lea	$K($xi,$e),$f
+ 	mov	$c,$t0
+-	mov	$a,$e
++	mov	$a,$t2
+ 	xor	$b,$t0
+-	rol	\$5,$e
++	lea	$K($xi[0],$e),$e
++	rol	\$5,$t2
+ 	xor	$d,$t0
+-	add	$e,$f
++	add	$t2,$e
+ 	rol	\$30,$b
+-	add	$t0,$f
++	add	$t0,$e
+ ___
++unshift(@xi,pop(@xi));
+ }
+ 
+ sub BODY_40_59 {
+-my ($i,$a,$b,$c,$d,$e,$f)=@_;
++my ($i,$a,$b,$c,$d,$e)=@_;
+ my $j=$i+1;
+ $code.=<<___;
+-	lea	0x8f1bbcdc($xi,$e),$f
+-	mov	`4*($j%16)`(%rsp),$xi
+-	mov	$b,$t0
+-	mov	$b,$t1
+-	xor	`4*(($j+2)%16)`(%rsp),$xi
+-	mov	$a,$e
+-	and	$c,$t0
+-	xor	`4*(($j+8)%16)`(%rsp),$xi
+-	or	$c,$t1
+-	rol	\$5,$e
+-	xor	`4*(($j+13)%16)`(%rsp),$xi
+-	and	$d,$t1
+-	add	$e,$f
+-	rol	\$1,$xi
+-	or	$t1,$t0
++	mov	`4*($j%16)`(%rsp),$xi[1]
++	mov	$c,$t0
++	mov	$c,$t1
++	xor	`4*(($j+2)%16)`(%rsp),$xi[1]
++	and	$d,$t0
++	mov	$a,$t2
++	xor	`4*(($j+8)%16)`(%rsp),$xi[1]
++	xor	$d,$t1
++	lea	0x8f1bbcdc($xi[0],$e),$e
++	rol	\$5,$t2
++	xor	`4*(($j+13)%16)`(%rsp),$xi[1]
++	add	$t0,$e
++	and	$b,$t1
++	rol	\$1,$xi[1]
++	add	$t1,$e
+ 	rol	\$30,$b
+-	mov	$xi,`4*($j%16)`(%rsp)
+-	add	$t0,$f
++	mov	$xi[1],`4*($j%16)`(%rsp)
++	add	$t2,$e
+ ___
++unshift(@xi,pop(@xi));
+ }
+ 
+-$code=".text\n";
++$code.=<<___;
++.text
++.extern	OPENSSL_ia32cap_X
++
++.globl	sha1_block_data_order
++.type	sha1_block_data_order,\@function,3
++.align	16
++sha1_block_data_order:
++	mov	OPENSSL_ia32cap_X+0(%rip),%r9d
++	mov	OPENSSL_ia32cap_X+4(%rip),%r8d
++	test	\$`1<<9`,%r8d		# check SSSE3 bit
++	jz	.Lialu
++___
++$code.=<<___ if ($avx);
++	and	\$`1<<28`,%r8d		# mask AVX bit
++	and	\$`1<<30`,%r9d		# mask "Intel CPU" bit
++	or	%r9d,%r8d
++	cmp	\$`1<<28|1<<30`,%r8d
++	je	_avx_shortcut
++___
++$code.=<<___;
++	jmp	_ssse3_shortcut
++
++.align	16
++.Lialu:
++	push	%rbx
++	push	%rbp
++	push	%r12
++	push	%r13
++	mov	%rsp,%r11
++	mov	%rdi,$ctx	# reassigned argument
++	sub	\$`8+16*4`,%rsp
++	mov	%rsi,$inp	# reassigned argument
++	and	\$-64,%rsp
++	mov	%rdx,$num	# reassigned argument
++	mov	%r11,`16*4`(%rsp)
++.Lprologue:
++
++	mov	0($ctx),$A
++	mov	4($ctx),$B
++	mov	8($ctx),$C
++	mov	12($ctx),$D
++	mov	16($ctx),$E
++	jmp	.Lloop
+ 
+-&PROLOGUE("sha1_block_data_order");
+-$code.=".align	4\n.Lloop:\n";
++.align	16
++.Lloop:
++___
+ for($i=0;$i<20;$i++)	{ &BODY_00_19($i,@V); unshift(@V,pop(@V)); }
+ for(;$i<40;$i++)	{ &BODY_20_39($i,@V); unshift(@V,pop(@V)); }
+ for(;$i<60;$i++)	{ &BODY_40_59($i,@V); unshift(@V,pop(@V)); }
+ for(;$i<80;$i++)	{ &BODY_20_39($i,@V); unshift(@V,pop(@V)); }
+ $code.=<<___;
+-	add	0($ctx),$E
+-	add	4($ctx),$T
+-	add	8($ctx),$A
+-	add	12($ctx),$B
+-	add	16($ctx),$C
+-	mov	$E,0($ctx)
+-	mov	$T,4($ctx)
+-	mov	$A,8($ctx)
+-	mov	$B,12($ctx)
+-	mov	$C,16($ctx)
+-
+-	xchg	$E,$A	# mov	$E,$A
+-	xchg	$T,$B	# mov	$T,$B
+-	xchg	$E,$C	# mov	$A,$C
+-	xchg	$T,$D	# mov	$B,$D
+-			# mov	$C,$E
+-	lea	`16*4`($inp),$inp
++	add	0($ctx),$A
++	add	4($ctx),$B
++	add	8($ctx),$C
++	add	12($ctx),$D
++	add	16($ctx),$E
++	mov	$A,0($ctx)
++	mov	$B,4($ctx)
++	mov	$C,8($ctx)
++	mov	$D,12($ctx)
++	mov	$E,16($ctx)
++
+ 	sub	\$1,$num
++	lea	`16*4`($inp),$inp
+ 	jnz	.Lloop
++
++	mov	`16*4`(%rsp),%rsi
++	mov	(%rsi),%r13
++	mov	8(%rsi),%r12
++	mov	16(%rsi),%rbp
++	mov	24(%rsi),%rbx
++	lea	32(%rsi),%rsp
++.Lepilogue:
++	ret
++.size	sha1_block_data_order,.-sha1_block_data_order
+ ___
+-&EPILOGUE("sha1_block_data_order");
++{{{
++my $Xi=4;
++my @X=map("%xmm$_",(4..7,0..3));
++my @Tx=map("%xmm$_",(8..10));
++my @V=($A,$B,$C,$D,$E)=("%eax","%ebx","%ecx","%edx","%ebp");	# size optimization
++my @T=("%esi","%edi");
++my $j=0;
++my $K_XX_XX="%r11";
++
++my $_rol=sub { &rol(@_) };
++my $_ror=sub { &ror(@_) };
++
+ $code.=<<___;
+-.asciz	"SHA1 block transform for x86_64, CRYPTOGAMS by <appro\@openssl.org>"
++.type	sha1_block_data_order_ssse3,\@function,3
+ .align	16
++sha1_block_data_order_ssse3:
++_ssse3_shortcut:
++	push	%rbx
++	push	%rbp
++	push	%r12
++	lea	`-64-($win64?5*16:0)`(%rsp),%rsp
++___
++$code.=<<___ if ($win64);
++	movaps	%xmm6,64+0(%rsp)
++	movaps	%xmm7,64+16(%rsp)
++	movaps	%xmm8,64+32(%rsp)
++	movaps	%xmm9,64+48(%rsp)
++	movaps	%xmm10,64+64(%rsp)
++.Lprologue_ssse3:
++___
++$code.=<<___;
++	mov	%rdi,$ctx	# reassigned argument
++	mov	%rsi,$inp	# reassigned argument
++	mov	%rdx,$num	# reassigned argument
++
++	shl	\$6,$num
++	add	$inp,$num
++	lea	K_XX_XX(%rip),$K_XX_XX
++
++	mov	0($ctx),$A		# load context
++	mov	4($ctx),$B
++	mov	8($ctx),$C
++	mov	12($ctx),$D
++	mov	$B,@T[0]		# magic seed
++	mov	16($ctx),$E
++
++	movdqa	64($K_XX_XX),@X[2]	# pbswap mask
++	movdqa	0($K_XX_XX),@Tx[1]	# K_00_19
++	movdqu	0($inp),@X[-4&7]	# load input to %xmm[0-3]
++	movdqu	16($inp),@X[-3&7]
++	movdqu	32($inp),@X[-2&7]
++	movdqu	48($inp),@X[-1&7]
++	pshufb	@X[2],@X[-4&7]		# byte swap
++	add	\$64,$inp
++	pshufb	@X[2],@X[-3&7]
++	pshufb	@X[2],@X[-2&7]
++	pshufb	@X[2],@X[-1&7]
++	paddd	@Tx[1],@X[-4&7]		# add K_00_19
++	paddd	@Tx[1],@X[-3&7]
++	paddd	@Tx[1],@X[-2&7]
++	movdqa	@X[-4&7],0(%rsp)	# X[]+K xfer to IALU
++	psubd	@Tx[1],@X[-4&7]		# restore X[]
++	movdqa	@X[-3&7],16(%rsp)
++	psubd	@Tx[1],@X[-3&7]
++	movdqa	@X[-2&7],32(%rsp)
++	psubd	@Tx[1],@X[-2&7]
++	jmp	.Loop_ssse3
++___
++
++sub AUTOLOAD()		# thunk [simplified] 32-bit style perlasm
++{ my $opcode = $AUTOLOAD; $opcode =~ s/.*:://;
++  my $arg = pop;
++    $arg = "\$$arg" if ($arg*1 eq $arg);
++    $code .= "\t$opcode\t".join(',',$arg,reverse @_)."\n";
++}
++
++sub Xupdate_ssse3_16_31()		# recall that $Xi starts wtih 4
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 40 instructions
++  my ($a,$b,$c,$d,$e);
++
++	&movdqa	(@X[0],@X[-3&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&movdqa	(@Tx[0],@X[-1&7]);
++	&palignr(@X[0],@X[-4&7],8);	# compose "X[-14]" in "X[0]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &paddd	(@Tx[1],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&psrldq	(@Tx[0],4);		# "X[-3]", 3 dwords
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&pxor	(@X[0],@X[-4&7]);	# "X[0]"^="X[-16]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pxor	(@Tx[0],@X[-2&7]);	# "X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pxor	(@X[0],@Tx[0]);		# "X[0]"^="X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &movdqa	(eval(16*(($Xi-1)&3))."(%rsp)",@Tx[1]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&movdqa	(@Tx[2],@X[0]);
++	&movdqa	(@Tx[0],@X[0]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pslldq	(@Tx[2],12);		# "X[0]"<<96, extract one dword
++	&paddd	(@X[0],@X[0]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&psrld	(@Tx[0],31);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&movdqa	(@Tx[1],@Tx[2]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&psrld	(@Tx[2],30);
++	&por	(@X[0],@Tx[0]);		# "X[0]"<<<=1
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pslld	(@Tx[1],2);
++	&pxor	(@X[0],@Tx[2]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &movdqa	(@Tx[2],eval(16*(($Xi)/5))."($K_XX_XX)");	# K_XX_XX
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pxor	(@X[0],@Tx[1]);		# "X[0]"^=("X[0]">>96)<<<2
++
++	 foreach (@insns) { eval; }	# remaining instructions [if any]
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++		push(@Tx,shift(@Tx));
++}
++
++sub Xupdate_ssse3_32_79()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 to 48 instructions
++  my ($a,$b,$c,$d,$e);
++
++	&movdqa	(@Tx[0],@X[-1&7])	if ($Xi==8);
++	 eval(shift(@insns));		# body_20_39
++	&pxor	(@X[0],@X[-4&7]);	# "X[0]"="X[-32]"^"X[-16]"
++	&palignr(@Tx[0],@X[-2&7],8);	# compose "X[-6]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&pxor	(@X[0],@X[-7&7]);	# "X[0]"^="X[-28]"
++	 eval(shift(@insns));
++	 eval(shift(@insns))	if (@insns[0] !~ /&ro[rl]/);
++	if ($Xi%5) {
++	  &movdqa	(@Tx[2],@Tx[1]);# "perpetuate" K_XX_XX...
++	} else {			# ... or load next one
++	  &movdqa	(@Tx[2],eval(16*($Xi/5))."($K_XX_XX)");
++	}
++	  &paddd	(@Tx[1],@X[-1&7]);
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&pxor	(@X[0],@Tx[0]);		# "X[0]"^="X[-6]"
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&movdqa	(@Tx[0],@X[0]);
++	  &movdqa	(eval(16*(($Xi-1)&3))."(%rsp)",@Tx[1]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&pslld	(@X[0],2);
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	&psrld	(@Tx[0],30);
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&por	(@X[0],@Tx[0]);		# "X[0]"<<<=2
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	  &movdqa	(@Tx[1],@X[0])	if ($Xi<19);
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++
++	 foreach (@insns) { eval; }	# remaining instructions
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++		push(@Tx,shift(@Tx));
++}
++
++sub Xuplast_ssse3_80()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	  &paddd	(@Tx[1],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &movdqa	(eval(16*(($Xi-1)&3))."(%rsp)",@Tx[1]);	# X[]+K xfer IALU
++
++	 foreach (@insns) { eval; }		# remaining instructions
++
++	&cmp	($inp,$num);
++	&je	(".Ldone_ssse3");
++
++	unshift(@Tx,pop(@Tx));
++
++	&movdqa	(@X[2],"64($K_XX_XX)");		# pbswap mask
++	&movdqa	(@Tx[1],"0($K_XX_XX)");		# K_00_19
++	&movdqu	(@X[-4&7],"0($inp)");		# load input
++	&movdqu	(@X[-3&7],"16($inp)");
++	&movdqu	(@X[-2&7],"32($inp)");
++	&movdqu	(@X[-1&7],"48($inp)");
++	&pshufb	(@X[-4&7],@X[2]);		# byte swap
++	&add	($inp,64);
++
++  $Xi=0;
++}
++
++sub Xloop_ssse3()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&pshufb	(@X[($Xi-3)&7],@X[2]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&paddd	(@X[($Xi-4)&7],@Tx[1]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&movdqa	(eval(16*$Xi)."(%rsp)",@X[($Xi-4)&7]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&psubd	(@X[($Xi-4)&7],@Tx[1]);
++
++	foreach (@insns) { eval; }
++  $Xi++;
++}
++
++sub Xtail_ssse3()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	foreach (@insns) { eval; }
++}
++
++sub body_00_19 () {
++	(
++	'($a,$b,$c,$d,$e)=@V;'.
++	'&add	($e,eval(4*($j&15))."(%rsp)");',	# X[]+K xfer
++	'&xor	($c,$d);',
++	'&mov	(@T[1],$a);',	# $b in next round
++	'&$_rol	($a,5);',
++	'&and	(@T[0],$c);',	# ($b&($c^$d))
++	'&xor	($c,$d);',	# restore $c
++	'&xor	(@T[0],$d);',
++	'&add	($e,$a);',
++	'&$_ror	($b,$j?7:2);',	# $b>>>2
++	'&add	($e,@T[0]);'	.'$j++; unshift(@V,pop(@V)); unshift(@T,pop(@T));'
++	);
++}
++
++sub body_20_39 () {
++	(
++	'($a,$b,$c,$d,$e)=@V;'.
++	'&add	($e,eval(4*($j++&15))."(%rsp)");',	# X[]+K xfer
++	'&xor	(@T[0],$d);',	# ($b^$d)
++	'&mov	(@T[1],$a);',	# $b in next round
++	'&$_rol	($a,5);',
++	'&xor	(@T[0],$c);',	# ($b^$d^$c)
++	'&add	($e,$a);',
++	'&$_ror	($b,7);',	# $b>>>2
++	'&add	($e,@T[0]);'	.'unshift(@V,pop(@V)); unshift(@T,pop(@T));'
++	);
++}
++
++sub body_40_59 () {
++	(
++	'($a,$b,$c,$d,$e)=@V;'.
++	'&mov	(@T[1],$c);',
++	'&xor	($c,$d);',
++	'&add	($e,eval(4*($j++&15))."(%rsp)");',	# X[]+K xfer
++	'&and	(@T[1],$d);',
++	'&and	(@T[0],$c);',	# ($b&($c^$d))
++	'&$_ror	($b,7);',	# $b>>>2
++	'&add	($e,@T[1]);',
++	'&mov	(@T[1],$a);',	# $b in next round
++	'&$_rol	($a,5);',
++	'&add	($e,@T[0]);',
++	'&xor	($c,$d);',	# restore $c
++	'&add	($e,$a);'	.'unshift(@V,pop(@V)); unshift(@T,pop(@T));'
++	);
++}
++$code.=<<___;
++.align	16
++.Loop_ssse3:
++___
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_32_79(\&body_00_19);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xuplast_ssse3_80(\&body_20_39);	# can jump to "done"
++
++				$saved_j=$j; @saved_V=@V;
++
++	&Xloop_ssse3(\&body_20_39);
++	&Xloop_ssse3(\&body_20_39);
++	&Xloop_ssse3(\&body_20_39);
++
++$code.=<<___;
++	add	0($ctx),$A			# update context
++	add	4($ctx),@T[0]
++	add	8($ctx),$C
++	add	12($ctx),$D
++	mov	$A,0($ctx)
++	add	16($ctx),$E
++	mov	@T[0],4($ctx)
++	mov	@T[0],$B			# magic seed
++	mov	$C,8($ctx)
++	mov	$D,12($ctx)
++	mov	$E,16($ctx)
++	jmp	.Loop_ssse3
++
++.align	16
++.Ldone_ssse3:
++___
++				$j=$saved_j; @V=@saved_V;
++
++	&Xtail_ssse3(\&body_20_39);
++	&Xtail_ssse3(\&body_20_39);
++	&Xtail_ssse3(\&body_20_39);
++
++$code.=<<___;
++	add	0($ctx),$A			# update context
++	add	4($ctx),@T[0]
++	add	8($ctx),$C
++	mov	$A,0($ctx)
++	add	12($ctx),$D
++	mov	@T[0],4($ctx)
++	add	16($ctx),$E
++	mov	$C,8($ctx)
++	mov	$D,12($ctx)
++	mov	$E,16($ctx)
++___
++$code.=<<___ if ($win64);
++	movaps	64+0(%rsp),%xmm6
++	movaps	64+16(%rsp),%xmm7
++	movaps	64+32(%rsp),%xmm8
++	movaps	64+48(%rsp),%xmm9
++	movaps	64+64(%rsp),%xmm10
++___
++$code.=<<___;
++	lea	`64+($win64?6*16:0)`(%rsp),%rsi
++	mov	0(%rsi),%r12
++	mov	8(%rsi),%rbp
++	mov	16(%rsi),%rbx
++	lea	24(%rsi),%rsp
++.Lepilogue_ssse3:
++	ret
++.size	sha1_block_data_order_ssse3,.-sha1_block_data_order_ssse3
++___
++
++if ($avx) {
++my $Xi=4;
++my @X=map("%xmm$_",(4..7,0..3));
++my @Tx=map("%xmm$_",(8..10));
++my @V=($A,$B,$C,$D,$E)=("%eax","%ebx","%ecx","%edx","%ebp");	# size optimization
++my @T=("%esi","%edi");
++my $j=0;
++my $K_XX_XX="%r11";
++
++my $_rol=sub { &shld(@_[0],@_) };
++my $_ror=sub { &shrd(@_[0],@_) };
++
++$code.=<<___;
++.type	sha1_block_data_order_avx,\@function,3
++.align	16
++sha1_block_data_order_avx:
++_avx_shortcut:
++	push	%rbx
++	push	%rbp
++	push	%r12
++	lea	`-64-($win64?5*16:0)`(%rsp),%rsp
++___
++$code.=<<___ if ($win64);
++	movaps	%xmm6,64+0(%rsp)
++	movaps	%xmm7,64+16(%rsp)
++	movaps	%xmm8,64+32(%rsp)
++	movaps	%xmm9,64+48(%rsp)
++	movaps	%xmm10,64+64(%rsp)
++.Lprologue_avx:
++___
++$code.=<<___;
++	mov	%rdi,$ctx	# reassigned argument
++	mov	%rsi,$inp	# reassigned argument
++	mov	%rdx,$num	# reassigned argument
++	vzeroall
++
++	shl	\$6,$num
++	add	$inp,$num
++	lea	K_XX_XX(%rip),$K_XX_XX
++
++	mov	0($ctx),$A		# load context
++	mov	4($ctx),$B
++	mov	8($ctx),$C
++	mov	12($ctx),$D
++	mov	$B,@T[0]		# magic seed
++	mov	16($ctx),$E
++
++	vmovdqa	64($K_XX_XX),@X[2]	# pbswap mask
++	vmovdqa	0($K_XX_XX),@Tx[1]	# K_00_19
++	vmovdqu	0($inp),@X[-4&7]	# load input to %xmm[0-3]
++	vmovdqu	16($inp),@X[-3&7]
++	vmovdqu	32($inp),@X[-2&7]
++	vmovdqu	48($inp),@X[-1&7]
++	vpshufb	@X[2],@X[-4&7],@X[-4&7]	# byte swap
++	add	\$64,$inp
++	vpshufb	@X[2],@X[-3&7],@X[-3&7]
++	vpshufb	@X[2],@X[-2&7],@X[-2&7]
++	vpshufb	@X[2],@X[-1&7],@X[-1&7]
++	vpaddd	@Tx[1],@X[-4&7],@X[0]	# add K_00_19
++	vpaddd	@Tx[1],@X[-3&7],@X[1]
++	vpaddd	@Tx[1],@X[-2&7],@X[2]
++	vmovdqa	@X[0],0(%rsp)		# X[]+K xfer to IALU
++	vmovdqa	@X[1],16(%rsp)
++	vmovdqa	@X[2],32(%rsp)
++	jmp	.Loop_avx
++___
++
++sub Xupdate_avx_16_31()		# recall that $Xi starts wtih 4
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 40 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpalignr(@X[0],@X[-3&7],@X[-4&7],8);	# compose "X[-14]" in "X[0]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &vpaddd	(@Tx[1],@Tx[1],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpsrldq(@Tx[0],@X[-1&7],4);	# "X[-3]", 3 dwords
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpxor	(@X[0],@X[0],@X[-4&7]);		# "X[0]"^="X[-16]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpxor	(@Tx[0],@Tx[0],@X[-2&7]);	# "X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpxor	(@X[0],@X[0],@Tx[0]);		# "X[0]"^="X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &vmovdqa	(eval(16*(($Xi-1)&3))."(%rsp)",@Tx[1]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpsrld	(@Tx[0],@X[0],31);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpslldq(@Tx[2],@X[0],12);		# "X[0]"<<96, extract one dword
++	&vpaddd	(@X[0],@X[0],@X[0]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpsrld	(@Tx[1],@Tx[2],30);
++	&vpor	(@X[0],@X[0],@Tx[0]);		# "X[0]"<<<=1
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpslld	(@Tx[2],@Tx[2],2);
++	&vpxor	(@X[0],@X[0],@Tx[1]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpxor	(@X[0],@X[0],@Tx[2]);		# "X[0]"^=("X[0]">>96)<<<2
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &vmovdqa	(@Tx[2],eval(16*(($Xi)/5))."($K_XX_XX)");	# K_XX_XX
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++
++	 foreach (@insns) { eval; }	# remaining instructions [if any]
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++		push(@Tx,shift(@Tx));
++}
++
++sub Xupdate_avx_32_79()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 to 48 instructions
++  my ($a,$b,$c,$d,$e);
++
++	&vpalignr(@Tx[0],@X[-1&7],@X[-2&7],8);	# compose "X[-6]"
++	&vpxor	(@X[0],@X[0],@X[-4&7]);		# "X[0]"="X[-32]"^"X[-16]"
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&vpxor	(@X[0],@X[0],@X[-7&7]);		# "X[0]"^="X[-28]"
++	 eval(shift(@insns));
++	 eval(shift(@insns))	if (@insns[0] !~ /&ro[rl]/);
++	if ($Xi%5) {
++	  &vmovdqa	(@Tx[2],@Tx[1]);# "perpetuate" K_XX_XX...
++	} else {			# ... or load next one
++	  &vmovdqa	(@Tx[2],eval(16*($Xi/5))."($K_XX_XX)");
++	}
++	  &vpaddd	(@Tx[1],@Tx[1],@X[-1&7]);
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&vpxor	(@X[0],@X[0],@Tx[0]);		# "X[0]"^="X[-6]"
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&vpsrld	(@Tx[0],@X[0],30);
++	  &vmovdqa	(eval(16*(($Xi-1)&3))."(%rsp)",@Tx[1]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&vpslld	(@X[0],@X[0],2);
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&vpor	(@X[0],@X[0],@Tx[0]);		# "X[0]"<<<=2
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	  &vmovdqa	(@Tx[1],@X[0])	if ($Xi<19);
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++
++	 foreach (@insns) { eval; }	# remaining instructions
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++		push(@Tx,shift(@Tx));
++}
++
++sub Xuplast_avx_80()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	  &vpaddd	(@Tx[1],@Tx[1],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &movdqa	(eval(16*(($Xi-1)&3))."(%rsp)",@Tx[1]);	# X[]+K xfer IALU
++
++	 foreach (@insns) { eval; }		# remaining instructions
++
++	&cmp	($inp,$num);
++	&je	(".Ldone_avx");
++
++	unshift(@Tx,pop(@Tx));
++
++	&vmovdqa(@X[2],"64($K_XX_XX)");		# pbswap mask
++	&vmovdqa(@Tx[1],"0($K_XX_XX)");		# K_00_19
++	&vmovdqu(@X[-4&7],"0($inp)");		# load input
++	&vmovdqu(@X[-3&7],"16($inp)");
++	&vmovdqu(@X[-2&7],"32($inp)");
++	&vmovdqu(@X[-1&7],"48($inp)");
++	&vpshufb(@X[-4&7],@X[-4&7],@X[2]);	# byte swap
++	&add	($inp,64);
++
++  $Xi=0;
++}
++
++sub Xloop_avx()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpshufb(@X[($Xi-3)&7],@X[($Xi-3)&7],@X[2]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpaddd	(@X[$Xi&7],@X[($Xi-4)&7],@Tx[1]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vmovdqa(eval(16*$Xi)."(%rsp)",@X[$Xi&7]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	foreach (@insns) { eval; }
++  $Xi++;
++}
++
++sub Xtail_avx()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	foreach (@insns) { eval; }
++}
++
++$code.=<<___;
++.align	16
++.Loop_avx:
++___
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_32_79(\&body_00_19);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xuplast_avx_80(\&body_20_39);	# can jump to "done"
++
++				$saved_j=$j; @saved_V=@V;
++
++	&Xloop_avx(\&body_20_39);
++	&Xloop_avx(\&body_20_39);
++	&Xloop_avx(\&body_20_39);
++
++$code.=<<___;
++	add	0($ctx),$A			# update context
++	add	4($ctx),@T[0]
++	add	8($ctx),$C
++	add	12($ctx),$D
++	mov	$A,0($ctx)
++	add	16($ctx),$E
++	mov	@T[0],4($ctx)
++	mov	@T[0],$B			# magic seed
++	mov	$C,8($ctx)
++	mov	$D,12($ctx)
++	mov	$E,16($ctx)
++	jmp	.Loop_avx
++
++.align	16
++.Ldone_avx:
++___
++				$j=$saved_j; @V=@saved_V;
++
++	&Xtail_avx(\&body_20_39);
++	&Xtail_avx(\&body_20_39);
++	&Xtail_avx(\&body_20_39);
++
++$code.=<<___;
++	vzeroall
++
++	add	0($ctx),$A			# update context
++	add	4($ctx),@T[0]
++	add	8($ctx),$C
++	mov	$A,0($ctx)
++	add	12($ctx),$D
++	mov	@T[0],4($ctx)
++	add	16($ctx),$E
++	mov	$C,8($ctx)
++	mov	$D,12($ctx)
++	mov	$E,16($ctx)
++___
++$code.=<<___ if ($win64);
++	movaps	64+0(%rsp),%xmm6
++	movaps	64+16(%rsp),%xmm7
++	movaps	64+32(%rsp),%xmm8
++	movaps	64+48(%rsp),%xmm9
++	movaps	64+64(%rsp),%xmm10
++___
++$code.=<<___;
++	lea	`64+($win64?6*16:0)`(%rsp),%rsi
++	mov	0(%rsi),%r12
++	mov	8(%rsi),%rbp
++	mov	16(%rsi),%rbx
++	lea	24(%rsi),%rsp
++.Lepilogue_avx:
++	ret
++.size	sha1_block_data_order_avx,.-sha1_block_data_order_avx
++___
++}
++$code.=<<___;
++.align	64
++K_XX_XX:
++.long	0x5a827999,0x5a827999,0x5a827999,0x5a827999	# K_00_19
++.long	0x6ed9eba1,0x6ed9eba1,0x6ed9eba1,0x6ed9eba1	# K_20_39
++.long	0x8f1bbcdc,0x8f1bbcdc,0x8f1bbcdc,0x8f1bbcdc	# K_40_59
++.long	0xca62c1d6,0xca62c1d6,0xca62c1d6,0xca62c1d6	# K_60_79
++.long	0x00010203,0x04050607,0x08090a0b,0x0c0d0e0f	# pbswap mask
++___
++}}}
++$code.=<<___;
++.asciz	"SHA1 block transform for x86_64, CRYPTOGAMS by <appro\@openssl.org>"
++.align	64
+ ___
+ 
+ # EXCEPTION_DISPOSITION handler (EXCEPTION_RECORD *rec,ULONG64 frame,
+@@ -272,25 +1109,73 @@ se_handler:
+ 
+ 	lea	.Lprologue(%rip),%r10
+ 	cmp	%r10,%rbx		# context->Rip<.Lprologue
+-	jb	.Lin_prologue
++	jb	.Lcommon_seh_tail
+ 
+ 	mov	152($context),%rax	# pull context->Rsp
+ 
+ 	lea	.Lepilogue(%rip),%r10
+ 	cmp	%r10,%rbx		# context->Rip>=.Lepilogue
+-	jae	.Lin_prologue
++	jae	.Lcommon_seh_tail
+ 
+ 	mov	`16*4`(%rax),%rax	# pull saved stack pointer
+-	lea	24(%rax),%rax
++	lea	32(%rax),%rax
+ 
+ 	mov	-8(%rax),%rbx
+ 	mov	-16(%rax),%rbp
+ 	mov	-24(%rax),%r12
++	mov	-32(%rax),%r13
+ 	mov	%rbx,144($context)	# restore context->Rbx
+ 	mov	%rbp,160($context)	# restore context->Rbp
+ 	mov	%r12,216($context)	# restore context->R12
++	mov	%r13,224($context)	# restore context->R13
++
++	jmp	.Lcommon_seh_tail
++.size	se_handler,.-se_handler
++
++.type	ssse3_handler,\@abi-omnipotent
++.align	16
++ssse3_handler:
++	push	%rsi
++	push	%rdi
++	push	%rbx
++	push	%rbp
++	push	%r12
++	push	%r13
++	push	%r14
++	push	%r15
++	pushfq
++	sub	\$64,%rsp
++
++	mov	120($context),%rax	# pull context->Rax
++	mov	248($context),%rbx	# pull context->Rip
++
++	mov	8($disp),%rsi		# disp->ImageBase
++	mov	56($disp),%r11		# disp->HandlerData
++
++	mov	0(%r11),%r10d		# HandlerData[0]
++	lea	(%rsi,%r10),%r10	# prologue label
++	cmp	%r10,%rbx		# context->Rip<prologue label
++	jb	.Lcommon_seh_tail
++
++	mov	152($context),%rax	# pull context->Rsp
+ 
+-.Lin_prologue:
++	mov	4(%r11),%r10d		# HandlerData[1]
++	lea	(%rsi,%r10),%r10	# epilogue label
++	cmp	%r10,%rbx		# context->Rip>=epilogue label
++	jae	.Lcommon_seh_tail
++
++	lea	64(%rax),%rsi
++	lea	512($context),%rdi	# &context.Xmm6
++	mov	\$10,%ecx
++	.long	0xa548f3fc		# cld; rep movsq
++	lea	24+5*16(%rax),%rax	# adjust stack pointer
++
++	mov	-8(%rax),%rbx
++	mov	-16(%rax),%rbp
++	mov	%rbx,144($context)	# restore context->Rbx
++	mov	%rbp,160($context)	# restore context->Rbp
++
++.Lcommon_seh_tail:
+ 	mov	8(%rax),%rdi
+ 	mov	16(%rax),%rsi
+ 	mov	%rax,152($context)	# restore context->Rsp
+@@ -328,19 +1213,38 @@ se_handler:
+ 	pop	%rdi
+ 	pop	%rsi
+ 	ret
+-.size	se_handler,.-se_handler
++.size	ssse3_handler,.-ssse3_handler
+ 
+ .section	.pdata
+ .align	4
+ 	.rva	.LSEH_begin_sha1_block_data_order
+ 	.rva	.LSEH_end_sha1_block_data_order
+ 	.rva	.LSEH_info_sha1_block_data_order
+-
++	.rva	.LSEH_begin_sha1_block_data_order_ssse3
++	.rva	.LSEH_end_sha1_block_data_order_ssse3
++	.rva	.LSEH_info_sha1_block_data_order_ssse3
++___
++$code.=<<___ if ($avx);
++	.rva	.LSEH_begin_sha1_block_data_order_avx
++	.rva	.LSEH_end_sha1_block_data_order_avx
++	.rva	.LSEH_info_sha1_block_data_order_avx
++___
++$code.=<<___;
+ .section	.xdata
+ .align	8
+ .LSEH_info_sha1_block_data_order:
+ 	.byte	9,0,0,0
+ 	.rva	se_handler
++.LSEH_info_sha1_block_data_order_ssse3:
++	.byte	9,0,0,0
++	.rva	ssse3_handler
++	.rva	.Lprologue_ssse3,.Lepilogue_ssse3	# HandlerData[]
++___
++$code.=<<___ if ($avx);
++.LSEH_info_sha1_block_data_order_avx:
++	.byte	9,0,0,0
++	.rva	ssse3_handler
++	.rva	.Lprologue_avx,.Lepilogue_avx		# HandlerData[]
+ ___
+ }
+ 
+diff -up openssl-1.0.0/crypto/sha/asm/sha1-586.pl.intelopts openssl-1.0.0/crypto/sha/asm/sha1-586.pl
+--- openssl-1.0.0/crypto/sha/asm/sha1-586.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/sha/asm/sha1-586.pl	2011-08-24 16:01:51.000000000 +0200
+@@ -12,6 +12,8 @@
+ # commentary below], and in 2006 the rest was rewritten in order to
+ # gain freedom to liberate licensing terms.
+ 
++# January, September 2004.
++#
+ # It was noted that Intel IA-32 C compiler generates code which
+ # performs ~30% *faster* on P4 CPU than original *hand-coded*
+ # SHA1 assembler implementation. To address this problem (and
+@@ -31,12 +33,92 @@
+ # ----------------------------------------------------------------
+ #					<appro@fy.chalmers.se>
+ 
++# August 2009.
++#
++# George Spelvin has tipped that F_40_59(b,c,d) can be rewritten as
++# '(c&d) + (b&(c^d))', which allows to accumulate partial results
++# and lighten "pressure" on scratch registers. This resulted in
++# >12% performance improvement on contemporary AMD cores (with no
++# degradation on other CPUs:-). Also, the code was revised to maximize
++# "distance" between instructions producing input to 'lea' instruction
++# and the 'lea' instruction itself, which is essential for Intel Atom
++# core and resulted in ~15% improvement.
++
++# October 2010.
++#
++# Add SSSE3, Supplemental[!] SSE3, implementation. The idea behind it
++# is to offload message schedule denoted by Wt in NIST specification,
++# or Xupdate in OpenSSL source, to SIMD unit. The idea is not novel,
++# and in SSE2 context was first explored by Dean Gaudet in 2004, see
++# http://arctic.org/~dean/crypto/sha1.html. Since then several things
++# have changed that made it interesting again:
++#
++# a) XMM units became faster and wider;
++# b) instruction set became more versatile;
++# c) an important observation was made by Max Locktykhin, which made
++#    it possible to reduce amount of instructions required to perform
++#    the operation in question, for further details see
++#    http://software.intel.com/en-us/articles/improving-the-performance-of-the-secure-hash-algorithm-1/.
++
++# April 2011.
++#
++# Add AVX code path, probably most controversial... The thing is that
++# switch to AVX alone improves performance by as little as 4% in
++# comparison to SSSE3 code path. But below result doesn't look like
++# 4% improvement... Trouble is that Sandy Bridge decodes 'ro[rl]' as
++# pair of µ-ops, and it's the additional µ-ops, two per round, that
++# make it run slower than Core2 and Westmere. But 'sh[rl]d' is decoded
++# as single µ-op by Sandy Bridge and it's replacing 'ro[rl]' with
++# equivalent 'sh[rl]d' that is responsible for the impressive 5.1
++# cycles per processed byte. But 'sh[rl]d' is not something that used
++# to be fast, nor does it appear to be fast in upcoming Bulldozer
++# [according to its optimization manual]. Which is why AVX code path
++# is guarded by *both* AVX and synthetic bit denoting Intel CPUs.
++# One can argue that it's unfair to AMD, but without 'sh[rl]d' it
++# makes no sense to keep the AVX code path. If somebody feels that
++# strongly, it's probably more appropriate to discuss possibility of
++# using vector rotate XOP on AMD...
++
++######################################################################
++# Current performance is summarized in following table. Numbers are
++# CPU clock cycles spent to process single byte (less is better).
++#
++#		x86		SSSE3		AVX
++# Pentium	15.7		-
++# PIII		11.5		-
++# P4		10.6		-
++# AMD K8	7.1		-
++# Core2		7.3		6.1/+20%	-
++# Atom		12.5		9.5(*)/+32%	-
++# Westmere	7.3		5.6/+30%	-
++# Sandy Bridge	8.8		6.2/+40%	5.1(**)/+70%
++#
++# (*)	Loop is 1056 instructions long and expected result is ~8.25.
++#	It remains mystery [to me] why ILP is limited to 1.7.
++#
++# (**)	As per above comment, the result is for AVX *plus* sh[rl]d.
++
+ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
+ push(@INC,"${dir}","${dir}../../perlasm");
+ require "x86asm.pl";
+ 
+ &asm_init($ARGV[0],"sha1-586.pl",$ARGV[$#ARGV] eq "386");
+ 
++$xmm=1; $ymm=0;
++for (@ARGV) { $xmm=1 if (/-DOPENSSL_IA32_SSE2/); }
++
++$ymm=1 if ($xmm &&
++		`$ENV{CC} -Wa,-v -c -o /dev/null -x assembler /dev/null 2>&1`
++			=~ /GNU assembler version ([2-9]\.[0-9]+)/ &&
++		$1>=2.19);	# first version supporting AVX
++
++$ymm=1 if ($xmm && !$ymm && $ARGV[0] eq "win32n" && 
++		`nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/ &&
++		$1>=2.03);	# first version supporting AVX
++
++&external_label("OPENSSL_ia32cap_X") if ($xmm);
++
++
+ $A="eax";
+ $B="ebx";
+ $C="ecx";
+@@ -47,6 +129,10 @@ $tmp1="ebp";
+ 
+ @V=($A,$B,$C,$D,$E,$T);
+ 
++$alt=0;	# 1 denotes alternative IALU implementation, which performs
++	# 8% *worse* on P4, same on Westmere and Atom, 2% better on
++	# Sandy Bridge...
++
+ sub BODY_00_15
+ 	{
+ 	local($n,$a,$b,$c,$d,$e,$f)=@_;
+@@ -59,16 +145,18 @@ sub BODY_00_15
+ 	&rotl($tmp1,5);			# tmp1=ROTATE(a,5)
+ 	 &xor($f,$d);
+ 	&add($tmp1,$e);			# tmp1+=e;
+-	 &and($f,$b);
+-	&mov($e,&swtmp($n%16));		# e becomes volatile and is loaded
++	 &mov($e,&swtmp($n%16));	# e becomes volatile and is loaded
+ 	 				# with xi, also note that e becomes
+ 					# f in next round...
+-	 &xor($f,$d);			# f holds F_00_19(b,c,d)
++	&and($f,$b);
+ 	&rotr($b,2);			# b=ROTATE(b,30)
+-	 &lea($tmp1,&DWP(0x5a827999,$tmp1,$e));	# tmp1+=K_00_19+xi
++	 &xor($f,$d);			# f holds F_00_19(b,c,d)
++	&lea($tmp1,&DWP(0x5a827999,$tmp1,$e));	# tmp1+=K_00_19+xi
+ 
+-	if ($n==15) { &add($f,$tmp1); }	# f+=tmp1
++	if ($n==15) { &mov($e,&swtmp(($n+1)%16));# pre-fetch f for next round
++		      &add($f,$tmp1); }	# f+=tmp1
+ 	else        { &add($tmp1,$f); }	# f becomes a in next round
++	&mov($tmp1,$a)			if ($alt && $n==15);
+ 	}
+ 
+ sub BODY_16_19
+@@ -77,22 +165,41 @@ sub BODY_16_19
+ 
+ 	&comment("16_19 $n");
+ 
+-	&mov($f,&swtmp($n%16));		# f to hold Xupdate(xi,xa,xb,xc,xd)
+-	 &mov($tmp1,$c);		# tmp1 to hold F_00_19(b,c,d)
+-	&xor($f,&swtmp(($n+2)%16));
+-	 &xor($tmp1,$d);
+-	&xor($f,&swtmp(($n+8)%16));
+-	 &and($tmp1,$b);		# tmp1 holds F_00_19(b,c,d)
+-	&rotr($b,2);			# b=ROTATE(b,30)
++if ($alt) {
++	&xor($c,$d);
++	 &xor($f,&swtmp(($n+2)%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
++	&and($tmp1,$c);			# tmp1 to hold F_00_19(b,c,d), b&=c^d
++	 &xor($f,&swtmp(($n+8)%16));
++	&xor($tmp1,$d);			# tmp1=F_00_19(b,c,d)
++	 &xor($f,&swtmp(($n+13)%16));	# f holds xa^xb^xc^xd
++	&rotl($f,1);			# f=ROTATE(f,1)
++	 &add($e,$tmp1);		# e+=F_00_19(b,c,d)
++	&xor($c,$d);			# restore $c
++	 &mov($tmp1,$a);		# b in next round
++	&rotr($b,$n==16?2:7);		# b=ROTATE(b,30)
++	 &mov(&swtmp($n%16),$f);	# xi=f
++	&rotl($a,5);			# ROTATE(a,5)
++	 &lea($f,&DWP(0x5a827999,$f,$e));# f+=F_00_19(b,c,d)+e
++	&mov($e,&swtmp(($n+1)%16));	# pre-fetch f for next round
++	 &add($f,$a);			# f+=ROTATE(a,5)
++} else {
++	&mov($tmp1,$c);			# tmp1 to hold F_00_19(b,c,d)
++	 &xor($f,&swtmp(($n+2)%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
++	&xor($tmp1,$d);
++	 &xor($f,&swtmp(($n+8)%16));
++	&and($tmp1,$b);
+ 	 &xor($f,&swtmp(($n+13)%16));	# f holds xa^xb^xc^xd
+ 	&rotl($f,1);			# f=ROTATE(f,1)
+ 	 &xor($tmp1,$d);		# tmp1=F_00_19(b,c,d)
+-	&mov(&swtmp($n%16),$f);		# xi=f
+-	&lea($f,&DWP(0x5a827999,$f,$e));# f+=K_00_19+e
+-	 &mov($e,$a);			# e becomes volatile
+-	&rotl($e,5);			# e=ROTATE(a,5)
+-	 &add($f,$tmp1);		# f+=F_00_19(b,c,d)
+-	&add($f,$e);			# f+=ROTATE(a,5)
++	&add($e,$tmp1);			# e+=F_00_19(b,c,d)
++	 &mov($tmp1,$a);
++	&rotr($b,2);			# b=ROTATE(b,30)
++	 &mov(&swtmp($n%16),$f);	# xi=f
++	&rotl($tmp1,5);			# ROTATE(a,5)
++	 &lea($f,&DWP(0x5a827999,$f,$e));# f+=F_00_19(b,c,d)+e
++	&mov($e,&swtmp(($n+1)%16));	# pre-fetch f for next round
++	 &add($f,$tmp1);		# f+=ROTATE(a,5)
++}
+ 	}
+ 
+ sub BODY_20_39
+@@ -102,21 +209,41 @@ sub BODY_20_39
+ 
+ 	&comment("20_39 $n");
+ 
++if ($alt) {
++	&xor($tmp1,$c);			# tmp1 to hold F_20_39(b,c,d), b^=c
++	 &xor($f,&swtmp(($n+2)%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
++	&xor($tmp1,$d);			# tmp1 holds F_20_39(b,c,d)
++	 &xor($f,&swtmp(($n+8)%16));
++	&add($e,$tmp1);			# e+=F_20_39(b,c,d)
++	 &xor($f,&swtmp(($n+13)%16));	# f holds xa^xb^xc^xd
++	&rotl($f,1);			# f=ROTATE(f,1)
++	 &mov($tmp1,$a);		# b in next round
++	&rotr($b,7);			# b=ROTATE(b,30)
++	 &mov(&swtmp($n%16),$f)		if($n<77);# xi=f
++	&rotl($a,5);			# ROTATE(a,5)
++	 &xor($b,$c)			if($n==39);# warm up for BODY_40_59
++	&and($tmp1,$b)			if($n==39);
++	 &lea($f,&DWP($K,$f,$e));	# f+=e+K_XX_YY
++	&mov($e,&swtmp(($n+1)%16))	if($n<79);# pre-fetch f for next round
++	 &add($f,$a);			# f+=ROTATE(a,5)
++	&rotr($a,5)			if ($n==79);
++} else {
+ 	&mov($tmp1,$b);			# tmp1 to hold F_20_39(b,c,d)
+-	 &mov($f,&swtmp($n%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
+-	&rotr($b,2);			# b=ROTATE(b,30)
+-	 &xor($f,&swtmp(($n+2)%16));
++	 &xor($f,&swtmp(($n+2)%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
+ 	&xor($tmp1,$c);
+ 	 &xor($f,&swtmp(($n+8)%16));
+ 	&xor($tmp1,$d);			# tmp1 holds F_20_39(b,c,d)
+ 	 &xor($f,&swtmp(($n+13)%16));	# f holds xa^xb^xc^xd
+ 	&rotl($f,1);			# f=ROTATE(f,1)
+-	 &add($tmp1,$e);
+-	&mov(&swtmp($n%16),$f);		# xi=f
+-	 &mov($e,$a);			# e becomes volatile
+-	&rotl($e,5);			# e=ROTATE(a,5)
+-	 &lea($f,&DWP($K,$f,$tmp1));	# f+=K_20_39+e
+-	&add($f,$e);			# f+=ROTATE(a,5)
++	 &add($e,$tmp1);		# e+=F_20_39(b,c,d)
++	&rotr($b,2);			# b=ROTATE(b,30)
++	 &mov($tmp1,$a);
++	&rotl($tmp1,5);			# ROTATE(a,5)
++	 &mov(&swtmp($n%16),$f) if($n<77);# xi=f
++	&lea($f,&DWP($K,$f,$e));	# f+=e+K_XX_YY
++	 &mov($e,&swtmp(($n+1)%16)) if($n<79);# pre-fetch f for next round
++	&add($f,$tmp1);			# f+=ROTATE(a,5)
++}
+ 	}
+ 
+ sub BODY_40_59
+@@ -125,41 +252,86 @@ sub BODY_40_59
+ 
+ 	&comment("40_59 $n");
+ 
+-	&mov($f,&swtmp($n%16));		# f to hold Xupdate(xi,xa,xb,xc,xd)
+-	 &mov($tmp1,&swtmp(($n+2)%16));
+-	&xor($f,$tmp1);
+-	 &mov($tmp1,&swtmp(($n+8)%16));
+-	&xor($f,$tmp1);
+-	 &mov($tmp1,&swtmp(($n+13)%16));
+-	&xor($f,$tmp1);			# f holds xa^xb^xc^xd
+-	 &mov($tmp1,$b);		# tmp1 to hold F_40_59(b,c,d)
++if ($alt) {
++	&add($e,$tmp1);			# e+=b&(c^d)
++	 &xor($f,&swtmp(($n+2)%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
++	&mov($tmp1,$d);
++	 &xor($f,&swtmp(($n+8)%16));
++	&xor($c,$d);			# restore $c
++	 &xor($f,&swtmp(($n+13)%16));	# f holds xa^xb^xc^xd
+ 	&rotl($f,1);			# f=ROTATE(f,1)
+-	 &or($tmp1,$c);
+-	&mov(&swtmp($n%16),$f);		# xi=f
+-	 &and($tmp1,$d);
+-	&lea($f,&DWP(0x8f1bbcdc,$f,$e));# f+=K_40_59+e
+-	 &mov($e,$b);			# e becomes volatile and is used
+-					# to calculate F_40_59(b,c,d)
++	 &and($tmp1,$c);
++	&rotr($b,7);			# b=ROTATE(b,30)
++	 &add($e,$tmp1);		# e+=c&d
++	&mov($tmp1,$a);			# b in next round
++	 &mov(&swtmp($n%16),$f);	# xi=f
++	&rotl($a,5);			# ROTATE(a,5)
++	 &xor($b,$c)			if ($n<59);
++	&and($tmp1,$b)			if ($n<59);# tmp1 to hold F_40_59(b,c,d)
++	 &lea($f,&DWP(0x8f1bbcdc,$f,$e));# f+=K_40_59+e+(b&(c^d))
++	&mov($e,&swtmp(($n+1)%16));	# pre-fetch f for next round
++	 &add($f,$a);			# f+=ROTATE(a,5)
++} else {
++	&mov($tmp1,$c);			# tmp1 to hold F_40_59(b,c,d)
++	 &xor($f,&swtmp(($n+2)%16));	# f to hold Xupdate(xi,xa,xb,xc,xd)
++	&xor($tmp1,$d);
++	 &xor($f,&swtmp(($n+8)%16));
++	&and($tmp1,$b);
++	 &xor($f,&swtmp(($n+13)%16));	# f holds xa^xb^xc^xd
++	&rotl($f,1);			# f=ROTATE(f,1)
++	 &add($tmp1,$e);		# b&(c^d)+=e
+ 	&rotr($b,2);			# b=ROTATE(b,30)
+-	 &and($e,$c);
+-	&or($tmp1,$e);			# tmp1 holds F_40_59(b,c,d)		
+-	 &mov($e,$a);
+-	&rotl($e,5);			# e=ROTATE(a,5)
+-	 &add($f,$tmp1);		# f+=tmp1;
++	 &mov($e,$a);			# e becomes volatile
++	&rotl($e,5);			# ROTATE(a,5)
++	 &mov(&swtmp($n%16),$f);	# xi=f
++	&lea($f,&DWP(0x8f1bbcdc,$f,$tmp1));# f+=K_40_59+e+(b&(c^d))
++	 &mov($tmp1,$c);
+ 	&add($f,$e);			# f+=ROTATE(a,5)
++	 &and($tmp1,$d);
++	&mov($e,&swtmp(($n+1)%16));	# pre-fetch f for next round
++	 &add($f,$tmp1);		# f+=c&d
++}
+ 	}
+ 
+ &function_begin("sha1_block_data_order");
++if ($xmm) {
++  &static_label("ssse3_shortcut");
++  &static_label("avx_shortcut")		if ($ymm);
++  &static_label("K_XX_XX");
++
++	&call	(&label("pic_point"));	# make it PIC!
++  &set_label("pic_point");
++	&blindpop($tmp1);
++	&picmeup($T,"OPENSSL_ia32cap_X",$tmp1,&label("pic_point"));
++	&lea	($tmp1,&DWP(&label("K_XX_XX")."-".&label("pic_point"),$tmp1));
++
++	&mov	($A,&DWP(0,$T));
++	&mov	($D,&DWP(4,$T));
++	&test	($D,1<<9);		# check SSSE3 bit
++	&jz	(&label("x86"));
++	&test	($A,1<<24);		# check FXSR bit
++	&jz	(&label("x86"));
++	if ($ymm) {
++		&and	($D,1<<28);		# mask AVX bit
++		&and	($A,1<<30);		# mask "Intel CPU" bit
++		&or	($A,$D);
++		&cmp	($A,1<<28|1<<30);
++		&je	(&label("avx_shortcut"));
++	}
++	&jmp	(&label("ssse3_shortcut"));
++  &set_label("x86",16);
++}
+ 	&mov($tmp1,&wparam(0));	# SHA_CTX *c
+ 	&mov($T,&wparam(1));	# const void *input
+ 	&mov($A,&wparam(2));	# size_t num
+-	&stack_push(16);	# allocate X[16]
++	&stack_push(16+3);	# allocate X[16]
+ 	&shl($A,6);
+ 	&add($A,$T);
+ 	&mov(&wparam(2),$A);	# pointer beyond the end of input
+ 	&mov($E,&DWP(16,$tmp1));# pre-load E
++	&jmp(&label("loop"));
+ 
+-	&set_label("loop",16);
++&set_label("loop",16);
+ 
+ 	# copy input chunk to X, but reversing byte order!
+ 	for ($i=0; $i<16; $i+=4)
+@@ -213,8 +385,845 @@ sub BODY_40_59
+ 	&mov(&DWP(16,$tmp1),$C);
+ 	&jb(&label("loop"));
+ 
+-	&stack_pop(16);
++	&stack_pop(16+3);
+ &function_end("sha1_block_data_order");
++
++if ($xmm) {
++######################################################################
++# The SSSE3 implementation.
++#
++# %xmm[0-7] are used as ring @X[] buffer containing quadruples of last
++# 32 elements of the message schedule or Xupdate outputs. First 4
++# quadruples are simply byte-swapped input, next 4 are calculated
++# according to method originally suggested by Dean Gaudet (modulo
++# being implemented in SSSE3). Once 8 quadruples or 32 elements are
++# collected, it switches to routine proposed by Max Locktyukhin.
++#
++# Calculations inevitably require temporary reqisters, and there are
++# no %xmm registers left to spare. For this reason part of the ring
++# buffer, X[2..4] to be specific, is offloaded to 3 quadriples ring
++# buffer on the stack. Keep in mind that X[2] is alias X[-6], X[3] -
++# X[-5], and X[4] - X[-4]...
++#
++# Another notable optimization is aggressive stack frame compression
++# aiming to minimize amount of 9-byte instructions...
++#
++# Yet another notable optimization is "jumping" $B variable. It means
++# that there is no register permanently allocated for $B value. This
++# allowed to eliminate one instruction from body_20_39...
++#
++my $Xi=4;			# 4xSIMD Xupdate round, start pre-seeded
++my @X=map("xmm$_",(4..7,0..3));	# pre-seeded for $Xi=4
++my @V=($A,$B,$C,$D,$E);
++my $j=0;			# hash round
++my @T=($T,$tmp1);
++my $inp;
++
++my $_rol=sub { &rol(@_) };
++my $_ror=sub { &ror(@_) };
++
++&function_begin("_sha1_block_data_order_ssse3");
++	&call	(&label("pic_point"));	# make it PIC!
++	&set_label("pic_point");
++	&blindpop($tmp1);
++	&lea	($tmp1,&DWP(&label("K_XX_XX")."-".&label("pic_point"),$tmp1));
++&set_label("ssse3_shortcut");
++
++	&movdqa	(@X[3],&QWP(0,$tmp1));		# K_00_19
++	&movdqa	(@X[4],&QWP(16,$tmp1));		# K_20_39
++	&movdqa	(@X[5],&QWP(32,$tmp1));		# K_40_59
++	&movdqa	(@X[6],&QWP(48,$tmp1));		# K_60_79
++	&movdqa	(@X[2],&QWP(64,$tmp1));		# pbswap mask
++
++	&mov	($E,&wparam(0));		# load argument block
++	&mov	($inp=@T[1],&wparam(1));
++	&mov	($D,&wparam(2));
++	&mov	(@T[0],"esp");
++
++	# stack frame layout
++	#
++	# +0	X[0]+K	X[1]+K	X[2]+K	X[3]+K	# XMM->IALU xfer area
++	#	X[4]+K	X[5]+K	X[6]+K	X[7]+K
++	#	X[8]+K	X[9]+K	X[10]+K	X[11]+K
++	#	X[12]+K	X[13]+K	X[14]+K	X[15]+K
++	#
++	# +64	X[0]	X[1]	X[2]	X[3]	# XMM->XMM backtrace area
++	#	X[4]	X[5]	X[6]	X[7]
++	#	X[8]	X[9]	X[10]	X[11]	# even borrowed for K_00_19
++	#
++	# +112	K_20_39	K_20_39	K_20_39	K_20_39	# constants
++	#	K_40_59	K_40_59	K_40_59	K_40_59
++	#	K_60_79	K_60_79	K_60_79	K_60_79
++	#	K_00_19	K_00_19	K_00_19	K_00_19
++	#	pbswap mask
++	#
++	# +192	ctx				# argument block
++	# +196	inp
++	# +200	end
++	# +204	esp
++	&sub	("esp",208);
++	&and	("esp",-64);
++
++	&movdqa	(&QWP(112+0,"esp"),@X[4]);	# copy constants
++	&movdqa	(&QWP(112+16,"esp"),@X[5]);
++	&movdqa	(&QWP(112+32,"esp"),@X[6]);
++	&shl	($D,6);				# len*64
++	&movdqa	(&QWP(112+48,"esp"),@X[3]);
++	&add	($D,$inp);			# end of input
++	&movdqa	(&QWP(112+64,"esp"),@X[2]);
++	&add	($inp,64);
++	&mov	(&DWP(192+0,"esp"),$E);		# save argument block
++	&mov	(&DWP(192+4,"esp"),$inp);
++	&mov	(&DWP(192+8,"esp"),$D);
++	&mov	(&DWP(192+12,"esp"),@T[0]);	# save original %esp
++
++	&mov	($A,&DWP(0,$E));		# load context
++	&mov	($B,&DWP(4,$E));
++	&mov	($C,&DWP(8,$E));
++	&mov	($D,&DWP(12,$E));
++	&mov	($E,&DWP(16,$E));
++	&mov	(@T[0],$B);			# magic seed
++
++	&movdqu	(@X[-4&7],&QWP(-64,$inp));	# load input to %xmm[0-3]
++	&movdqu	(@X[-3&7],&QWP(-48,$inp));
++	&movdqu	(@X[-2&7],&QWP(-32,$inp));
++	&movdqu	(@X[-1&7],&QWP(-16,$inp));
++	&pshufb	(@X[-4&7],@X[2]);		# byte swap
++	&pshufb	(@X[-3&7],@X[2]);
++	&pshufb	(@X[-2&7],@X[2]);
++	&movdqa	(&QWP(112-16,"esp"),@X[3]);	# borrow last backtrace slot
++	&pshufb	(@X[-1&7],@X[2]);
++	&paddd	(@X[-4&7],@X[3]);		# add K_00_19
++	&paddd	(@X[-3&7],@X[3]);
++	&paddd	(@X[-2&7],@X[3]);
++	&movdqa	(&QWP(0,"esp"),@X[-4&7]);	# X[]+K xfer to IALU
++	&psubd	(@X[-4&7],@X[3]);		# restore X[]
++	&movdqa	(&QWP(0+16,"esp"),@X[-3&7]);
++	&psubd	(@X[-3&7],@X[3]);
++	&movdqa	(&QWP(0+32,"esp"),@X[-2&7]);
++	&psubd	(@X[-2&7],@X[3]);
++	&movdqa	(@X[0],@X[-3&7]);
++	&jmp	(&label("loop"));
++
++######################################################################
++# SSE instruction sequence is first broken to groups of indepentent
++# instructions, independent in respect to their inputs and shifter
++# (not all architectures have more than one). Then IALU instructions
++# are "knitted in" between the SSE groups. Distance is maintained for
++# SSE latency of 2 in hope that it fits better upcoming AMD Bulldozer
++# [which allegedly also implements SSSE3]...
++#
++# Temporary registers usage. X[2] is volatile at the entry and at the
++# end is restored from backtrace ring buffer. X[3] is expected to
++# contain current K_XX_XX constant and is used to caclulate X[-1]+K
++# from previous round, it becomes volatile the moment the value is
++# saved to stack for transfer to IALU. X[4] becomes volatile whenever
++# X[-4] is accumulated and offloaded to backtrace ring buffer, at the
++# end it is loaded with next K_XX_XX [which becomes X[3] in next
++# round]...
++#
++sub Xupdate_ssse3_16_31()		# recall that $Xi starts wtih 4
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 40 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&palignr(@X[0],@X[-4&7],8);	# compose "X[-14]" in "X[0]"
++	&movdqa	(@X[2],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &paddd	(@X[3],@X[-1&7]);
++	  &movdqa	(&QWP(64+16*(($Xi-4)%3),"esp"),@X[-4&7]);# save X[] to backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&psrldq	(@X[2],4);		# "X[-3]", 3 dwords
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&pxor	(@X[0],@X[-4&7]);	# "X[0]"^="X[-16]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pxor	(@X[2],@X[-2&7]);	# "X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pxor	(@X[0],@X[2]);		# "X[0]"^="X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &movdqa	(&QWP(0+16*(($Xi-1)&3),"esp"),@X[3]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&movdqa	(@X[4],@X[0]);
++	&movdqa	(@X[2],@X[0]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pslldq	(@X[4],12);		# "X[0]"<<96, extract one dword
++	&paddd	(@X[0],@X[0]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&psrld	(@X[2],31);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&movdqa	(@X[3],@X[4]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&psrld	(@X[4],30);
++	&por	(@X[0],@X[2]);		# "X[0]"<<<=1
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &movdqa	(@X[2],&QWP(64+16*(($Xi-6)%3),"esp")) if ($Xi>5);	# restore X[] from backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pslld	(@X[3],2);
++	&pxor	(@X[0],@X[4]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &movdqa	(@X[4],&QWP(112-16+16*(($Xi)/5),"esp"));	# K_XX_XX
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&pxor	(@X[0],@X[3]);		# "X[0]"^=("X[0]"<<96)<<<2
++	  &movdqa	(@X[1],@X[-2&7])	if ($Xi<7);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	 foreach (@insns) { eval; }	# remaining instructions [if any]
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++}
++
++sub Xupdate_ssse3_32_79()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 to 48 instructions
++  my ($a,$b,$c,$d,$e);
++
++	&movdqa	(@X[2],@X[-1&7])	if ($Xi==8);
++	 eval(shift(@insns));		# body_20_39
++	&pxor	(@X[0],@X[-4&7]);	# "X[0]"="X[-32]"^"X[-16]"
++	&palignr(@X[2],@X[-2&7],8);	# compose "X[-6]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&pxor	(@X[0],@X[-7&7]);	# "X[0]"^="X[-28]"
++	  &movdqa	(&QWP(64+16*(($Xi-4)%3),"esp"),@X[-4&7]);	# save X[] to backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 if ($Xi%5) {
++	  &movdqa	(@X[4],@X[3]);	# "perpetuate" K_XX_XX...
++	 } else {			# ... or load next one
++	  &movdqa	(@X[4],&QWP(112-16+16*($Xi/5),"esp"));
++	 }
++	  &paddd	(@X[3],@X[-1&7]);
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&pxor	(@X[0],@X[2]);		# "X[0]"^="X[-6]"
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&movdqa	(@X[2],@X[0]);
++	  &movdqa	(&QWP(0+16*(($Xi-1)&3),"esp"),@X[3]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&pslld	(@X[0],2);
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	&psrld	(@X[2],30);
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&por	(@X[0],@X[2]);		# "X[0]"<<<=2
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	  &movdqa	(@X[2],&QWP(64+16*(($Xi-6)%3),"esp")) if($Xi<19);	# restore X[] from backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	  &movdqa	(@X[3],@X[0])	if ($Xi<19);
++	 eval(shift(@insns));
++
++	 foreach (@insns) { eval; }	# remaining instructions
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++}
++
++sub Xuplast_ssse3_80()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	  &paddd	(@X[3],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &movdqa	(&QWP(0+16*(($Xi-1)&3),"esp"),@X[3]);	# X[]+K xfer IALU
++
++	 foreach (@insns) { eval; }		# remaining instructions
++
++	&mov	($inp=@T[1],&DWP(192+4,"esp"));
++	&cmp	($inp,&DWP(192+8,"esp"));
++	&je	(&label("done"));
++
++	&movdqa	(@X[3],&QWP(112+48,"esp"));	# K_00_19
++	&movdqa	(@X[2],&QWP(112+64,"esp"));	# pbswap mask
++	&movdqu	(@X[-4&7],&QWP(0,$inp));	# load input
++	&movdqu	(@X[-3&7],&QWP(16,$inp));
++	&movdqu	(@X[-2&7],&QWP(32,$inp));
++	&movdqu	(@X[-1&7],&QWP(48,$inp));
++	&add	($inp,64);
++	&pshufb	(@X[-4&7],@X[2]);		# byte swap
++	&mov	(&DWP(192+4,"esp"),$inp);
++	&movdqa	(&QWP(112-16,"esp"),@X[3]);	# borrow last backtrace slot
++
++  $Xi=0;
++}
++
++sub Xloop_ssse3()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&pshufb	(@X[($Xi-3)&7],@X[2]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&paddd	(@X[($Xi-4)&7],@X[3]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&movdqa	(&QWP(0+16*$Xi,"esp"),@X[($Xi-4)&7]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&psubd	(@X[($Xi-4)&7],@X[3]);
++
++	foreach (@insns) { eval; }
++  $Xi++;
++}
++
++sub Xtail_ssse3()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	foreach (@insns) { eval; }
++}
++
++sub body_00_19 () {
++	(
++	'($a,$b,$c,$d,$e)=@V;'.
++	'&add	($e,&DWP(4*($j&15),"esp"));',	# X[]+K xfer
++	'&xor	($c,$d);',
++	'&mov	(@T[1],$a);',	# $b in next round
++	'&$_rol	($a,5);',
++	'&and	(@T[0],$c);',	# ($b&($c^$d))
++	'&xor	($c,$d);',	# restore $c
++	'&xor	(@T[0],$d);',
++	'&add	($e,$a);',
++	'&$_ror	($b,$j?7:2);',	# $b>>>2
++	'&add	($e,@T[0]);'	.'$j++; unshift(@V,pop(@V)); unshift(@T,pop(@T));'
++	);
++}
++
++sub body_20_39 () {
++	(
++	'($a,$b,$c,$d,$e)=@V;'.
++	'&add	($e,&DWP(4*($j++&15),"esp"));',	# X[]+K xfer
++	'&xor	(@T[0],$d);',	# ($b^$d)
++	'&mov	(@T[1],$a);',	# $b in next round
++	'&$_rol	($a,5);',
++	'&xor	(@T[0],$c);',	# ($b^$d^$c)
++	'&add	($e,$a);',
++	'&$_ror	($b,7);',	# $b>>>2
++	'&add	($e,@T[0]);'	.'unshift(@V,pop(@V)); unshift(@T,pop(@T));'
++	);
++}
++
++sub body_40_59 () {
++	(
++	'($a,$b,$c,$d,$e)=@V;'.
++	'&mov	(@T[1],$c);',
++	'&xor	($c,$d);',
++	'&add	($e,&DWP(4*($j++&15),"esp"));',	# X[]+K xfer
++	'&and	(@T[1],$d);',
++	'&and	(@T[0],$c);',	# ($b&($c^$d))
++	'&$_ror	($b,7);',	# $b>>>2
++	'&add	($e,@T[1]);',
++	'&mov	(@T[1],$a);',	# $b in next round
++	'&$_rol	($a,5);',
++	'&add	($e,@T[0]);',
++	'&xor	($c,$d);',	# restore $c
++	'&add	($e,$a);'	.'unshift(@V,pop(@V)); unshift(@T,pop(@T));'
++	);
++}
++
++&set_label("loop",16);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_16_31(\&body_00_19);
++	&Xupdate_ssse3_32_79(\&body_00_19);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_40_59);
++	&Xupdate_ssse3_32_79(\&body_20_39);
++	&Xuplast_ssse3_80(\&body_20_39);	# can jump to "done"
++
++				$saved_j=$j; @saved_V=@V;
++
++	&Xloop_ssse3(\&body_20_39);
++	&Xloop_ssse3(\&body_20_39);
++	&Xloop_ssse3(\&body_20_39);
++
++	&mov	(@T[1],&DWP(192,"esp"));	# update context
++	&add	($A,&DWP(0,@T[1]));
++	&add	(@T[0],&DWP(4,@T[1]));		# $b
++	&add	($C,&DWP(8,@T[1]));
++	&mov	(&DWP(0,@T[1]),$A);
++	&add	($D,&DWP(12,@T[1]));
++	&mov	(&DWP(4,@T[1]),@T[0]);
++	&add	($E,&DWP(16,@T[1]));
++	&mov	(&DWP(8,@T[1]),$C);
++	&mov	($B,@T[0]);
++	&mov	(&DWP(12,@T[1]),$D);
++	&mov	(&DWP(16,@T[1]),$E);
++	&movdqa	(@X[0],@X[-3&7]);
++
++	&jmp	(&label("loop"));
++
++&set_label("done",16);		$j=$saved_j; @V=@saved_V;
++
++	&Xtail_ssse3(\&body_20_39);
++	&Xtail_ssse3(\&body_20_39);
++	&Xtail_ssse3(\&body_20_39);
++
++	&mov	(@T[1],&DWP(192,"esp"));	# update context
++	&add	($A,&DWP(0,@T[1]));
++	&mov	("esp",&DWP(192+12,"esp"));	# restore %esp
++	&add	(@T[0],&DWP(4,@T[1]));		# $b
++	&add	($C,&DWP(8,@T[1]));
++	&mov	(&DWP(0,@T[1]),$A);
++	&add	($D,&DWP(12,@T[1]));
++	&mov	(&DWP(4,@T[1]),@T[0]);
++	&add	($E,&DWP(16,@T[1]));
++	&mov	(&DWP(8,@T[1]),$C);
++	&mov	(&DWP(12,@T[1]),$D);
++	&mov	(&DWP(16,@T[1]),$E);
++
++&function_end("_sha1_block_data_order_ssse3");
++
++if ($ymm) {
++my $Xi=4;			# 4xSIMD Xupdate round, start pre-seeded
++my @X=map("xmm$_",(4..7,0..3));	# pre-seeded for $Xi=4
++my @V=($A,$B,$C,$D,$E);
++my $j=0;			# hash round
++my @T=($T,$tmp1);
++my $inp;
++
++my $_rol=sub { &shld(@_[0],@_) };
++my $_ror=sub { &shrd(@_[0],@_) };
++
++&function_begin("_sha1_block_data_order_avx");
++	&call	(&label("pic_point"));	# make it PIC!
++	&set_label("pic_point");
++	&blindpop($tmp1);
++	&lea	($tmp1,&DWP(&label("K_XX_XX")."-".&label("pic_point"),$tmp1));
++&set_label("avx_shortcut");
++	&vzeroall();
++
++	&vmovdqa(@X[3],&QWP(0,$tmp1));		# K_00_19
++	&vmovdqa(@X[4],&QWP(16,$tmp1));		# K_20_39
++	&vmovdqa(@X[5],&QWP(32,$tmp1));		# K_40_59
++	&vmovdqa(@X[6],&QWP(48,$tmp1));		# K_60_79
++	&vmovdqa(@X[2],&QWP(64,$tmp1));		# pbswap mask
++
++	&mov	($E,&wparam(0));		# load argument block
++	&mov	($inp=@T[1],&wparam(1));
++	&mov	($D,&wparam(2));
++	&mov	(@T[0],"esp");
++
++	# stack frame layout
++	#
++	# +0	X[0]+K	X[1]+K	X[2]+K	X[3]+K	# XMM->IALU xfer area
++	#	X[4]+K	X[5]+K	X[6]+K	X[7]+K
++	#	X[8]+K	X[9]+K	X[10]+K	X[11]+K
++	#	X[12]+K	X[13]+K	X[14]+K	X[15]+K
++	#
++	# +64	X[0]	X[1]	X[2]	X[3]	# XMM->XMM backtrace area
++	#	X[4]	X[5]	X[6]	X[7]
++	#	X[8]	X[9]	X[10]	X[11]	# even borrowed for K_00_19
++	#
++	# +112	K_20_39	K_20_39	K_20_39	K_20_39	# constants
++	#	K_40_59	K_40_59	K_40_59	K_40_59
++	#	K_60_79	K_60_79	K_60_79	K_60_79
++	#	K_00_19	K_00_19	K_00_19	K_00_19
++	#	pbswap mask
++	#
++	# +192	ctx				# argument block
++	# +196	inp
++	# +200	end
++	# +204	esp
++	&sub	("esp",208);
++	&and	("esp",-64);
++
++	&vmovdqa(&QWP(112+0,"esp"),@X[4]);	# copy constants
++	&vmovdqa(&QWP(112+16,"esp"),@X[5]);
++	&vmovdqa(&QWP(112+32,"esp"),@X[6]);
++	&shl	($D,6);				# len*64
++	&vmovdqa(&QWP(112+48,"esp"),@X[3]);
++	&add	($D,$inp);			# end of input
++	&vmovdqa(&QWP(112+64,"esp"),@X[2]);
++	&add	($inp,64);
++	&mov	(&DWP(192+0,"esp"),$E);		# save argument block
++	&mov	(&DWP(192+4,"esp"),$inp);
++	&mov	(&DWP(192+8,"esp"),$D);
++	&mov	(&DWP(192+12,"esp"),@T[0]);	# save original %esp
++
++	&mov	($A,&DWP(0,$E));		# load context
++	&mov	($B,&DWP(4,$E));
++	&mov	($C,&DWP(8,$E));
++	&mov	($D,&DWP(12,$E));
++	&mov	($E,&DWP(16,$E));
++	&mov	(@T[0],$B);			# magic seed
++
++	&vmovdqu(@X[-4&7],&QWP(-64,$inp));	# load input to %xmm[0-3]
++	&vmovdqu(@X[-3&7],&QWP(-48,$inp));
++	&vmovdqu(@X[-2&7],&QWP(-32,$inp));
++	&vmovdqu(@X[-1&7],&QWP(-16,$inp));
++	&vpshufb(@X[-4&7],@X[-4&7],@X[2]);	# byte swap
++	&vpshufb(@X[-3&7],@X[-3&7],@X[2]);
++	&vpshufb(@X[-2&7],@X[-2&7],@X[2]);
++	&vmovdqa(&QWP(112-16,"esp"),@X[3]);	# borrow last backtrace slot
++	&vpshufb(@X[-1&7],@X[-1&7],@X[2]);
++	&vpaddd	(@X[0],@X[-4&7],@X[3]);		# add K_00_19
++	&vpaddd	(@X[1],@X[-3&7],@X[3]);
++	&vpaddd	(@X[2],@X[-2&7],@X[3]);
++	&vmovdqa(&QWP(0,"esp"),@X[0]);		# X[]+K xfer to IALU
++	&vmovdqa(&QWP(0+16,"esp"),@X[1]);
++	&vmovdqa(&QWP(0+32,"esp"),@X[2]);
++	&jmp	(&label("loop"));
++
++sub Xupdate_avx_16_31()		# recall that $Xi starts wtih 4
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 40 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpalignr(@X[0],@X[-3&7],@X[-4&7],8);	# compose "X[-14]" in "X[0]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &vpaddd	(@X[3],@X[3],@X[-1&7]);
++	  &vmovdqa	(&QWP(64+16*(($Xi-4)%3),"esp"),@X[-4&7]);# save X[] to backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpsrldq(@X[2],@X[-1&7],4);		# "X[-3]", 3 dwords
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpxor	(@X[0],@X[0],@X[-4&7]);		# "X[0]"^="X[-16]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpxor	(@X[2],@X[2],@X[-2&7]);		# "X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &vmovdqa	(&QWP(0+16*(($Xi-1)&3),"esp"),@X[3]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpxor	(@X[0],@X[0],@X[2]);		# "X[0]"^="X[-3]"^"X[-8]"
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpsrld	(@X[2],@X[0],31);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpslldq(@X[4],@X[0],12);		# "X[0]"<<96, extract one dword
++	&vpaddd	(@X[0],@X[0],@X[0]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpsrld	(@X[3],@X[4],30);
++	&vpor	(@X[0],@X[0],@X[2]);		# "X[0]"<<<=1
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpslld	(@X[4],@X[4],2);
++	  &vmovdqa	(@X[2],&QWP(64+16*(($Xi-6)%3),"esp")) if ($Xi>5);	# restore X[] from backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpxor	(@X[0],@X[0],@X[3]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	&vpxor	(@X[0],@X[0],@X[4]);		# "X[0]"^=("X[0]"<<96)<<<2
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	  &vmovdqa	(@X[4],&QWP(112-16+16*(($Xi)/5),"esp"));	# K_XX_XX
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	 foreach (@insns) { eval; }	# remaining instructions [if any]
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++}
++
++sub Xupdate_avx_32_79()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 to 48 instructions
++  my ($a,$b,$c,$d,$e);
++
++	&vpalignr(@X[2],@X[-1&7],@X[-2&7],8);	# compose "X[-6]"
++	&vpxor	(@X[0],@X[0],@X[-4&7]);	# "X[0]"="X[-32]"^"X[-16]"
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&vpxor	(@X[0],@X[0],@X[-7&7]);	# "X[0]"^="X[-28]"
++	  &vmovdqa	(&QWP(64+16*(($Xi-4)%3),"esp"),@X[-4&7]);	# save X[] to backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 if ($Xi%5) {
++	  &vmovdqa	(@X[4],@X[3]);	# "perpetuate" K_XX_XX...
++	 } else {			# ... or load next one
++	  &vmovdqa	(@X[4],&QWP(112-16+16*($Xi/5),"esp"));
++	 }
++	  &vpaddd	(@X[3],@X[3],@X[-1&7]);
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&vpxor	(@X[0],@X[0],@X[2]);		# "X[0]"^="X[-6]"
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++
++	&vpsrld	(@X[2],@X[0],30);
++	  &vmovdqa	(&QWP(0+16*(($Xi-1)&3),"esp"),@X[3]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&vpslld	(@X[0],@X[0],2);
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	&vpor	(@X[0],@X[0],@X[2]);	# "X[0]"<<<=2
++	 eval(shift(@insns));		# body_20_39
++	 eval(shift(@insns));
++	  &vmovdqa	(@X[2],&QWP(64+16*(($Xi-6)%3),"esp")) if($Xi<19);	# restore X[] from backtrace buffer
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# rol
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));		# ror
++	 eval(shift(@insns));
++
++	 foreach (@insns) { eval; }	# remaining instructions
++
++  $Xi++;	push(@X,shift(@X));	# "rotate" X[]
++}
++
++sub Xuplast_avx_80()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	  &vpaddd	(@X[3],@X[3],@X[-1&7]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	  &vmovdqa	(&QWP(0+16*(($Xi-1)&3),"esp"),@X[3]);	# X[]+K xfer IALU
++
++	 foreach (@insns) { eval; }		# remaining instructions
++
++	&mov	($inp=@T[1],&DWP(192+4,"esp"));
++	&cmp	($inp,&DWP(192+8,"esp"));
++	&je	(&label("done"));
++
++	&vmovdqa(@X[3],&QWP(112+48,"esp"));	# K_00_19
++	&vmovdqa(@X[2],&QWP(112+64,"esp"));	# pbswap mask
++	&vmovdqu(@X[-4&7],&QWP(0,$inp));	# load input
++	&vmovdqu(@X[-3&7],&QWP(16,$inp));
++	&vmovdqu(@X[-2&7],&QWP(32,$inp));
++	&vmovdqu(@X[-1&7],&QWP(48,$inp));
++	&add	($inp,64);
++	&vpshufb(@X[-4&7],@X[-4&7],@X[2]);		# byte swap
++	&mov	(&DWP(192+4,"esp"),$inp);
++	&vmovdqa(&QWP(112-16,"esp"),@X[3]);	# borrow last backtrace slot
++
++  $Xi=0;
++}
++
++sub Xloop_avx()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpshufb	(@X[($Xi-3)&7],@X[($Xi-3)&7],@X[2]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vpaddd	(@X[$Xi&7],@X[($Xi-4)&7],@X[3]);
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++	&vmovdqa	(&QWP(0+16*$Xi,"esp"),@X[$Xi&7]);	# X[]+K xfer to IALU
++	 eval(shift(@insns));
++	 eval(shift(@insns));
++
++	foreach (@insns) { eval; }
++  $Xi++;
++}
++
++sub Xtail_avx()
++{ use integer;
++  my $body = shift;
++  my @insns = (&$body,&$body,&$body,&$body);	# 32 instructions
++  my ($a,$b,$c,$d,$e);
++
++	foreach (@insns) { eval; }
++}
++
++&set_label("loop",16);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_16_31(\&body_00_19);
++	&Xupdate_avx_32_79(\&body_00_19);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_40_59);
++	&Xupdate_avx_32_79(\&body_20_39);
++	&Xuplast_avx_80(\&body_20_39);	# can jump to "done"
++
++				$saved_j=$j; @saved_V=@V;
++
++	&Xloop_avx(\&body_20_39);
++	&Xloop_avx(\&body_20_39);
++	&Xloop_avx(\&body_20_39);
++
++	&mov	(@T[1],&DWP(192,"esp"));	# update context
++	&add	($A,&DWP(0,@T[1]));
++	&add	(@T[0],&DWP(4,@T[1]));		# $b
++	&add	($C,&DWP(8,@T[1]));
++	&mov	(&DWP(0,@T[1]),$A);
++	&add	($D,&DWP(12,@T[1]));
++	&mov	(&DWP(4,@T[1]),@T[0]);
++	&add	($E,&DWP(16,@T[1]));
++	&mov	(&DWP(8,@T[1]),$C);
++	&mov	($B,@T[0]);
++	&mov	(&DWP(12,@T[1]),$D);
++	&mov	(&DWP(16,@T[1]),$E);
++
++	&jmp	(&label("loop"));
++
++&set_label("done",16);		$j=$saved_j; @V=@saved_V;
++
++	&Xtail_avx(\&body_20_39);
++	&Xtail_avx(\&body_20_39);
++	&Xtail_avx(\&body_20_39);
++
++	&vzeroall();
++
++	&mov	(@T[1],&DWP(192,"esp"));	# update context
++	&add	($A,&DWP(0,@T[1]));
++	&mov	("esp",&DWP(192+12,"esp"));	# restore %esp
++	&add	(@T[0],&DWP(4,@T[1]));		# $b
++	&add	($C,&DWP(8,@T[1]));
++	&mov	(&DWP(0,@T[1]),$A);
++	&add	($D,&DWP(12,@T[1]));
++	&mov	(&DWP(4,@T[1]),@T[0]);
++	&add	($E,&DWP(16,@T[1]));
++	&mov	(&DWP(8,@T[1]),$C);
++	&mov	(&DWP(12,@T[1]),$D);
++	&mov	(&DWP(16,@T[1]),$E);
++&function_end("_sha1_block_data_order_avx");
++}
++&set_label("K_XX_XX",64);
++&data_word(0x5a827999,0x5a827999,0x5a827999,0x5a827999);	# K_00_19
++&data_word(0x6ed9eba1,0x6ed9eba1,0x6ed9eba1,0x6ed9eba1);	# K_20_39
++&data_word(0x8f1bbcdc,0x8f1bbcdc,0x8f1bbcdc,0x8f1bbcdc);	# K_40_59
++&data_word(0xca62c1d6,0xca62c1d6,0xca62c1d6,0xca62c1d6);	# K_60_79
++&data_word(0x00010203,0x04050607,0x08090a0b,0x0c0d0e0f);	# pbswap mask
++}
+ &asciz("SHA1 block transform for x86, CRYPTOGAMS by <appro\@openssl.org>");
+ 
+ &asm_finish();
+diff -up openssl-1.0.0/crypto/x86cpuid.pl.intelopts openssl-1.0.0/crypto/x86cpuid.pl
+--- openssl-1.0.0/crypto/x86cpuid.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/x86cpuid.pl	2011-08-24 16:01:54.000000000 +0200
+@@ -20,7 +20,7 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA3
+ 	&pop	("eax");
+ 	&xor	("ecx","eax");
+ 	&bt	("ecx",21);
+-	&jnc	(&label("done"));
++	&jnc	(&label("generic"));
+ 	&xor	("eax","eax");
+ 	&cpuid	();
+ 	&mov	("edi","eax");		# max value for standard query level
+@@ -51,7 +51,14 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA3
+ 	# AMD specific
+ 	&mov	("eax",0x80000000);
+ 	&cpuid	();
+-	&cmp	("eax",0x80000008);
++	&cmp	("eax",0x80000001);
++	&jb	(&label("intel"));
++	&mov	("esi","eax");
++	&mov	("eax",0x80000001);
++	&cpuid	();
++	&or	("ebp","ecx");
++	&and	("ebp",1<<11|1);	# isolate XOP bit
++	&cmp	("esi",0x80000008);
+ 	&jb	(&label("intel"));
+ 
+ 	&mov	("eax",0x80000008);
+@@ -62,13 +69,13 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA3
+ 	&mov	("eax",1);
+ 	&cpuid	();
+ 	&bt	("edx",28);
+-	&jnc	(&label("done"));
++	&jnc	(&label("generic"));
+ 	&shr	("ebx",16);
+ 	&and	("ebx",0xff);
+ 	&cmp	("ebx","esi");
+-	&ja	(&label("done"));
++	&ja	(&label("generic"));
+ 	&and	("edx",0xefffffff);	# clear hyper-threading bit
+-	&jmp	(&label("done"));
++	&jmp	(&label("generic"));
+ 	
+ &set_label("intel");
+ 	&cmp	("edi",4);
+@@ -85,27 +92,52 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA3
+ &set_label("nocacheinfo");
+ 	&mov	("eax",1);
+ 	&cpuid	();
++	&and	("edx",0xbfefffff);	# force reserved bits #20, #30 to 0
+ 	&cmp	("ebp",0);
+-	&jne	(&label("notP4"));
++	&jne	(&label("notintel"));
++	&or	("edx",1<<30);		# set reserved bit#30 on Intel CPUs
+ 	&and	(&HB("eax"),15);	# familiy ID
+ 	&cmp	(&HB("eax"),15);	# P4?
+-	&jne	(&label("notP4"));
+-	&or	("edx",1<<20);		# use reserved bit to engage RC4_CHAR
+-&set_label("notP4");
++	&jne	(&label("notintel"));
++	&or	("edx",1<<20);		# set reserved bit#20 to engage RC4_CHAR
++&set_label("notintel");
+ 	&bt	("edx",28);		# test hyper-threading bit
+-	&jnc	(&label("done"));
++	&jnc	(&label("generic"));
+ 	&and	("edx",0xefffffff);
+ 	&cmp	("edi",0);
+-	&je	(&label("done"));
++	&je	(&label("generic"));
+ 
+ 	&or	("edx",0x10000000);
+ 	&shr	("ebx",16);
+ 	&cmp	(&LB("ebx"),1);
+-	&ja	(&label("done"));
++	&ja	(&label("generic"));
+ 	&and	("edx",0xefffffff);	# clear hyper-threading bit if not
++
++&set_label("generic");
++	&and	("ebp",1<<11);		# isolate AMD XOP flag
++	&and	("ecx",0xfffff7ff);	# force 11th bit to 0
++	&mov	("esi","edx");
++	&or	("ebp","ecx");		# merge AMD XOP flag
++
++	&bt	("ecx",26);		# check XSAVE bit
++	&jnc	(&label("done"));
++	&bt	("ecx",27);		# check OSXSAVE bit
++	&jnc	(&label("clear_xmm"));
++	&xor	("ecx","ecx");
++	&data_byte(0x0f,0x01,0xd0);	# xgetbv
++	&and	("eax",6);
++	&cmp	("eax",6);
++	&je	(&label("done"));
++	&cmp	("eax",2);
++	&je	(&label("clear_avx"));
++&set_label("clear_xmm");
++	&and	("ebp",0xfdfffffd);	# clear AESNI and PCLMULQDQ bits
++	&and	("esi",0xfeffffff);	# clear FXSR
++&set_label("clear_avx");
++	&and	("ebp",0xefffe7ff);	# clear AVX, FMA and AMD XOP bits
+ &set_label("done");
+-	&mov	("eax","edx");
+-	&mov	("edx","ecx");
++	&mov	("eax","esi");
++	&mov	("edx","ebp");
+ &function_end("OPENSSL_ia32_cpuid");
+ 
+ &external_label("OPENSSL_ia32cap_P");
+@@ -199,8 +231,9 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA3
+ 	&bt	(&DWP(0,"ecx"),1);
+ 	&jnc	(&label("no_x87"));
+ 	if ($sse2) {
+-		&bt	(&DWP(0,"ecx"),26);
+-		&jnc	(&label("no_sse2"));
++		&and	("ecx",1<<26|1<<24);	# check SSE2 and FXSR bits
++		&cmp	("ecx",1<<26|1<<24);
++		&jne	(&label("no_sse2"));
+ 		&pxor	("xmm0","xmm0");
+ 		&pxor	("xmm1","xmm1");
+ 		&pxor	("xmm2","xmm2");
+diff -up openssl-1.0.0/crypto/x86_64cpuid.pl.intelopts openssl-1.0.0/crypto/x86_64cpuid.pl
+--- openssl-1.0.0/crypto/x86_64cpuid.pl.intelopts	2011-05-24 15:20:29.000000000 +0200
++++ openssl-1.0.0/crypto/x86_64cpuid.pl	2011-08-24 16:01:56.000000000 +0200
+@@ -7,12 +7,18 @@ if ($flavour =~ /\./) { $output = $flavo
+ $win64=0; $win64=1 if ($flavour =~ /[nm]asm|mingw64/ || $output =~ /\.asm$/);
+ 
+ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
+-open STDOUT,"| $^X ${dir}perlasm/x86_64-xlate.pl $flavour $output";
++( $xlate="${dir}x86_64-xlate.pl" and -f $xlate ) or
++( $xlate="${dir}perlasm/x86_64-xlate.pl" and -f $xlate) or
++die "can't locate x86_64-xlate.pl";
++
++open STDOUT,"| $^X $xlate $flavour $output";
++
++($arg1,$arg2,$arg3,$arg4)=$win64?("%rcx","%rdx","%r8", "%r9") :	# Win64 order
++				 ("%rdi","%rsi","%rdx","%rcx");	# Unix order
+ 
+-if ($win64)	{ $arg1="%rcx"; $arg2="%rdx"; }
+-else		{ $arg1="%rdi"; $arg2="%rsi"; }
+ print<<___;
+ .extern		OPENSSL_cpuid_setup
++.hidden		OPENSSL_cpuid_setup
+ .section	.init
+ 	call	OPENSSL_cpuid_setup
+ 
+@@ -46,7 +52,7 @@ OPENSSL_rdtsc:
+ .type	OPENSSL_ia32_cpuid,\@abi-omnipotent
+ .align	16
+ OPENSSL_ia32_cpuid:
+-	mov	%rbx,%r8
++	mov	%rbx,%r8		# save %rbx
+ 
+ 	xor	%eax,%eax
+ 	cpuid
+@@ -78,7 +84,15 @@ OPENSSL_ia32_cpuid:
+ 	# AMD specific
+ 	mov	\$0x80000000,%eax
+ 	cpuid
+-	cmp	\$0x80000008,%eax
++	cmp	\$0x80000001,%eax
++	jb	.Lintel
++	mov	%eax,%r10d
++	mov	\$0x80000001,%eax
++	cpuid
++	or	%ecx,%r9d
++	and	\$0x00000801,%r9d	# isolate AMD XOP bit, 1<<11
++
++	cmp	\$0x80000008,%r10d
+ 	jb	.Lintel
+ 
+ 	mov	\$0x80000008,%eax
+@@ -89,12 +103,12 @@ OPENSSL_ia32_cpuid:
+ 	mov	\$1,%eax
+ 	cpuid
+ 	bt	\$28,%edx		# test hyper-threading bit
+-	jnc	.Ldone
++	jnc	.Lgeneric
+ 	shr	\$16,%ebx		# number of logical processors
+ 	cmp	%r10b,%bl
+-	ja	.Ldone
++	ja	.Lgeneric
+ 	and	\$0xefffffff,%edx	# ~(1<<28)
+-	jmp	.Ldone
++	jmp	.Lgeneric
+ 
+ .Lintel:
+ 	cmp	\$4,%r11d
+@@ -111,30 +125,47 @@ OPENSSL_ia32_cpuid:
+ .Lnocacheinfo:
+ 	mov	\$1,%eax
+ 	cpuid
++	and	\$0xbfefffff,%edx	# force reserved bits to 0
+ 	cmp	\$0,%r9d
+ 	jne	.Lnotintel
+-	or	\$0x00100000,%edx	# use reserved 20th bit to engage RC4_CHAR
++	or	\$0x40000000,%edx	# set reserved bit#30 on Intel CPUs
+ 	and	\$15,%ah
+ 	cmp	\$15,%ah		# examine Family ID
+-	je	.Lnotintel
+-	or	\$0x40000000,%edx	# use reserved bit to skip unrolled loop
++	jne	.Lnotintel
++	or	\$0x00100000,%edx	# set reserved bit#20 to engage RC4_CHAR
+ .Lnotintel:
+ 	bt	\$28,%edx		# test hyper-threading bit
+-	jnc	.Ldone
++	jnc	.Lgeneric
+ 	and	\$0xefffffff,%edx	# ~(1<<28)
+ 	cmp	\$0,%r10d
+-	je	.Ldone
++	je	.Lgeneric
+ 
+ 	or	\$0x10000000,%edx	# 1<<28
+ 	shr	\$16,%ebx
+ 	cmp	\$1,%bl			# see if cache is shared
+-	ja	.Ldone
++	ja	.Lgeneric
+ 	and	\$0xefffffff,%edx	# ~(1<<28)
++.Lgeneric:
++	and	\$0x00000800,%r9d	# isolate AMD XOP flag
++	and	\$0xfffff7ff,%ecx
++	or	%ecx,%r9d		# merge AMD XOP flag
++
++	mov	%edx,%r10d		# %r9d:%r10d is copy of %ecx:%edx
++	bt	\$27,%r9d		# check OSXSAVE bit
++	jnc	.Lclear_avx
++	xor	%ecx,%ecx		# XCR0
++	.byte	0x0f,0x01,0xd0		# xgetbv
++	and	\$6,%eax		# isolate XMM and YMM state support
++	cmp	\$6,%eax
++	je	.Ldone
++.Lclear_avx:
++	mov	\$0xefffe7ff,%eax	# ~(1<<28|1<<12|1<<11)
++	and	%eax,%r9d		# clear AVX, FMA and AMD XOP bits
+ .Ldone:
+-	shl	\$32,%rcx
+-	mov	%edx,%eax
+-	mov	%r8,%rbx
+-	or	%rcx,%rax
++	shl	\$32,%r9
++	mov	%r10d,%eax
++	mov	%r8,%rbx		# restore %rbx
++	or	%r9,%rax
+ 	ret
+ .size	OPENSSL_ia32_cpuid,.-OPENSSL_ia32_cpuid
+ 

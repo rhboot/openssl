@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 15%{?dist}
+Release: 16%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -32,8 +32,6 @@ Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
 Source11: README.FIPS
-# Intel acceleration engine backported from upstream by Intel
-Source12: intel-accel-1.3.tar.gz
 # Build changes
 Patch0: openssl-1.0.0-beta4-redhat.patch
 Patch1: openssl-1.0.0-beta3-defaults.patch
@@ -41,7 +39,6 @@ Patch3: openssl-1.0.0-beta3-soversion.patch
 Patch4: openssl-1.0.0-beta5-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
 Patch6: openssl-0.9.8b-test-use-localhost.patch
-Patch10: intel-accel-1.3-build.patch
 # Bug fixes
 Patch23: openssl-1.0.0-beta4-default-paths.patch
 Patch24: openssl-0.9.8j-bad-mime.patch
@@ -73,6 +70,7 @@ Patch59: openssl-1.0.0c-pkcs12-fips-default.patch
 Patch90: openssl-1.0.0-cavs.patch
 Patch91: openssl-1.0.0-fips-aesni.patch
 Patch92: openssl-1.0.0-apps-dgst.patch
+Patch93: openssl-1.0.0-intelopts.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-dtls1-backports.patch
 Patch61: openssl-1.0.0-init-sha256.patch
@@ -132,7 +130,7 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q -n %{name}-%{version} -a 12
+%setup -q -n %{name}-%{version}
 
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
@@ -141,9 +139,6 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch4 -p1 -b .enginesdir %{?_rawbuild}
 %patch5 -p1 -b .no-rpath
 %patch6 -p1 -b .use-localhost
-pushd intel-accel-1.3
-%patch10 -p1 -b .iabuild %{?_rawbuild}
-popd
 
 %patch23 -p1 -b .default-paths
 %patch24 -p1 -b .bad-mime
@@ -175,6 +170,7 @@ popd
 %patch90 -p1 -b .cavs
 %patch91 -p1 -b .fips-aesni
 %patch92 -p1 -b .dgst
+%patch93 -p1 -b .intelopts
 
 %patch60 -p1 -b .dtls1
 %patch61 -p1 -b .sha256
@@ -244,12 +240,6 @@ make rehash
 
 # Overwrite FIPS README
 cp -f %{SOURCE11} .
-
-%ifarch %ix86 x86_64
-pushd intel-accel-1.3
-make
-popd
-%endif
 
 %check
 # Verify that what was compiled actually works.
@@ -382,12 +372,6 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/fips_premain.*
 rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 
-%ifarch %ix86 x86_64
-pushd intel-accel-1.3
-install -m755 libintel-accel.so $RPM_BUILD_ROOT%{_libdir}/openssl/engines
-popd
-%endif
-
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
@@ -447,6 +431,10 @@ popd
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Aug 24 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-16
+- merge the optimizations for AES-NI, SHA1, and RC4 from the intelx
+  engine to the internal implementations
+
 * Mon Aug 15 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-15
 - better documentation of the available digests in apps (#693858)
 - backported CHIL engine fixes (#693863)
