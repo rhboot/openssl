@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 16%{?dist}
+Release: 17%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -80,6 +80,7 @@ Patch64: openssl-1.0.0-cve-2010-3864.patch
 Patch65: openssl-1.0.0-cve-2010-4180.patch
 Patch66: openssl-1.0.0-cve-2011-0014.patch
 Patch67: openssl-1.0.0-chil-fixes.patch
+Patch68: openssl-1.0.0-cve-2011-3207.patch
 
 
 License: OpenSSL
@@ -180,6 +181,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch65 -p1 -b .disable-nsbug
 %patch66 -p0 -b .ocsp-stapling
 %patch67 -p1 -b .chil
+%patch68 -p1 -b .crl-init
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -431,6 +433,10 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Sep 12 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-17
+- initialize the X509_STORE_CTX properly for CRL lookups - CVE-2011-3207
+  (#736087)
+
 * Wed Aug 24 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-16
 - merge the optimizations for AES-NI, SHA1, and RC4 from the intelx
   engine to the internal implementations
