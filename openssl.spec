@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 17%{?dist}
+Release: 18%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -433,6 +433,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Sep 21 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-18
+- fix missing initialization of a variable in the CHIL engine (#740188)
+
 * Mon Sep 12 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-17
 - initialize the X509_STORE_CTX properly for CRL lookups - CVE-2011-3207
   (#736087)

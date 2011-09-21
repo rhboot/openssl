@@ -1,6 +1,6 @@
 diff -up openssl-1.0.0/engines/e_chil.c.chil openssl-1.0.0/engines/e_chil.c
 --- openssl-1.0.0/engines/e_chil.c.chil	2010-03-25 00:42:20.000000000 +0100
-+++ openssl-1.0.0/engines/e_chil.c	2011-08-15 09:47:05.000000000 +0200
++++ openssl-1.0.0/engines/e_chil.c	2011-09-21 16:35:54.000000000 +0200
 @@ -116,6 +116,7 @@ static int hwcrhk_rsa_mod_exp(BIGNUM *r,
  /* This function is aliased to mod_exp (with the mont stuff dropped). */
  static int hwcrhk_mod_exp_mont(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
@@ -107,3 +107,12 @@ diff -up openssl-1.0.0/engines/e_chil.c.chil openssl-1.0.0/engines/e_chil.c
  
          if (cactx)
                  {
+@@ -1305,7 +1294,7 @@ static int hwcrhk_insert_card(const char
+ 
+ 	if (ui)
+ 		{
+-		char answer;
++		char answer = '\0';
+ 		char buf[BUFSIZ];
+ 		/* Despite what the documentation says wrong_info can be
+ 	 	 * an empty string.
