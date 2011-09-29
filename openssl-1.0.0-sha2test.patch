@@ -1,0 +1,77 @@
+diff -up openssl-1.0.0/crypto/fips/fips.c.sha2test openssl-1.0.0/crypto/fips/fips.c
+--- openssl-1.0.0/crypto/fips/fips.c.sha2test	2011-09-12 15:07:42.000000000 +0200
++++ openssl-1.0.0/crypto/fips/fips.c	2011-09-26 11:03:17.000000000 +0200
+@@ -163,6 +163,7 @@ int FIPS_selftest()
+     {
+ 
+     return FIPS_selftest_sha1()
++	&& FIPS_selftest_sha2()
+ 	&& FIPS_selftest_hmac()
+ 	&& FIPS_selftest_aes()
+ 	&& FIPS_selftest_des()
+@@ -323,6 +324,8 @@ FIPSCHECK_verify(const char *libname, co
+ 		return 0;
+ 
+ 	hmacpath = make_hmac_path(path);
++	if (hmacpath == NULL)
++		return 0;
+ 
+ 	hf = fopen(hmacpath, "r");
+ 	if (hf == NULL) {
+@@ -627,6 +630,45 @@ int fips_cipher_test(EVP_CIPHER_CTX *ctx
+ 	return 1;
+ 	}
+ 
++static const unsigned char msg_sha256[] = { 0xfa, 0x48, 0x59, 0x2a, 0xe1, 0xae, 0x1f, 0x30,
++					    0xfc };
++static const unsigned char dig_sha256[] = { 0xf7, 0x26, 0xd8, 0x98, 0x47, 0x91, 0x68, 0x5b,
++					    0x9e, 0x39, 0xb2, 0x58, 0xbb, 0x75, 0xbf, 0x01,
++					    0x17, 0x0c, 0x84, 0x00, 0x01, 0x7a, 0x94, 0x83,
++					    0xf3, 0x0b, 0x15, 0x84, 0x4b, 0x69, 0x88, 0x8a };
++
++static const unsigned char msg_sha512[] = { 0x37, 0xd1, 0x35, 0x9d, 0x18, 0x41, 0xe9, 0xb7,
++					    0x6d, 0x9a, 0x13, 0xda, 0x5f, 0xf3, 0xbd };
++static const unsigned char dig_sha512[] = { 0x11, 0x13, 0xc4, 0x19, 0xed, 0x2b, 0x1d, 0x16,
++					    0x11, 0xeb, 0x9b, 0xbe, 0xf0, 0x7f, 0xcf, 0x44,
++					    0x8b, 0xd7, 0x57, 0xbd, 0x8d, 0xa9, 0x25, 0xb0,
++					    0x47, 0x25, 0xd6, 0x6c, 0x9a, 0x54, 0x7f, 0x8f,
++					    0x0b, 0x53, 0x1a, 0x10, 0x68, 0x32, 0x03, 0x38,
++					    0x82, 0xc4, 0x87, 0xc4, 0xea, 0x0e, 0xd1, 0x04,
++					    0xa9, 0x98, 0xc1, 0x05, 0xa3, 0xf3, 0xf8, 0xb1,
++					    0xaf, 0xbc, 0xd9, 0x78, 0x7e, 0xee, 0x3d, 0x43 };
++
++int FIPS_selftest_sha2(void)
++	{
++	unsigned char md[SHA512_DIGEST_LENGTH];
++
++	EVP_Digest(msg_sha256, sizeof(msg_sha256), md, NULL, EVP_sha256(), NULL);
++	if(memcmp(dig_sha256, md, sizeof(dig_sha256)))
++		{
++		FIPSerr(FIPS_F_FIPS_MODE_SET, FIPS_R_SELFTEST_FAILED);
++		return 0;
++		}
++
++	EVP_Digest(msg_sha512, sizeof(msg_sha512), md, NULL, EVP_sha512(), NULL);
++	if(memcmp(dig_sha512, md, sizeof(dig_sha512)))
++		{
++		FIPSerr(FIPS_F_FIPS_MODE_SET, FIPS_R_SELFTEST_FAILED);
++		return 0;
++		}
++
++	return 1;
++	}
++
+ #if 0
+ /* The purpose of this is to ensure the error code exists and the function
+  * name is to keep the error checking script quiet
+diff -up openssl-1.0.0/crypto/fips/fips.h.sha2test openssl-1.0.0/crypto/fips/fips.h
+--- openssl-1.0.0/crypto/fips/fips.h.sha2test	2011-09-12 15:07:42.000000000 +0200
++++ openssl-1.0.0/crypto/fips/fips.h	2011-09-26 11:00:55.000000000 +0200
+@@ -72,6 +72,7 @@ int FIPS_selftest_failed(void);
+ void FIPS_selftest_check(void);
+ void FIPS_corrupt_sha1(void);
+ int FIPS_selftest_sha1(void);
++int FIPS_selftest_sha2(void);
+ void FIPS_corrupt_aes(void);
+ int FIPS_selftest_aes(void);
+ void FIPS_corrupt_des(void);

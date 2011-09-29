@@ -71,6 +71,7 @@ Patch90: openssl-1.0.0-cavs.patch
 Patch91: openssl-1.0.0-fips-aesni.patch
 Patch92: openssl-1.0.0-apps-dgst.patch
 Patch93: openssl-1.0.0-intelopts.patch
+Patch94: openssl-1.0.0-sha2test.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-dtls1-backports.patch
 Patch61: openssl-1.0.0-init-sha256.patch
@@ -172,6 +173,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch91 -p1 -b .fips-aesni
 %patch92 -p1 -b .dgst
 %patch93 -p1 -b .intelopts
+%patch94 -p1 -b .sha2test
 
 %patch60 -p1 -b .dtls1
 %patch61 -p1 -b .sha256
@@ -433,6 +435,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Sep 29 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-19
+- add known answer test for SHA2 algorithms
+
 * Wed Sep 21 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-18
 - fix missing initialization of a variable in the CHIL engine (#740188)
 
