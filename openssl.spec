@@ -5,7 +5,7 @@
 # 0.9.6c soversion = 3
 # 0.9.7a soversion = 4
 # 0.9.7ef soversion = 5
-# 0.9.8ab soversion = 6
+# 0.9.8abe soversion = 6
 %define soversion 6
 
 # Number of threads to spawn when testing some threading fixes.
@@ -20,9 +20,10 @@
 
 Summary: The OpenSSL toolkit
 Name: openssl
-Version: 0.9.8b
-Release: 12%{?dist}
-Source: openssl-%{version}-usa.tar.bz2
+Version: 0.9.8e
+Release: 20%{?dist}
+# The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
+Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
 Source2: Makefile.certificate
 Source3: ca-bundle.crt
@@ -32,37 +33,54 @@ Source6: make-dummy-cert
 Source8: openssl-thread-test.c
 Source9: opensslconf-new.h
 Source10: opensslconf-new-warning.h
+Source11: README.FIPS
 # Build changes
-Patch0: openssl-0.9.8a-redhat.patch
+Patch0: openssl-fips-0.9.8e-redhat.patch
 Patch1: openssl-0.9.8a-defaults.patch
 Patch2: openssl-0.9.8a-link-krb5.patch
 Patch3: openssl-0.9.8b-soversion.patch
 Patch4: openssl-0.9.8a-enginesdir.patch
 Patch5: openssl-0.9.8a-no-rpath.patch
-Patch24: openssl-0.9.8a-padlock.patch
 # Functionality changes
 Patch32: openssl-0.9.7-beta6-ia64.patch
 Patch33: openssl-0.9.7f-ca-dir.patch
 Patch34: openssl-0.9.6-x509.patch
 Patch35: openssl-0.9.7-beta5-version-add-engines.patch
-Patch36: openssl-0.9.8a-use-poll.patch
 Patch38: openssl-0.9.8a-reuse-cipher-change.patch
 Patch39: openssl-0.9.8b-ipv6-apps.patch
-Patch40: openssl-0.9.8b-enc-bufsize.patch
 # Backported fixes including security fixes
-Patch51: openssl-0.9.8b-block-padding.patch
-Patch52: openssl-0.9.8b-pkcs12-fix.patch
-Patch53: openssl-0.9.8b-bn-threadsafety.patch
-Patch54: openssl-0.9.8b-aes-cachecol.patch
-Patch55: openssl-0.9.8b-pkcs7-leak.patch
-Patch56: openssl-0.9.8b-cve-2006-4339.patch
-Patch57: openssl-0.9.8b-cve-2006-2937.patch
-Patch58: openssl-0.9.8b-cve-2006-2940.patch
-Patch59: openssl-0.9.8b-cve-2006-3738.patch
-Patch60: openssl-0.9.8b-cve-2006-4343.patch
 Patch61: openssl-0.9.8b-aliasing-bug.patch
 Patch62: openssl-0.9.8b-x509-name-cmp.patch
-Patch63: openssl-0.9.8b-x509-add-dir.patch
+Patch64: openssl-fips-0.9.8e-dtls-fixes.patch
+Patch65: openssl-0.9.8b-cve-2007-5135.patch
+Patch67: openssl-fips-0.9.8e-aescfb.patch
+Patch68: openssl-fips-0.9.8e-abi.patch
+Patch69: openssl-fips-0.9.8e-fipsmode.patch
+Patch70: openssl-fips-0.9.8e-bn-fixes.patch
+Patch71: openssl-fips-0.9.8e-use-fipscheck.patch
+Patch72: openssl-fips-0.9.8e-env-nozlib.patch
+Patch73: openssl-fips-0.9.8e-default-paths.patch
+Patch74: openssl-fips-0.9.8e-evp-nonfips.patch
+Patch75: openssl-fips-0.9.8e-cve-2008-5077.patch
+Patch76: openssl-fips-0.9.8e-multi-crl.patch
+Patch77: openssl-fips-0.9.8e-no-pairwise.patch
+Patch78: openssl-fips-0.9.8e-rng-seed.patch
+Patch79: openssl-fips-0.9.8e-bad-mime.patch
+Patch80: openssl-fips-0.9.8e-cve-2009-0590.patch
+Patch81: openssl-fips-0.9.8e-dtls-dos.patch
+Patch82: openssl-fips-0.9.8e-algo-doc.patch
+Patch83: openssl-fips-0.9.8e-cve-2009-2409.patch
+Patch84: openssl-fips-0.9.8e-cve-2009-4355.patch
+Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
+Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
+Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
+Patch88: openssl-fips-0.9.8e-cve-2010-4180.patch
+Patch89: openssl-fips-0.9.8e-ssl-sha256.patch
+Patch90: openssl-fips-0.9.8e-ciph-sort.patch
+Patch91: openssl-fips-0.9.8e-apps-dgst.patch
+Patch92: openssl-fips-0.9.8e-tls-version.patch
+Patch93: openssl-fips-0.9.8e-chil-fixes.patch
+Patch94: openssl-fips-0.9.8e-dh-check.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -100,7 +118,7 @@ package provides Perl scripts for converting certificates and keys
 from other formats to the formats used by the OpenSSL toolkit.
 
 %prep
-%setup -q
+%setup -q -n %{name}-fips-%{version}
 
 %{SOURCE1} > /dev/null
 %patch0 -p1 -b .redhat
@@ -111,30 +129,46 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch4 -p1 -b .enginesdir
 %patch5 -p1 -b .no-rpath
 
-%patch24 -p1 -b .padlock
 
 %patch32 -p1 -b .ia64
 #patch33 is applied after make test
 %patch34 -p1 -b .x509
 %patch35 -p1 -b .version-add-engines
-%patch36 -p1 -b .use-poll
 %patch38 -p1 -b .cipher-change
 %patch39 -p1 -b .ipv6-apps
-%patch40 -p1 -b .enc-bufsize
 
-%patch51 -p1 -b .block-padding
-%patch52 -p1 -b .pkcs12-fix
-%patch53 -p1 -b .bn-threadsafety
-%patch54 -p1 -b .cachecol
-%patch55 -p1 -b .pkcs7-leak
-%patch56 -p1 -b .short-padding
-%patch57 -p1 -b .asn1-error
-%patch58 -p0 -b .parasitic
-%patch59 -p0 -b .shared-ciphers
-%patch60 -p0 -b .client-dos
 %patch61 -p1 -b .aliasing-bug
 %patch62 -p1 -b .name-cmp
-%patch63 -p1 -b .add-dir
+%patch64 -p1 -b .dtls-fixes
+%patch65 -p1 -b .shciphers
+%patch67 -p1 -b .aescfb
+%patch68 -p1 -b .abi
+%patch69 -p1 -b .fipsmode
+%patch70 -p1 -b .bn-fixes
+%patch71 -p1 -b .use-fipscheck
+%patch72 -p1 -b .env-nozlib
+%patch73 -p1 -b .default-paths
+%patch74 -p1 -b .nonfips
+%patch75 -p1 -b .verifysig
+%patch76 -p1 -b .multi-crl
+%patch77 -p1 -b .no-pairwise
+%patch78 -p1 -b .rng-seed
+%patch79 -p1 -b .bad-mime
+%patch80 -p1 -b .bad-string
+%patch81 -p1 -b .dtls-dos
+%patch82 -p1 -b .algo-doc
+%patch83 -p1 -b .nomd2
+%patch84 -p1 -b .compleak
+%patch85 -p1 -b .reneg
+%patch86 -p1 -b .nullprinc
+%patch87 -p1 -b .wexpand
+%patch88 -p1 -b .disable-nsbug
+%patch89 -p1 -b .sha256
+%patch90 -p1 -b .sort
+%patch91 -p1 -b .dgst
+%patch92 -p1 -b .tlsver
+%patch93 -p1 -b .chil
+%patch94 -p1 -b .dh-check
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -162,7 +196,7 @@ sslarch=linux-alpha-gcc
 %endif
 %ifarch s390
 # The -fno-regmove is a workaround for bug #199604
-sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM -fno-regmove"
+sslarch="linux-generic32 -DB_ENDIAN -DNO_ASM -march=z900 -fno-regmove"
 %endif
 %ifarch s390x
 sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
@@ -176,16 +210,19 @@ sslarch="linux-generic64 -DB_ENDIAN -DNO_ASM"
 	zlib no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa shared \
 	--with-krb5-flavor=MIT --enginesdir=%{_libdir}/openssl/engines \
 	-I%{_prefix}/kerberos/include -L%{_prefix}/kerberos/%{_lib} \
-	${sslarch}
+	${sslarch} fipscanisterbuild
 
 # Add -Wa,--noexecstack here so that libcrypto's assembler modules will be
 # marked as not requiring an executable stack.
-RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wa,--noexecstack"
+RPM_OPT_FLAGS="$RPM_OPT_FLAGS -Wa,--noexecstack -DOPENSSL_USE_NEW_FUNCTIONS -fno-strict-aliasing"
 make depend
-make all build-shared
+make all
 
 # Generate hashes for the included certs.
-make rehash build-shared
+make rehash
+
+# Overwrite FIPS README
+cp -f %{SOURCE11} .
 
 # Verify that what was compiled actually works.
 LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
@@ -205,11 +242,23 @@ make -C test apps tests
 # Patch33 must be patched after tests otherwise they will fail
 patch -p1 -b -z .ca-dir < %{PATCH33}
 
+# Add generation of HMAC checksum of the final stripped library
+%define __spec_install_post \
+    %{?__debug_package:%{__debug_install_post}} \
+    %{__arch_install_post} \
+    %{__os_install_post} \
+    fips/fips_standalone_sha1 $RPM_BUILD_ROOT/%{_lib}/libcrypto.so.%{version} >$RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{version}.hmac \
+    ln -sf .libcrypto.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libcrypto.so.%{soversion}.hmac \
+    fips/fips_standalone_sha1 $RPM_BUILD_ROOT/%{_lib}/libssl.so.%{version} >$RPM_BUILD_ROOT/%{_lib}/.libssl.so.%{version}.hmac \
+    ln -sf .libssl.so.%{version}.hmac $RPM_BUILD_ROOT/%{_lib}/.libssl.so.%{soversion}.hmac \
+%{nil}
+
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 # Install OpenSSL.
 install -d $RPM_BUILD_ROOT/{%{_lib},%{_bindir},%{_includedir},%{_libdir},%{_mandir},%{_libdir}/openssl}
-make INSTALL_PREFIX=$RPM_BUILD_ROOT install build-shared
+make INSTALL_PREFIX=$RPM_BUILD_ROOT install
+make INSTALL_PREFIX=$RPM_BUILD_ROOT install_docs
 # OpenSSL install doesn't use correct _libdir
 mv $RPM_BUILD_ROOT/usr/lib/lib*.so.%{soversion} $RPM_BUILD_ROOT/%{_lib}/
 mv $RPM_BUILD_ROOT/usr/lib/engines $RPM_BUILD_ROOT/%{_libdir}/openssl
@@ -321,9 +370,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %files 
 %defattr(-,root,root)
 %doc FAQ LICENSE CHANGES NEWS INSTALL README
-%doc doc/README doc/c-indentation.el doc/openssl.txt
+%doc doc/c-indentation.el doc/openssl.txt
 %doc doc/openssl_button.html doc/openssl_button.gif
 %doc doc/ssleay.txt
+%doc README.FIPS
 %dir %{_sysconfdir}/pki/tls
 %dir %{_sysconfdir}/pki/tls/certs
 %{_sysconfdir}/pki/tls/certs/make-dummy-cert
@@ -342,7 +392,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %attr(0755,root,root) %{_bindir}/openssl
 %attr(0755,root,root) /%{_lib}/*.so.%{version}
 %attr(0755,root,root) /%{_lib}/*.so.%{soversion}
-%attr(0755,root,root) %{_libdir}/openssl
+%attr(0644,root,root) /%{_lib}/.libcrypto.so.*.hmac
+%attr(0644,root,root) /%{_lib}/.libssl.so.*.hmac
+%dir %{_libdir}/openssl
+%attr(0755,root,root) %{_libdir}/openssl/engines
 %attr(0644,root,root) %{_mandir}/man1*/[ABD-Zabcd-z]*
 %attr(0644,root,root) %{_mandir}/man5*/*
 %attr(0644,root,root) %{_mandir}/man7*/*
@@ -369,17 +422,103 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Mon Dec 11 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-12
-- detect duplicates in add_dir properly (#206346)
+* Wed May  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-20
+- add missing DH_check_pub_key() call when DH key is computed (#698175)
 
-* Thu Nov 30 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-11
+* Mon Apr  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-19
+- presort list of ciphers available in SSL (#688901)
+- accept connection in s_server even if getaddrinfo() fails (#561260)
+- point to openssl dgst for list of supported digests (#608639)
+- fix handling of future TLS versions (#599112)
+- added VeriSign Class 3 Public Primary Certification Authority - G5
+  and StartCom Certification Authority certs to ca-bundle (#675671, #617856)
+- upstream fixes for the CHIL engine (#622003, #671484)
+
+* Wed Mar  9 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-18
+- add SHA-2 hashes in SSL_library_init() (#676384)
+
+* Tue Dec  7 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-17
+- fix CVE-2010-4180 - completely disable code for
+  SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG (#659462)
+
+* Fri Mar 12 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-16
+- fix CVE-2009-3245 - add missing bn_wexpand return checks (#570924)
+
+* Thu Mar  4 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-15
+- fix CVE-2010-0433 - do not pass NULL princ to krb5_kt_get_entry which
+  in the RHEL-5 and newer versions will crash in such case (#569774)
+
+* Thu Feb 18 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-14
+- fix CVE-2009-3555 - support the safe renegotiation extension and
+  do not allow legacy renegotiation on the server by default (#533125)
+
+* Thu Jan 14 2010 Tomas Mraz <tmraz@redhat.com> 0.9.8e-13
+- fix CVE-2009-2409 - drop MD2 algorithm from EVP tables (#510197)
+- fix CVE-2009-4355 - do not leak memory when CRYPTO_cleanup_all_ex_data()
+  is called prematurely by application (#546707)
+
+* Mon Jun 29 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-12
+- abort if selftests failed and random number generator is polled
+- mention EVP_aes and EVP_sha2xx routines in the manpages
+- add README.FIPS
+
+* Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-10
+- fix CVE-2009-1386 CVE-2009-1387 (DTLS DoS problems)
+  (#503685, #503688)
+
+* Thu May 21 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-9
+- fix CVE-2009-1377 CVE-2009-1378 CVE-2009-1379
+  (DTLS DoS problems) (#501253, #501254, #501572)
+
+* Wed Apr 15 2009 Tomas Mraz <tmraz@redhat.com> 0.9.8e-8
+- support multiple CRLs with same subject in a store (#457134)
+- fix CVE-2009-0590 - reject incorrectly encoded ASN.1 strings (#492304)
+- seed FIPS rng directly from kernel random device
+- do not require fipscheck to build the package (#475798)
+- call pairwise key tests in FIPS mode only (#479817)
+- do not crash when parsing bad mime data (#472440)
+
+* Tue Dec 16 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-7
+- fix CVE-2008-5077 - incorrect checks for malformed signatures (#476671)
+
+* Fri Oct 31 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-6
+- allow lookup of algorithms in engine
+
+* Fri Oct 24 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-5
+- implement the integrity checking inside libcrypto so OpenSSL
+  can be used in FIPS mode by the fipscheck library
+
+* Thu Oct  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-4
+- FIPS mode kernel flag is /proc/sys/crypto/fips_enabled
+
+* Wed Sep 10 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-3
+- disable strict aliasing
+
+* Tue Sep  9 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-2
+- more changes for FIPS validation (#444800)
+- correctly initialize default CA paths (#450987)
+- allow disabling zlib support through environment (#442624)
+
+* Tue Jul 15 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8e-1
+- rebase to version undergoing FIPS validation (#455634)
+
+* Tue Jan 15 2008 Tomas Mraz <tmraz@redhat.com> 0.9.8b-10
+- compile with -march=z900 on s390 for performance improvements (#250818)
+- make ssl session ID matching strict (#233599)
+
+* Mon Oct  8 2007 Tomas Mraz <tmraz@redhat.com> 0.9.8b-9
+- fix CVE-2007-3108 - side channel attack on private keys (#250581)
+- fix CVE-2007-5135 - off-by-one in SSL_get_shared_ciphers (#309881)
+- fix CVE-2007-4995 - out of order DTLS fragments buffer overflow (#321221)
+
+* Thu Nov 30 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.3
 - the previous change still didn't make X509_NAME_cmp transitive
 
-* Thu Nov 23 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-10
+* Thu Nov 23 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.2
 - make X509_NAME_cmp transitive otherwise certificate lookup
   is broken (#216050)
 
-* Thu Nov  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-9
+* Fri Nov  3 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8.1
 - aliasing bug in engine loading, patch by IBM (#213216)
 
 * Mon Oct  2 2006 Tomas Mraz <tmraz@redhat.com> 0.9.8b-8

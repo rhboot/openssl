@@ -1,0 +1,76 @@
+Seed the FIPS rng directly from the kernel random device.
+diff -up openssl-fips-0.9.8e/crypto/rand/rand_lcl.h.rng-seed openssl-fips-0.9.8e/crypto/rand/rand_lcl.h
+--- openssl-fips-0.9.8e/crypto/rand/rand_lcl.h.rng-seed	2009-04-15 13:48:50.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/rand/rand_lcl.h	2009-04-15 13:48:51.000000000 +0200
+@@ -112,7 +112,7 @@
+ #ifndef HEADER_RAND_LCL_H
+ #define HEADER_RAND_LCL_H
+ 
+-#define ENTROPY_NEEDED 32  /* require 256 bits = 32 bytes of randomness */
++#define ENTROPY_NEEDED 48  /* we need 48 bytes of randomness for FIPS rng */
+ 
+ 
+ #if !defined(USE_MD5_RAND) && !defined(USE_SHA1_RAND) && !defined(USE_MDC2_RAND) && !defined(USE_MD2_RAND)
+diff -up openssl-fips-0.9.8e/fips/fips.c.rng-seed openssl-fips-0.9.8e/fips/fips.c
+--- openssl-fips-0.9.8e/fips/fips.c.rng-seed	2009-04-15 13:48:51.000000000 +0200
++++ openssl-fips-0.9.8e/fips/fips.c	2009-04-15 13:48:51.000000000 +0200
+@@ -508,22 +508,22 @@ int FIPS_mode_set(int onoff)
+ 	    goto end;
+ 	    }
+ 
++	/* now switch into FIPS mode */
++	fips_set_rand_check(FIPS_rand_method());
++	RAND_set_rand_method(FIPS_rand_method());
++
+ 	/* automagically seed PRNG if not already seeded */
+ 	if(!FIPS_rand_status())
+ 	    {
+-	    if(RAND_bytes(buf,sizeof buf) <= 0)
++	    RAND_poll();
++	    if (!FIPS_rand_status())
+ 		{
+ 		fips_selftest_fail = 1;
+ 		ret = 0;
+ 		goto end;
+ 		}
+-	    FIPS_rand_set_key(buf,32);
+-	    FIPS_rand_seed(buf+32,16);
+ 	    }
+ 
+-	/* now switch into FIPS mode */
+-	fips_set_rand_check(FIPS_rand_method());
+-	RAND_set_rand_method(FIPS_rand_method());
+ 	if(FIPS_selftest())
+ 	    fips_set_mode(1);
+ 	else
+diff -up openssl-fips-0.9.8e/fips/rand/fips_rand.c.rng-seed openssl-fips-0.9.8e/fips/rand/fips_rand.c
+--- openssl-fips-0.9.8e/fips/rand/fips_rand.c.rng-seed	2007-09-12 19:46:05.000000000 +0200
++++ openssl-fips-0.9.8e/fips/rand/fips_rand.c	2009-06-29 18:34:00.000000000 +0200
+@@ -155,7 +155,18 @@ static int fips_set_prng_seed(FIPS_PRNG_
+ 	{
+ 	int i;
+ 	if (!ctx->keyed)
+-		return 0;
++		{
++		FIPS_RAND_SIZE_T keylen = 16;
++
++		if (seedlen - keylen < AES_BLOCK_LENGTH)
++			return 0;
++		if (seedlen - keylen - 8 >= AES_BLOCK_LENGTH)
++			keylen += 8;
++		if (seedlen - keylen - 8 >= AES_BLOCK_LENGTH)
++			keylen += 8;
++		seedlen -= keylen;
++		fips_set_prng_key(ctx, seed+seedlen, keylen);
++		}
+ 	/* In test mode seed is just supplied data */
+ 	if (ctx->test_mode)
+ 		{
+@@ -276,6 +287,7 @@ static int fips_rand(FIPS_PRNG_CTX *ctx,
+ 	unsigned char R[AES_BLOCK_LENGTH], I[AES_BLOCK_LENGTH];
+ 	unsigned char tmp[AES_BLOCK_LENGTH];
+ 	int i;
++	FIPS_selftest_check();
+ 	if (ctx->error)
+ 		{
+ 		RANDerr(RAND_F_FIPS_RAND,RAND_R_PRNG_ERROR);
