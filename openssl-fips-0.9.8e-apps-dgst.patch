@@ -1,0 +1,101 @@
+diff -up openssl-fips-0.9.8e/apps/ca.c.dgst openssl-fips-0.9.8e/apps/ca.c
+--- openssl-fips-0.9.8e/apps/ca.c.dgst	2006-11-27 14:36:52.000000000 +0100
++++ openssl-fips-0.9.8e/apps/ca.c	2011-04-04 14:36:24.000000000 +0200
+@@ -158,7 +158,7 @@ static const char *ca_usage[]={
+ " -startdate YYMMDDHHMMSSZ  - certificate validity notBefore\n",
+ " -enddate YYMMDDHHMMSSZ    - certificate validity notAfter (overrides -days)\n",
+ " -days arg       - number of days to certify the certificate for\n",
+-" -md arg         - md to use, one of md2, md5, sha or sha1\n",
++" -md arg         - md to use, see openssl dgst -h for list\n",
+ " -policy arg     - The CA 'policy' to support\n",
+ " -keyfile arg    - private key file\n",
+ " -keyform arg    - private key file format (PEM or ENGINE)\n",
+diff -up openssl-fips-0.9.8e/apps/dgst.c.dgst openssl-fips-0.9.8e/apps/dgst.c
+--- openssl-fips-0.9.8e/apps/dgst.c.dgst	2007-09-19 02:02:10.000000000 +0200
++++ openssl-fips-0.9.8e/apps/dgst.c	2011-04-04 14:41:31.000000000 +0200
+@@ -280,10 +280,14 @@ ERR_load_crypto_strings();
+ 			LN_sha512,LN_sha512);
+ #endif
+ #endif
++#ifndef OPENSSL_NO_MDC2
+ 		BIO_printf(bio_err,"-%-14s to use the %s message digest algorithm\n",
+ 			LN_mdc2,LN_mdc2);
++#endif
++#ifndef OPENSSL_NO_RIPEMD
+ 		BIO_printf(bio_err,"-%-14s to use the %s message digest algorithm\n",
+ 			LN_ripemd160,LN_ripemd160);
++#endif
+ 		err=1;
+ 		goto end;
+ 		}
+diff -up openssl-fips-0.9.8e/apps/enc.c.dgst openssl-fips-0.9.8e/apps/enc.c
+--- openssl-fips-0.9.8e/apps/enc.c.dgst	2007-03-22 01:37:43.000000000 +0100
++++ openssl-fips-0.9.8e/apps/enc.c	2011-04-04 14:39:17.000000000 +0200
+@@ -285,7 +285,7 @@ bad:
+ 			BIO_printf(bio_err,"%-14s passphrase is the next argument\n","-k");
+ 			BIO_printf(bio_err,"%-14s passphrase is the first line of the file argument\n","-kfile");
+ 			BIO_printf(bio_err,"%-14s the next argument is the md to use to create a key\n","-md");
+-			BIO_printf(bio_err,"%-14s   from a passphrase.  One of md2, md5, sha or sha1\n","");
++			BIO_printf(bio_err,"%-14s   from a passphrase. See openssl dgst -h for list.\n","");
+ 			BIO_printf(bio_err,"%-14s key/iv in hex is the next argument\n","-K/-iv");
+ 			BIO_printf(bio_err,"%-14s print the iv/key (then exit if -P)\n","-[pP]");
+ 			BIO_printf(bio_err,"%-14s buffer size\n","-bufsize <n>");
+diff -up openssl-fips-0.9.8e/apps/req.c.dgst openssl-fips-0.9.8e/apps/req.c
+--- openssl-fips-0.9.8e/apps/req.c.dgst	2005-07-16 13:13:03.000000000 +0200
++++ openssl-fips-0.9.8e/apps/req.c	2011-04-04 14:40:46.000000000 +0200
+@@ -523,7 +523,7 @@ bad:
+ #ifndef OPENSSL_NO_ECDSA
+ 		BIO_printf(bio_err," -newkey ec:file generate a new EC key, parameters taken from CA in 'file'\n");
+ #endif
+-		BIO_printf(bio_err," -[digest]      Digest to sign with (md5, sha1, md2, mdc2, md4)\n");
++		BIO_printf(bio_err," -[digest]      Digest to sign with (see openssl dgst -h for list)\n");
+ 		BIO_printf(bio_err," -config file   request template file.\n");
+ 		BIO_printf(bio_err," -subj arg      set or modify request subject\n");
+ 		BIO_printf(bio_err," -multivalue-rdn enable support for multivalued RDNs\n");
+diff -up openssl-fips-0.9.8e/apps/x509.c.dgst openssl-fips-0.9.8e/apps/x509.c
+--- openssl-fips-0.9.8e/apps/x509.c.dgst	2011-04-04 14:18:34.000000000 +0200
++++ openssl-fips-0.9.8e/apps/x509.c	2011-04-04 14:35:05.000000000 +0200
+@@ -134,7 +134,7 @@ static const char *x509_usage[]={
+ " -set_serial     - serial number to use\n",
+ " -text           - print the certificate in text form\n",
+ " -C              - print out C code forms\n",
+-" -md2/-md5/-sha1/-mdc2 - digest to use\n",
++" -<dgst>         - digest to use, see openssl dgst -h output for list\n",
+ " -extfile        - configuration file with X509V3 extensions to add\n",
+ " -extensions     - section from config file with X509V3 extensions to add\n",
+ " -clrext         - delete extensions before signing and input certificate\n",
+diff -up openssl-fips-0.9.8e/doc/apps/ca.pod.dgst openssl-fips-0.9.8e/doc/apps/ca.pod
+--- openssl-fips-0.9.8e/doc/apps/ca.pod.dgst	2005-07-15 11:50:38.000000000 +0200
++++ openssl-fips-0.9.8e/doc/apps/ca.pod	2011-04-04 15:03:07.000000000 +0200
+@@ -160,7 +160,8 @@ the number of days to certify the certif
+ =item B<-md alg>
+ 
+ the message digest to use. Possible values include md5, sha1 and mdc2.
+-This option also applies to CRLs.
++For full list of digests see openssl dgst -h output. This option also
++applies to CRLs.
+ 
+ =item B<-policy arg>
+ 
+diff -up openssl-fips-0.9.8e/doc/apps/req.pod.dgst openssl-fips-0.9.8e/doc/apps/req.pod
+--- openssl-fips-0.9.8e/doc/apps/req.pod.dgst	2005-07-15 11:50:38.000000000 +0200
++++ openssl-fips-0.9.8e/doc/apps/req.pod	2011-04-04 15:05:22.000000000 +0200
+@@ -160,6 +160,7 @@ will not be encrypted.
+ this specifies the message digest to sign the request with. This
+ overrides the digest algorithm specified in the configuration file.
+ This option is ignored for DSA requests: they always use SHA1.
++For full list of possible digests see openssl dgst -h output.
+ 
+ =item B<-config filename>
+ 
+diff -up openssl-fips-0.9.8e/doc/apps/x509.pod.dgst openssl-fips-0.9.8e/doc/apps/x509.pod
+--- openssl-fips-0.9.8e/doc/apps/x509.pod.dgst	2007-02-03 11:27:31.000000000 +0100
++++ openssl-fips-0.9.8e/doc/apps/x509.pod	2011-04-04 15:06:14.000000000 +0200
+@@ -100,6 +100,7 @@ the digest to use. This affects any sign
+ digest, such as the B<-fingerprint>, B<-signkey> and B<-CA> options. If not
+ specified then SHA1 is used. If the key being used to sign with is a DSA key
+ then this option has no effect: SHA1 is always used with DSA keys.
++For full list of digests see openssl dgst -h output.
+ 
+ =item B<-engine id>
+ 

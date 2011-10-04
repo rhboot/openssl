@@ -1,0 +1,11 @@
+diff -up openssl-fips-0.9.8e/ssl/ssl_ciph.c.sort openssl-fips-0.9.8e/ssl/ssl_ciph.c
+--- openssl-fips-0.9.8e/ssl/ssl_ciph.c.sort	2010-12-07 17:45:32.000000000 +0100
++++ openssl-fips-0.9.8e/ssl/ssl_ciph.c	2011-04-04 14:00:56.000000000 +0200
+@@ -1087,6 +1087,7 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_
+ 		sk_SSL_CIPHER_free(*cipher_list_by_id);
+ 	*cipher_list_by_id = tmp_cipher_list;
+ 	(void)sk_SSL_CIPHER_set_cmp_func(*cipher_list_by_id,ssl_cipher_ptr_id_cmp);
++	sk_SSL_CIPHER_sort(*cipher_list_by_id);
+ 
+ 	return(cipherstack);
+ 	}

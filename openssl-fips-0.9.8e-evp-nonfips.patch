@@ -1,0 +1,154 @@
+diff -up openssl-fips-0.9.8e/crypto/engine/eng_all.c.nonfips openssl-fips-0.9.8e/crypto/engine/eng_all.c
+--- openssl-fips-0.9.8e/crypto/engine/eng_all.c.nonfips	2009-04-15 14:26:12.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/engine/eng_all.c	2009-04-15 14:24:20.000000000 +0200
+@@ -58,9 +58,23 @@
+ 
+ #include "cryptlib.h"
+ #include "eng_int.h"
++#ifdef OPENSSL_FIPS
++#include <openssl/fips.h>
++#endif
+ 
+ void ENGINE_load_builtin_engines(void)
+ 	{
++#ifdef OPENSSL_FIPS
++	OPENSSL_init();
++	if (FIPS_mode()) {
++		/* We allow loading dynamic engine as a third party
++		   engine might be FIPS validated.
++		   User is disallowed to load non-validated engines
++		   by security policy. */
++		ENGINE_load_dynamic();
++		return;
++	}
++#endif
+ 	/* There's no longer any need for an "openssl" ENGINE unless, one day,
+ 	 * it is the *only* way for standard builtin implementations to be be
+ 	 * accessed (ie. it would be possible to statically link binaries with
+diff -up openssl-fips-0.9.8e/crypto/evp/c_allc.c.nonfips openssl-fips-0.9.8e/crypto/evp/c_allc.c
+--- openssl-fips-0.9.8e/crypto/evp/c_allc.c.nonfips	2007-04-24 13:30:34.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/c_allc.c	2009-04-15 13:48:51.000000000 +0200
+@@ -65,6 +65,11 @@
+ void OpenSSL_add_all_ciphers(void)
+ 	{
+ 
++#ifdef OPENSSL_FIPS
++	OPENSSL_init();
++	if(!FIPS_mode()) 
++		{
++#endif
+ #ifndef OPENSSL_NO_DES
+ 	EVP_add_cipher(EVP_des_cfb());
+ 	EVP_add_cipher(EVP_des_cfb1());
+@@ -219,6 +224,63 @@ void OpenSSL_add_all_ciphers(void)
+ 	EVP_add_cipher_alias(SN_camellia_256_cbc,"CAMELLIA256");
+ 	EVP_add_cipher_alias(SN_camellia_256_cbc,"camellia256");
+ #endif
++#ifdef OPENSSL_FIPS
++		}
++	else
++		{
++#ifndef OPENSSL_NO_DES
++	EVP_add_cipher(EVP_des_ede_cfb());
++	EVP_add_cipher(EVP_des_ede3_cfb());
++
++	EVP_add_cipher(EVP_des_ede_ofb());
++	EVP_add_cipher(EVP_des_ede3_ofb());
++
++	EVP_add_cipher(EVP_des_ede_cbc());
++	EVP_add_cipher(EVP_des_ede3_cbc());
++	EVP_add_cipher_alias(SN_des_ede3_cbc,"DES3");
++	EVP_add_cipher_alias(SN_des_ede3_cbc,"des3");
++
++	EVP_add_cipher(EVP_des_ede());
++	EVP_add_cipher(EVP_des_ede3());
++#endif
++
++#ifndef OPENSSL_NO_AES
++	EVP_add_cipher(EVP_aes_128_ecb());
++	EVP_add_cipher(EVP_aes_128_cbc());
++	EVP_add_cipher(EVP_aes_128_cfb());
++	EVP_add_cipher(EVP_aes_128_cfb1());
++	EVP_add_cipher(EVP_aes_128_cfb8());
++	EVP_add_cipher(EVP_aes_128_ofb());
++#if 0
++	EVP_add_cipher(EVP_aes_128_ctr());
++#endif
++	EVP_add_cipher_alias(SN_aes_128_cbc,"AES128");
++	EVP_add_cipher_alias(SN_aes_128_cbc,"aes128");
++	EVP_add_cipher(EVP_aes_192_ecb());
++	EVP_add_cipher(EVP_aes_192_cbc());
++	EVP_add_cipher(EVP_aes_192_cfb());
++	EVP_add_cipher(EVP_aes_192_cfb1());
++	EVP_add_cipher(EVP_aes_192_cfb8());
++	EVP_add_cipher(EVP_aes_192_ofb());
++#if 0
++	EVP_add_cipher(EVP_aes_192_ctr());
++#endif
++	EVP_add_cipher_alias(SN_aes_192_cbc,"AES192");
++	EVP_add_cipher_alias(SN_aes_192_cbc,"aes192");
++	EVP_add_cipher(EVP_aes_256_ecb());
++	EVP_add_cipher(EVP_aes_256_cbc());
++	EVP_add_cipher(EVP_aes_256_cfb());
++	EVP_add_cipher(EVP_aes_256_cfb1());
++	EVP_add_cipher(EVP_aes_256_cfb8());
++	EVP_add_cipher(EVP_aes_256_ofb());
++#if 0
++	EVP_add_cipher(EVP_aes_256_ctr());
++#endif
++	EVP_add_cipher_alias(SN_aes_256_cbc,"AES256");
++	EVP_add_cipher_alias(SN_aes_256_cbc,"aes256");
++#endif
++		}
++#endif
+ 
+ 	PKCS12_PBE_add();
+ 	PKCS5_PBE_add();
+diff -up openssl-fips-0.9.8e/crypto/evp/c_alld.c.nonfips openssl-fips-0.9.8e/crypto/evp/c_alld.c
+--- openssl-fips-0.9.8e/crypto/evp/c_alld.c.nonfips	2005-04-30 23:51:40.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/c_alld.c	2009-04-15 13:48:51.000000000 +0200
+@@ -64,6 +64,11 @@
+ 
+ void OpenSSL_add_all_digests(void)
+ 	{
++#ifdef OPENSSL_FIPS
++	OPENSSL_init();
++	if (!FIPS_mode())
++		{
++#endif
+ #ifndef OPENSSL_NO_MD2
+ 	EVP_add_digest(EVP_md2());
+ #endif
+@@ -111,4 +116,32 @@ void OpenSSL_add_all_digests(void)
+ 	EVP_add_digest(EVP_sha384());
+ 	EVP_add_digest(EVP_sha512());
+ #endif
++#ifdef OPENSSL_FIPS
++		}
++	else
++		{
++#ifndef OPENSSL_NO_SHA
++	EVP_add_digest(EVP_sha1());
++	EVP_add_digest_alias(SN_sha1,"ssl3-sha1");
++	EVP_add_digest_alias(SN_sha1WithRSAEncryption,SN_sha1WithRSA);
++#ifndef OPENSSL_NO_DSA
++	EVP_add_digest(EVP_dss1());
++	EVP_add_digest_alias(SN_dsaWithSHA1,SN_dsaWithSHA1_2);
++	EVP_add_digest_alias(SN_dsaWithSHA1,"DSS1");
++	EVP_add_digest_alias(SN_dsaWithSHA1,"dss1");
++#endif
++#ifndef OPENSSL_NO_ECDSA
++	EVP_add_digest(EVP_ecdsa());
++#endif
++#endif
++#ifndef OPENSSL_NO_SHA256
++	EVP_add_digest(EVP_sha224());
++	EVP_add_digest(EVP_sha256());
++#endif
++#ifndef OPENSSL_NO_SHA512
++	EVP_add_digest(EVP_sha384());
++	EVP_add_digest(EVP_sha512());
++#endif
++		}
++#endif
+ 	}
