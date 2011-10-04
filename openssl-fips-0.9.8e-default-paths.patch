@@ -1,0 +1,63 @@
+diff -up openssl-fips-0.9.8e/apps/s_client.c.default-paths openssl-fips-0.9.8e/apps/s_client.c
+--- openssl-fips-0.9.8e/apps/s_client.c.default-paths	2008-09-06 12:17:46.000000000 +0200
++++ openssl-fips-0.9.8e/apps/s_client.c	2008-09-06 12:17:46.000000000 +0200
+@@ -610,12 +610,13 @@ bad:
+ 	if (!set_cert_key_stuff(ctx,cert,key))
+ 		goto end;
+ 
+-	if ((!SSL_CTX_load_verify_locations(ctx,CAfile,CApath)) ||
+-		(!SSL_CTX_set_default_verify_paths(ctx)))
++	if (!SSL_CTX_load_verify_locations(ctx,CAfile,CApath))
++		{
++		ERR_print_errors(bio_err);
++		}
++	if (!SSL_CTX_set_default_verify_paths(ctx))
+ 		{
+-		/* BIO_printf(bio_err,"error setting default verify locations\n"); */
+ 		ERR_print_errors(bio_err);
+-		/* goto end; */
+ 		}
+ 
+ 	store = SSL_CTX_get_cert_store(ctx);
+diff -up openssl-fips-0.9.8e/apps/s_server.c.default-paths openssl-fips-0.9.8e/apps/s_server.c
+--- openssl-fips-0.9.8e/apps/s_server.c.default-paths	2008-09-06 12:17:46.000000000 +0200
++++ openssl-fips-0.9.8e/apps/s_server.c	2008-09-06 12:17:46.000000000 +0200
+@@ -956,12 +956,13 @@ bad:
+ 		}
+ #endif
+ 
+-	if ((!SSL_CTX_load_verify_locations(ctx,CAfile,CApath)) ||
+-		(!SSL_CTX_set_default_verify_paths(ctx)))
++	if (!SSL_CTX_load_verify_locations(ctx,CAfile,CApath))
++		{
++		ERR_print_errors(bio_err);
++		}
++	if (!SSL_CTX_set_default_verify_paths(ctx))
+ 		{
+-		/* BIO_printf(bio_err,"X509_load_verify_locations\n"); */
+ 		ERR_print_errors(bio_err);
+-		/* goto end; */
+ 		}
+ 	store = SSL_CTX_get_cert_store(ctx);
+ 	X509_STORE_set_flags(store, vflags);
+diff -up openssl-fips-0.9.8e/apps/s_time.c.default-paths openssl-fips-0.9.8e/apps/s_time.c
+--- openssl-fips-0.9.8e/apps/s_time.c.default-paths	2003-12-27 15:40:17.000000000 +0100
++++ openssl-fips-0.9.8e/apps/s_time.c	2008-09-06 12:17:46.000000000 +0200
+@@ -476,12 +476,13 @@ int MAIN(int argc, char **argv)
+ 
+ 	SSL_load_error_strings();
+ 
+-	if ((!SSL_CTX_load_verify_locations(tm_ctx,CAfile,CApath)) ||
+-		(!SSL_CTX_set_default_verify_paths(tm_ctx)))
++	if (!SSL_CTX_load_verify_locations(tm_ctx,CAfile,CApath))
++		{
++		ERR_print_errors(bio_err);
++		}
++	if (!SSL_CTX_set_default_verify_paths(tm_ctx))
+ 		{
+-		/* BIO_printf(bio_err,"error setting default verify locations\n"); */
+ 		ERR_print_errors(bio_err);
+-		/* goto end; */
+ 		}
+ 
+ 	if (tm_cipher == NULL)

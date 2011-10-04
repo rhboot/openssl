@@ -1,0 +1,172 @@
+Fixes CVE-2009-1377 CVE-2009-1378 CVE-2009-1379 CVE-2009-1386 CVE-2009-1387
+DoS vulnerabilities in the DTLS implementation.
+diff -up openssl-fips-0.9.8e/crypto/pqueue/pqueue.c.dtls-dos openssl-fips-0.9.8e/crypto/pqueue/pqueue.c
+--- openssl-fips-0.9.8e/crypto/pqueue/pqueue.c.dtls-dos	2005-06-28 14:53:33.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/pqueue/pqueue.c	2009-05-21 14:41:48.000000000 +0200
+@@ -234,3 +234,17 @@ pqueue_next(pitem **item)
+ 
+ 	return ret;
+ 	}
++
++int
++pqueue_size(pqueue_s *pq)
++{
++	pitem *item = pq->items;
++	int count = 0;
++	
++	while(item != NULL)
++	{
++		count++;
++		item = item->next;
++	}
++	return count;
++}
+diff -up openssl-fips-0.9.8e/crypto/pqueue/pqueue.h.dtls-dos openssl-fips-0.9.8e/crypto/pqueue/pqueue.h
+--- openssl-fips-0.9.8e/crypto/pqueue/pqueue.h.dtls-dos	2009-04-15 13:48:50.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/pqueue/pqueue.h	2009-05-21 14:41:48.000000000 +0200
+@@ -91,5 +91,6 @@ pitem *pqueue_iterator(pqueue pq);
+ pitem *pqueue_next(piterator *iter);
+ 
+ void   pqueue_print(pqueue pq);
++int    pqueue_size(pqueue pq);
+ 
+ #endif /* ! HEADER_PQUEUE_H */
+diff -up openssl-fips-0.9.8e/ssl/d1_both.c.dtls-dos openssl-fips-0.9.8e/ssl/d1_both.c
+--- openssl-fips-0.9.8e/ssl/d1_both.c.dtls-dos	2009-04-15 13:48:51.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/d1_both.c	2009-06-02 15:07:31.000000000 +0200
+@@ -519,6 +519,7 @@ dtls1_retrieve_buffered_fragment(SSL *s,
+ 
+ 	if ( s->d1->handshake_read_seq == frag->msg_header.seq)
+ 		{
++		unsigned long frag_len = frag->msg_header.frag_len;
+ 		pqueue_pop(s->d1->buffered_messages);
+ 
+ 		al=dtls1_preprocess_fragment(s,&frag->msg_header,max);
+@@ -536,7 +537,7 @@ dtls1_retrieve_buffered_fragment(SSL *s,
+ 		if (al==0)
+ 			{
+ 			*ok = 1;
+-			return frag->msg_header.frag_len;
++			return frag_len;
+ 			}
+ 
+ 		ssl3_send_alert(s,SSL3_AL_FATAL,al);
+@@ -561,7 +562,16 @@ dtls1_process_out_of_seq_message(SSL *s,
+ 	if ((msg_hdr->frag_off+frag_len) > msg_hdr->msg_len)
+ 		goto err;
+ 
+-	if (msg_hdr->seq <= s->d1->handshake_read_seq)
++	/* Try to find item in queue, to prevent duplicate entries */
++	pq_64bit_init(&seq64);
++	pq_64bit_assign_word(&seq64, msg_hdr->seq);
++	item = pqueue_find(s->d1->buffered_messages, seq64);
++	pq_64bit_free(&seq64);
++	
++	/* Discard the message if sequence number was already there, is
++	 * too far in the future or the fragment is already in the queue */
++	if (msg_hdr->seq <= s->d1->handshake_read_seq ||
++		msg_hdr->seq > s->d1->handshake_read_seq + 10 || item != NULL)
+ 		{
+ 		unsigned char devnull [256];
+ 
+@@ -575,30 +585,31 @@ dtls1_process_out_of_seq_message(SSL *s,
+ 			}
+ 		}
+ 
+-	frag = dtls1_hm_fragment_new(frag_len);
+-	if ( frag == NULL)
+-		goto err;
++	if (frag_len)
++	{
++		frag = dtls1_hm_fragment_new(frag_len);
++		if ( frag == NULL)
++			goto err;
+ 
+-	memcpy(&(frag->msg_header), msg_hdr, sizeof(*msg_hdr));
++		memcpy(&(frag->msg_header), msg_hdr, sizeof(*msg_hdr));
+ 
+-	if (frag_len)
+-		{
+-		/* read the body of the fragment (header has already been read */
++		/* read the body of the fragment (header has already been read) */
+ 		i = s->method->ssl_read_bytes(s,SSL3_RT_HANDSHAKE,
+ 			frag->fragment,frag_len,0);
+-		if (i<=0 || i!=frag_len)
++		if (i<=0 || (unsigned long)i!=frag_len)
+ 			goto err;
+-		}
+ 
+-	pq_64bit_init(&seq64);
+-	pq_64bit_assign_word(&seq64, msg_hdr->seq);
++		pq_64bit_init(&seq64);
++		pq_64bit_assign_word(&seq64, msg_hdr->seq);
+ 
+-	item = pitem_new(seq64, frag);
+-	pq_64bit_free(&seq64);
+-	if ( item == NULL)
+-		goto err;
++		item = pitem_new(seq64, frag);
++		pq_64bit_free(&seq64);
++		if ( item == NULL)
++			goto err;
++
++		pqueue_insert(s->d1->buffered_messages, item);
++	}
+ 
+-	pqueue_insert(s->d1->buffered_messages, item);
+ 	return DTLS1_HM_FRAGMENT_RETRY;
+ 
+ err:
+diff -up openssl-fips-0.9.8e/ssl/d1_pkt.c.dtls-dos openssl-fips-0.9.8e/ssl/d1_pkt.c
+--- openssl-fips-0.9.8e/ssl/d1_pkt.c.dtls-dos	2009-04-15 13:48:51.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/d1_pkt.c	2009-05-21 14:41:48.000000000 +0200
+@@ -167,6 +167,10 @@ dtls1_buffer_record(SSL *s, record_pqueu
+     DTLS1_RECORD_DATA *rdata;
+ 	pitem *item;
+ 
++	/* Limit the size of the queue to prevent DOS attacks */
++	if (pqueue_size(queue->q) >= 100)
++		return 0;
++		
+ 	rdata = OPENSSL_malloc(sizeof(DTLS1_RECORD_DATA));
+ 	item = pitem_new(priority, rdata);
+ 	if (rdata == NULL || item == NULL)
+diff -up openssl-fips-0.9.8e/ssl/s3_pkt.c.dtls-dos openssl-fips-0.9.8e/ssl/s3_pkt.c
+--- openssl-fips-0.9.8e/ssl/s3_pkt.c.dtls-dos	2006-11-29 15:45:14.000000000 +0100
++++ openssl-fips-0.9.8e/ssl/s3_pkt.c	2009-06-02 14:57:16.000000000 +0200
+@@ -1225,6 +1225,13 @@ int ssl3_do_change_cipher_spec(SSL *s)
+ 
+ 	if (s->s3->tmp.key_block == NULL)
+ 		{
++		if (s->session == NULL) 
++			{
++			/* might happen if dtls1_read_bytes() calls this */
++			SSLerr(SSL_F_SSL3_DO_CHANGE_CIPHER_SPEC,SSL_R_CCS_RECEIVED_EARLY);
++			return (0);
++			}
++
+ 		s->session->cipher=s->s3->tmp.new_cipher;
+ 		if (!s->method->ssl3_enc->setup_key_block(s)) return(0);
+ 		}
+diff -up openssl-fips-0.9.8e/ssl/ssl_err.c.dtls-dos openssl-fips-0.9.8e/ssl/ssl_err.c
+--- openssl-fips-0.9.8e/ssl/ssl_err.c.dtls-dos	2009-04-15 13:48:51.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/ssl_err.c	2009-06-02 14:57:16.000000000 +0200
+@@ -138,6 +138,7 @@ static ERR_STRING_DATA SSL_str_functs[]=
+ {ERR_FUNC(SSL_F_SSL3_CONNECT),	"SSL3_CONNECT"},
+ {ERR_FUNC(SSL_F_SSL3_CTRL),	"SSL3_CTRL"},
+ {ERR_FUNC(SSL_F_SSL3_CTX_CTRL),	"SSL3_CTX_CTRL"},
++{ERR_FUNC(SSL_F_SSL3_DO_CHANGE_CIPHER_SPEC),	"SSL3_DO_CHANGE_CIPHER_SPEC"},
+ {ERR_FUNC(SSL_F_SSL3_ENC),	"SSL3_ENC"},
+ {ERR_FUNC(SSL_F_SSL3_GENERATE_KEY_BLOCK),	"SSL3_GENERATE_KEY_BLOCK"},
+ {ERR_FUNC(SSL_F_SSL3_GET_CERTIFICATE_REQUEST),	"SSL3_GET_CERTIFICATE_REQUEST"},
+diff -up openssl-fips-0.9.8e/ssl/ssl.h.dtls-dos openssl-fips-0.9.8e/ssl/ssl.h
+--- openssl-fips-0.9.8e/ssl/ssl.h.dtls-dos	2009-04-15 13:48:51.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/ssl.h	2009-06-02 14:57:16.000000000 +0200
+@@ -1620,6 +1620,7 @@ void ERR_load_SSL_strings(void);
+ #define SSL_F_SSL3_CONNECT				 132
+ #define SSL_F_SSL3_CTRL					 213
+ #define SSL_F_SSL3_CTX_CTRL				 133
++#define SSL_F_SSL3_DO_CHANGE_CIPHER_SPEC		 292
+ #define SSL_F_SSL3_ENC					 134
+ #define SSL_F_SSL3_GENERATE_KEY_BLOCK			 238
+ #define SSL_F_SSL3_GET_CERTIFICATE_REQUEST		 135

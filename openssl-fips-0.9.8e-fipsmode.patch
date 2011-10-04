@@ -1,0 +1,74 @@
+diff -up openssl-fips-0.9.8e/crypto/o_init.c.fipsmode openssl-fips-0.9.8e/crypto/o_init.c
+--- openssl-fips-0.9.8e/crypto/o_init.c.fipsmode	2007-07-01 02:07:22.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/o_init.c	2009-04-15 13:48:51.000000000 +0200
+@@ -59,6 +59,45 @@
+ #include <e_os.h>
+ #include <openssl/err.h>
+ 
++#ifdef OPENSSL_FIPS
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <errno.h>
++#include <stdlib.h>
++#include <openssl/fips.h>
++#include <openssl/evp.h>
++#include <openssl/rand.h>
++
++#define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
++
++static void init_fips_mode(void)
++	{
++	char buf[2] = "0";
++	int fd;
++	
++	if (getenv("OPENSSL_FORCE_FIPS_MODE") != NULL)
++		{
++		buf[0] = '1';
++		}
++	else if ((fd = open(FIPS_MODE_SWITCH_FILE, O_RDONLY)) >= 0)
++		{
++		while (read(fd, buf, sizeof(buf)) < 0 && errno == EINTR);
++		close(fd);
++		}
++	/* Failure reading the fips mode switch file means just not
++	 * switching into FIPS mode. We would break too many things
++	 * otherwise. 
++	 */
++	
++	if (buf[0] == '1')
++		{
++		FIPS_mode_set(1);
++		}
++	}
++#endif
++
+ /* Perform any essential OpenSSL initialization operations.
+  * Currently only sets FIPS callbacks
+  */
+@@ -73,11 +112,10 @@ void OPENSSL_init(void)
+ #ifdef CRYPTO_MDEBUG
+ 		CRYPTO_malloc_debug_init();
+ #endif
+-#ifdef OPENSSL_ENGINE
++		init_fips_mode();
+ 		int_EVP_MD_init_engine_callbacks();
+ 		int_EVP_CIPHER_init_engine_callbacks();
+ 		int_RAND_init_engine_callbacks();
+-#endif
+ 		done = 1;
+ 		}
+ #endif
+diff -up openssl-fips-0.9.8e/ssl/ssl_algs.c.fipsmode openssl-fips-0.9.8e/ssl/ssl_algs.c
+--- openssl-fips-0.9.8e/ssl/ssl_algs.c.fipsmode	2007-04-24 13:30:48.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/ssl_algs.c	2009-04-15 14:09:42.000000000 +0200
+@@ -64,6 +64,8 @@
+ int SSL_library_init(void)
+ 	{
+ 
++	OPENSSL_init();
++
+ #ifndef OPENSSL_NO_DES
+ 	EVP_add_cipher(EVP_des_cbc());
+ 	EVP_add_cipher(EVP_des_ede3_cbc());

@@ -1,0 +1,404 @@
+diff -up openssl-fips-0.9.8e/crypto/crypto.h.abi openssl-fips-0.9.8e/crypto/crypto.h
+--- openssl-fips-0.9.8e/crypto/crypto.h.abi	2008-09-04 12:38:01.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/crypto.h	2008-09-04 13:00:39.000000000 +0200
+@@ -343,7 +343,18 @@ DECLARE_STACK_OF(CRYPTO_EX_DATA_FUNCS)
+ 
+ /* Set standard debugging functions (not done by default
+  * unless CRYPTO_MDEBUG is defined) */
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ void CRYPTO_malloc_debug_init(void);
++#else
++#define CRYPTO_malloc_debug_init()	do {\
++	CRYPTO_set_mem_debug_functions(\
++		CRYPTO_dbg_malloc,\
++		CRYPTO_dbg_realloc,\
++		CRYPTO_dbg_free,\
++		CRYPTO_dbg_set_options,\
++		CRYPTO_dbg_get_options);\
++	} while(0)
++#endif
+ 
+ int CRYPTO_mem_ctrl(int mode);
+ int CRYPTO_is_mem_check_on(void);
+diff -up openssl-fips-0.9.8e/crypto/rsa/rsa.h.abi openssl-fips-0.9.8e/crypto/rsa/rsa.h
+--- openssl-fips-0.9.8e/crypto/rsa/rsa.h.abi	2008-09-04 12:38:01.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/rsa/rsa.h	2008-09-04 12:38:02.000000000 +0200
+@@ -226,7 +226,6 @@ struct rsa_st
+                                                 * operations and results in faster RSA 
+                                                 * private key operations.
+                                                 */ 
+-#ifndef OPENSSL_NO_DEPRECATED
+ #define RSA_FLAG_NO_EXP_CONSTTIME RSA_FLAG_NO_CONSTTIME /* deprecated name for the flag*/
+                                                 /* new with 0.9.7h; the built-in RSA
+                                                 * implementation now uses constant time
+@@ -235,7 +234,6 @@ struct rsa_st
+                                                 * faster variable sliding window method to
+                                                 * be used for all exponents.
+                                                 */
+-#endif
+ 
+ 
+ #define RSA_PKCS1_PADDING	1
+diff -up openssl-fips-0.9.8e/crypto/evp/e_des3.c.abi openssl-fips-0.9.8e/crypto/evp/e_des3.c
+--- openssl-fips-0.9.8e/crypto/evp/e_des3.c.abi	2007-07-01 19:58:14.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/e_des3.c	2008-09-04 12:38:02.000000000 +0200
+@@ -87,6 +87,7 @@ typedef struct
+ static int des_ede_ecb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+ 			      const unsigned char *in, unsigned int inl)
+ {
++	/* FIPS selftest embedded in the loop macro */
+ 	BLOCK_CIPHER_ecb_loop()
+ 		DES_ecb3_encrypt((const_DES_cblock *)(in + i),
+ 				 (DES_cblock *)(out + i),
+@@ -99,6 +100,9 @@ static int des_ede_ecb_cipher(EVP_CIPHER
+ static int des_ede_ofb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+ 			      const unsigned char *in, unsigned int inl)
+ {
++#ifdef OPENSSL_FIPS
++	FIPS_selftest_check();
++#endif
+ 	DES_ede3_ofb64_encrypt(in, out, (long)inl,
+ 			       &data(ctx)->ks1, &data(ctx)->ks2, &data(ctx)->ks3,
+ 			       (DES_cblock *)ctx->iv, &ctx->num);
+@@ -108,6 +112,9 @@ static int des_ede_ofb_cipher(EVP_CIPHER
+ static int des_ede_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+ 			      const unsigned char *in, unsigned int inl)
+ {
++#ifdef OPENSSL_FIPS
++	FIPS_selftest_check();
++#endif
+ #ifdef KSSL_DEBUG
+ 	{
+         int i;
+@@ -128,6 +135,9 @@ static int des_ede_cbc_cipher(EVP_CIPHER
+ static int des_ede_cfb64_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+ 			      const unsigned char *in, unsigned int inl)
+ {
++#ifdef OPENSSL_FIPS
++	FIPS_selftest_check();
++#endif
+ 	DES_ede3_cfb64_encrypt(in, out, (long)inl, 
+ 			       &data(ctx)->ks1, &data(ctx)->ks2, &data(ctx)->ks3,
+ 			       (DES_cblock *)ctx->iv, &ctx->num, ctx->encrypt);
+@@ -142,6 +152,9 @@ static int des_ede3_cfb1_cipher(EVP_CIPH
+     unsigned int n;
+     unsigned char c[1],d[1];
+ 
++#ifdef OPENSSL_FIPS
++    FIPS_selftest_check();
++#endif
+     for(n=0 ; n < inl ; ++n)
+ 	{
+ 	c[0]=(in[n/8]&(1 << (7-n%8))) ? 0x80 : 0;
+@@ -157,6 +170,9 @@ static int des_ede3_cfb1_cipher(EVP_CIPH
+ static int des_ede3_cfb8_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+ 				const unsigned char *in, unsigned int inl)
+     {
++#ifdef OPENSSL_FIPS
++    FIPS_selftest_check();
++#endif
+     DES_ede3_cfb_encrypt(in,out,8,inl,
+ 			 &data(ctx)->ks1,&data(ctx)->ks2,&data(ctx)->ks3,
+ 			 (DES_cblock *)ctx->iv,ctx->encrypt);
+diff -up openssl-fips-0.9.8e/crypto/evp/evp_locl.h.abi openssl-fips-0.9.8e/crypto/evp/evp_locl.h
+--- openssl-fips-0.9.8e/crypto/evp/evp_locl.h.abi	2008-09-04 12:38:02.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/evp_locl.h	2008-09-04 12:38:02.000000000 +0200
+@@ -60,8 +60,10 @@
+ 
+ /* Wrapper functions for each cipher mode */
+ 
++#ifdef OPENSSL_FIPS
+ #define BLOCK_CIPHER_ecb_loop() \
+ 	unsigned int i, bl; \
++	FIPS_selftest_check(); \
+ 	bl = ctx->cipher->block_size;\
+ 	if(inl < bl) return 1;\
+ 	inl -= bl; \
+@@ -78,6 +80,7 @@ static int cname##_ecb_cipher(EVP_CIPHER
+ #define BLOCK_CIPHER_func_ofb(cname, cprefix, cbits, kstruct, ksched) \
+ static int cname##_ofb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+ {\
++	FIPS_selftest_check(); \
+ 	cprefix##_ofb##cbits##_encrypt(in, out, (long)inl, &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num);\
+ 	return 1;\
+ }
+@@ -85,6 +88,7 @@ static int cname##_ofb_cipher(EVP_CIPHER
+ #define BLOCK_CIPHER_func_cbc(cname, cprefix, kstruct, ksched) \
+ static int cname##_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+ {\
++	FIPS_selftest_check(); \
+ 	cprefix##_cbc_encrypt(in, out, (long)inl, &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, ctx->encrypt);\
+ 	return 1;\
+ }
+@@ -92,9 +96,47 @@ static int cname##_cbc_cipher(EVP_CIPHER
+ #define BLOCK_CIPHER_func_cfb(cname, cprefix, cbits, kstruct, ksched) \
+ static int cname##_cfb##cbits##_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
+ {\
++	FIPS_selftest_check(); \
+ 	cprefix##_cfb##cbits##_encrypt(in, out, (long)((cbits==1) && !(ctx->flags & EVP_CIPH_FLAG_LENGTH_BITS) ?inl*8:inl), &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num, ctx->encrypt);\
+ 	return 1;\
+ }
++#else
++#define BLOCK_CIPHER_ecb_loop() \
++	unsigned int i, bl; \
++	bl = ctx->cipher->block_size;\
++	if(inl < bl) return 1;\
++	inl -= bl; \
++	for(i=0; i <= inl; i+=bl) 
++
++#define BLOCK_CIPHER_func_ecb(cname, cprefix, kstruct, ksched) \
++static int cname##_ecb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
++{\
++	BLOCK_CIPHER_ecb_loop() \
++		cprefix##_ecb_encrypt(in + i, out + i, &((kstruct *)ctx->cipher_data)->ksched, ctx->encrypt);\
++	return 1;\
++}
++
++#define BLOCK_CIPHER_func_ofb(cname, cprefix, cbits, kstruct, ksched) \
++static int cname##_ofb_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
++{\
++	cprefix##_ofb##cbits##_encrypt(in, out, (long)inl, &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num);\
++	return 1;\
++}
++
++#define BLOCK_CIPHER_func_cbc(cname, cprefix, kstruct, ksched) \
++static int cname##_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
++{\
++	cprefix##_cbc_encrypt(in, out, (long)inl, &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, ctx->encrypt);\
++	return 1;\
++}
++
++#define BLOCK_CIPHER_func_cfb(cname, cprefix, cbits, kstruct, ksched) \
++static int cname##_cfb##cbits##_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl) \
++{\
++	cprefix##_cfb##cbits##_encrypt(in, out, (long)((cbits==1) && !(ctx->flags & EVP_CIPH_FLAG_LENGTH_BITS) ?inl*8:inl), &((kstruct *)ctx->cipher_data)->ksched, ctx->iv, &ctx->num, ctx->encrypt);\
++	return 1;\
++}
++#endif
+ 
+ #define BLOCK_CIPHER_all_funcs(cname, cprefix, cbits, kstruct, ksched) \
+ 	BLOCK_CIPHER_func_cbc(cname, cprefix, kstruct, ksched) \
+diff -up openssl-fips-0.9.8e/crypto/evp/enc_min.c.abi openssl-fips-0.9.8e/crypto/evp/enc_min.c
+--- openssl-fips-0.9.8e/crypto/evp/enc_min.c.abi	2007-08-19 14:49:07.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/enc_min.c	2008-09-04 12:38:02.000000000 +0200
+@@ -347,9 +347,6 @@ int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CT
+ 
+ int EVP_Cipher(EVP_CIPHER_CTX *ctx, unsigned char *out, const unsigned char *in, unsigned int inl)
+ 	{
+-#ifdef OPENSSL_FIPS
+-	FIPS_selftest_check();
+-#endif
+ 	return ctx->cipher->do_cipher(ctx,out,in,inl);
+ 	}
+ 
+diff -up openssl-fips-0.9.8e/crypto/evp/evp.h.abi openssl-fips-0.9.8e/crypto/evp/evp.h
+--- openssl-fips-0.9.8e/crypto/evp/evp.h.abi	2008-09-04 12:38:02.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/evp/evp.h	2008-09-04 13:00:16.000000000 +0200
+@@ -448,6 +448,7 @@ typedef int (EVP_PBE_KEYGEN)(EVP_CIPHER_
+ #define EVP_get_cipherbynid(a) EVP_get_cipherbyname(OBJ_nid2sn(a))
+ #define EVP_get_cipherbyobj(a) EVP_get_cipherbynid(OBJ_obj2nid(a))
+ 
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ /* Macros to reduce FIPS dependencies: do NOT use in applications */
+ #define M_EVP_MD_size(e)		((e)->md_size)
+ #define M_EVP_MD_block_size(e)		((e)->block_size)
+@@ -490,6 +491,38 @@ void EVP_CIPHER_CTX_set_app_data(EVP_CIP
+ #define EVP_CIPHER_CTX_type(c)         EVP_CIPHER_type(EVP_CIPHER_CTX_cipher(c))
+ unsigned long EVP_CIPHER_CTX_flags(const EVP_CIPHER_CTX *ctx);
+ #define EVP_CIPHER_CTX_mode(e)		(EVP_CIPHER_CTX_flags(e) & EVP_CIPH_MODE)
++#else
++#define EVP_MD_type(e)			((e)->type)
++#define EVP_MD_nid(e)			EVP_MD_type(e)
++#define EVP_MD_name(e)			OBJ_nid2sn(EVP_MD_nid(e))
++#define EVP_MD_pkey_type(e)		((e)->pkey_type)
++#define EVP_MD_size(e)			((e)->md_size)
++#define EVP_MD_block_size(e)		((e)->block_size)
++
++#define EVP_MD_CTX_md(e)		((e)->digest)
++#define EVP_MD_CTX_size(e)		EVP_MD_size((e)->digest)
++#define EVP_MD_CTX_block_size(e)	EVP_MD_block_size((e)->digest)
++#define EVP_MD_CTX_type(e)		EVP_MD_type((e)->digest)
++
++#define EVP_CIPHER_nid(e)		((e)->nid)
++#define EVP_CIPHER_name(e)		OBJ_nid2sn(EVP_CIPHER_nid(e))
++#define EVP_CIPHER_block_size(e)	((e)->block_size)
++#define EVP_CIPHER_key_length(e)	((e)->key_len)
++#define EVP_CIPHER_iv_length(e)		((e)->iv_len)
++#define EVP_CIPHER_flags(e)		((e)->flags)
++#define EVP_CIPHER_mode(e)		(((e)->flags) & EVP_CIPH_MODE)
++
++#define EVP_CIPHER_CTX_cipher(e)	((e)->cipher)
++#define EVP_CIPHER_CTX_nid(e)		((e)->cipher->nid)
++#define EVP_CIPHER_CTX_block_size(e)	((e)->cipher->block_size)
++#define EVP_CIPHER_CTX_key_length(e)	((e)->key_len)
++#define EVP_CIPHER_CTX_iv_length(e)	((e)->cipher->iv_len)
++#define EVP_CIPHER_CTX_get_app_data(e)	((e)->app_data)
++#define EVP_CIPHER_CTX_set_app_data(e,d) ((e)->app_data=(char *)(d))
++#define EVP_CIPHER_CTX_type(c)         EVP_CIPHER_type(EVP_CIPHER_CTX_cipher(c))
++#define EVP_CIPHER_CTX_flags(e)		((e)->cipher->flags)
++#define EVP_CIPHER_CTX_mode(e)		((e)->cipher->flags & EVP_CIPH_MODE)
++#endif
+ 
+ #define EVP_ENCODE_LENGTH(l)	(((l+2)/3*4)+(l/48+1)*2+80)
+ #define EVP_DECODE_LENGTH(l)	((l+3)/4*3+80)
+@@ -514,10 +547,14 @@ void BIO_set_md(BIO *,const EVP_MD *md);
+ #define BIO_get_cipher_status(b)	BIO_ctrl(b,BIO_C_GET_CIPHER_STATUS,0,NULL)
+ #define BIO_get_cipher_ctx(b,c_pp)	BIO_ctrl(b,BIO_C_GET_CIPHER_CTX,0,(char *)c_pp)
+ 
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ int EVP_Cipher(EVP_CIPHER_CTX *c,
+ 		unsigned char *out,
+ 		const unsigned char *in,
+ 		unsigned int inl);
++#else
++#define	EVP_Cipher(c,o,i,l)	(c)->cipher->do_cipher((c),(o),(i),(l))
++#endif
+ 
+ #define EVP_add_cipher_alias(n,alias) \
+ 	OBJ_NAME_add((alias),OBJ_NAME_TYPE_CIPHER_METH|OBJ_NAME_ALIAS,(n))
+@@ -533,9 +570,15 @@ int	EVP_MD_CTX_cleanup(EVP_MD_CTX *ctx);
+ EVP_MD_CTX *EVP_MD_CTX_create(void);
+ void	EVP_MD_CTX_destroy(EVP_MD_CTX *ctx);
+ int     EVP_MD_CTX_copy_ex(EVP_MD_CTX *out,const EVP_MD_CTX *in);  
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ void	EVP_MD_CTX_set_flags(EVP_MD_CTX *ctx, int flags);
+ void	EVP_MD_CTX_clear_flags(EVP_MD_CTX *ctx, int flags);
+ int 	EVP_MD_CTX_test_flags(const EVP_MD_CTX *ctx,int flags);
++#else
++#define EVP_MD_CTX_set_flags(ctx,flgs) ((ctx)->flags|=(flgs))
++#define EVP_MD_CTX_clear_flags(ctx,flgs) ((ctx)->flags&=~(flgs))
++#define EVP_MD_CTX_test_flags(ctx,flgs) ((ctx)->flags&(flgs))
++#endif
+ int	EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl);
+ int	EVP_DigestUpdate(EVP_MD_CTX *ctx,const void *d,
+ 			 size_t cnt);
+diff -up openssl-fips-0.9.8e/crypto/bio/bio.h.abi openssl-fips-0.9.8e/crypto/bio/bio.h
+--- openssl-fips-0.9.8e/crypto/bio/bio.h.abi	2008-09-04 12:38:02.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/bio/bio.h	2008-09-04 13:00:32.000000000 +0200
+@@ -198,6 +198,7 @@ extern "C" {
+ 
+ typedef struct bio_st BIO;
+ 
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ void BIO_set_flags(BIO *b, int flags);
+ int  BIO_test_flags(const BIO *b, int flags);
+ void BIO_clear_flags(BIO *b, int flags);
+@@ -222,6 +223,30 @@ void BIO_clear_flags(BIO *b, int flags);
+ #define BIO_should_io_special(a)	BIO_test_flags(a, BIO_FLAGS_IO_SPECIAL)
+ #define BIO_retry_type(a)		BIO_test_flags(a, BIO_FLAGS_RWS)
+ #define BIO_should_retry(a)		BIO_test_flags(a, BIO_FLAGS_SHOULD_RETRY)
++#else
++#define BIO_set_flags(b,f) ((b)->flags|=(f))
++#define BIO_get_flags(b) ((b)->flags)
++#define BIO_set_retry_special(b) \
++		((b)->flags|=(BIO_FLAGS_IO_SPECIAL|BIO_FLAGS_SHOULD_RETRY))
++#define BIO_set_retry_read(b) \
++		((b)->flags|=(BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY))
++#define BIO_set_retry_write(b) \
++		((b)->flags|=(BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY))
++
++/* These are normally used internally in BIOs */
++#define BIO_clear_flags(b,f) ((b)->flags&= ~(f))
++#define BIO_clear_retry_flags(b) \
++		((b)->flags&= ~(BIO_FLAGS_RWS|BIO_FLAGS_SHOULD_RETRY))
++#define BIO_get_retry_flags(b) \
++		((b)->flags&(BIO_FLAGS_RWS|BIO_FLAGS_SHOULD_RETRY))
++
++/* These should be used by the application to tell why we should retry */
++#define BIO_should_read(a)		((a)->flags & BIO_FLAGS_READ)
++#define BIO_should_write(a)		((a)->flags & BIO_FLAGS_WRITE)
++#define BIO_should_io_special(a)	((a)->flags & BIO_FLAGS_IO_SPECIAL)
++#define BIO_retry_type(a)		((a)->flags & BIO_FLAGS_RWS)
++#define BIO_should_retry(a)		((a)->flags & BIO_FLAGS_SHOULD_RETRY)
++#endif
+ 
+ /* The next three are used in conjunction with the
+  * BIO_should_io_special() condition.  After this returns true,
+@@ -250,6 +275,7 @@ void BIO_clear_flags(BIO *b, int flags);
+ #define BIO_cb_pre(a)	(!((a)&BIO_CB_RETURN))
+ #define BIO_cb_post(a)	((a)&BIO_CB_RETURN)
+ 
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ long (*BIO_get_callback(const BIO *b)) (struct bio_st *,int,const char *,int, long,long);
+ void BIO_set_callback(BIO *b, 
+ 	long (*callback)(struct bio_st *,int,const char *,int, long,long));
+@@ -258,6 +284,14 @@ void BIO_set_callback_arg(BIO *b, char *
+ 
+ const char * BIO_method_name(const BIO *b);
+ int BIO_method_type(const BIO *b);
++#else
++#define BIO_set_callback(b,cb)		((b)->callback=(cb))
++#define BIO_set_callback_arg(b,arg)	((b)->cb_arg=(char *)(arg))
++#define BIO_get_callback_arg(b)		((b)->cb_arg)
++#define BIO_get_callback(b)		((b)->callback)
++#define BIO_method_name(b)		((b)->method->name)
++#define BIO_method_type(b)		((b)->method->type)
++#endif
+ 
+ typedef void bio_info_cb(struct bio_st *, int, const char *, int, long, long);
+ 
+diff -up openssl-fips-0.9.8e/crypto/bn/bn.h.abi openssl-fips-0.9.8e/crypto/bn/bn.h
+--- openssl-fips-0.9.8e/crypto/bn/bn.h.abi	2008-09-04 12:38:02.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/bn/bn.h	2008-09-04 12:38:02.000000000 +0200
+@@ -251,11 +251,9 @@ extern "C" {
+                                       * BN_mod_inverse() will call BN_mod_inverse_no_branch.
+                                       */
+ 
+-#ifndef OPENSSL_NO_DEPRECATED
+ #define BN_FLG_EXP_CONSTTIME BN_FLG_CONSTTIME /* deprecated name for the flag */
+                                       /* avoid leaking exponent information through timings
+                                       * (BN_mod_exp_mont() will call BN_mod_exp_mont_consttime) */
+-#endif
+ 
+ #ifndef OPENSSL_NO_DEPRECATED
+ #define BN_FLG_FREE		0x8000	/* used for debuging */
+diff -up openssl-fips-0.9.8e/crypto/opensslv.h.abi openssl-fips-0.9.8e/crypto/opensslv.h
+--- openssl-fips-0.9.8e/crypto/opensslv.h.abi	2008-09-04 12:38:01.000000000 +0200
++++ openssl-fips-0.9.8e/crypto/opensslv.h	2008-09-04 12:38:02.000000000 +0200
+@@ -25,11 +25,11 @@
+  * (Prior to 0.9.5a beta1, a different scheme was used: MMNNFFRBB for
+  *  major minor fix final patch/beta)
+  */
+-#define OPENSSL_VERSION_NUMBER	0x00908060L
++#define OPENSSL_VERSION_NUMBER	0x0090802fL
+ #ifdef OPENSSL_FIPS
+-#define OPENSSL_VERSION_TEXT	"OpenSSL 0.9.8f-fips-dev xx XXXX xxxx"
++#define OPENSSL_VERSION_TEXT	"OpenSSL 0.9.8e-fips-rhel5 01 Jul 2008"
+ #else
+-#define OPENSSL_VERSION_TEXT	"OpenSSL 0.9.8f-dev xx XXXX xxxx"
++#define OPENSSL_VERSION_TEXT	"OpenSSL 0.9.8e-rhel5 01 Jul 2008"
+ #endif
+ #define OPENSSL_VERSION_PTEXT	" part of " OPENSSL_VERSION_TEXT
+ 
+diff -up openssl-fips-0.9.8e/ssl/ssl.h.abi openssl-fips-0.9.8e/ssl/ssl.h
+--- openssl-fips-0.9.8e/ssl/ssl.h.abi	2008-09-04 12:38:02.000000000 +0200
++++ openssl-fips-0.9.8e/ssl/ssl.h	2008-09-04 13:02:38.000000000 +0200
+@@ -789,6 +789,7 @@ struct ssl_ctx_st
+ #define SSL_CTX_sess_cache_full(ctx) \
+ 	SSL_CTX_ctrl(ctx,SSL_CTRL_SESS_CACHE_FULL,0,NULL)
+ 
++#ifdef OPENSSL_USE_NEW_FUNCTIONS
+ void SSL_CTX_sess_set_new_cb(SSL_CTX *ctx, int (*new_session_cb)(struct ssl_st *ssl,SSL_SESSION *sess));
+ int (*SSL_CTX_sess_get_new_cb(SSL_CTX *ctx))(struct ssl_st *ssl, SSL_SESSION *sess);
+ void SSL_CTX_sess_set_remove_cb(SSL_CTX *ctx, void (*remove_session_cb)(struct ssl_ctx_st *ctx,SSL_SESSION *sess));
+@@ -801,6 +802,20 @@ void SSL_CTX_set_client_cert_cb(SSL_CTX 
+ int (*SSL_CTX_get_client_cert_cb(SSL_CTX *ctx))(SSL *ssl, X509 **x509, EVP_PKEY **pkey);
+ void SSL_CTX_set_cookie_generate_cb(SSL_CTX *ctx, int (*app_gen_cookie_cb)(SSL *ssl, unsigned char *cookie, unsigned int *cookie_len));
+ void SSL_CTX_set_cookie_verify_cb(SSL_CTX *ctx, int (*app_verify_cookie_cb)(SSL *ssl, unsigned char *cookie, unsigned int cookie_len));
++#else
++#define SSL_CTX_sess_set_new_cb(ctx,cb)	((ctx)->new_session_cb=(cb))
++#define SSL_CTX_sess_get_new_cb(ctx)	((ctx)->new_session_cb)
++#define SSL_CTX_sess_set_remove_cb(ctx,cb)	((ctx)->remove_session_cb=(cb))
++#define SSL_CTX_sess_get_remove_cb(ctx)	((ctx)->remove_session_cb)
++#define SSL_CTX_sess_set_get_cb(ctx,cb)	((ctx)->get_session_cb=(cb))
++#define SSL_CTX_sess_get_get_cb(ctx)	((ctx)->get_session_cb)
++#define SSL_CTX_set_info_callback(ctx,cb)	((ctx)->info_callback=(cb))
++#define SSL_CTX_get_info_callback(ctx)		((ctx)->info_callback)
++#define SSL_CTX_set_client_cert_cb(ctx,cb)	((ctx)->client_cert_cb=(cb))
++#define SSL_CTX_get_client_cert_cb(ctx)		((ctx)->client_cert_cb)
++#define SSL_CTX_set_cookie_generate_cb(ctx,cb) ((ctx)->app_gen_cookie_cb=(cb))
++#define SSL_CTX_set_cookie_verify_cb(ctx,cb) ((ctx)->app_verify_cookie_cb=(cb))
++#endif
+ 
+ #define SSL_NOTHING	1
+ #define SSL_WRITING	2

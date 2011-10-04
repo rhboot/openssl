@@ -364,8 +364,9 @@ diff --exclude-from=exclude-diff-openssl-0.9.8b -bru openssl-0.9.8b.orig/apps/s_
 -		if ((*host=(char *)OPENSSL_malloc(strlen(h1->h_name)+1)) == NULL)
 -			{
 -			perror("OPENSSL_malloc");
+-			return(0);
 +		*sock=ret;
- 			return(0);
++		return(1);
  			}
 -		BUF_strlcpy(*host,h1->h_name,strlen(h1->h_name)+1);
  
@@ -377,8 +378,9 @@ diff --exclude-from=exclude-diff-openssl-0.9.8b -bru openssl-0.9.8b.orig/apps/s_
  			{
 -			BIO_printf(bio_err,"gethostbyname failure\n");
 +		BIO_printf(bio_err,"getnameinfo failed\n");
-+		*host=NULL;
- 			return(0);
++		*host=NULL; *sock=ret;
++		return(1);
+-			return(0);
  			}
 -		i=0;
 -		if (h2->h_addrtype != AF_INET)
