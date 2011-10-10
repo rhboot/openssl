@@ -144,7 +144,9 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch34 -p1 -b .x509
 %patch35 -p1 -b .version-add-engines
 %patch38 -p1 -b .cipher-change
+%ifos linux
 %patch39 -p1 -b .ipv6-apps
+%endif
 
 %patch61 -p1 -b .aliasing-bug
 %patch62 -p1 -b .name-cmp
@@ -154,7 +156,9 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch68 -p1 -b .abi
 %patch69 -p1 -b .fipsmode
 %patch70 -p1 -b .bn-fixes
+%ifos linux
 %patch71 -p1 -b .use-fipscheck
+%endif
 %patch72 -p1 -b .env-nozlib
 %patch73 -p1 -b .default-paths
 %patch74 -p1 -b .nonfips
@@ -185,7 +189,6 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch123 -p1 -b .win
 %patch124 -p1 -b .dos-win
 %patch125 -p1 -b .cmsc
-
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
