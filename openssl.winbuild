@@ -1,0 +1,72 @@
+# OpenSSL XBuild
+
+if [ $__isa_bits -eq 32 ]
+then
+    osarch="VC-NT"
+else
+    osarch="VC-WIN64A"
+fi
+
+$__perl Configure \
+        no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa no-krb5 \
+        -DOPENSSL_USE_NEW_FUNCTIONS $osarch fipscanisterbuild
+test $? -ne 0 && exit 1
+if [ "$osarch" = "VC-NT" ]; then
+    cygspawn cmd /C "call ./ms/do_nasm.bat"
+fi
+if [ "$osarch" = "VC-WIN64A" ]; then
+    cygspawn cmd /C "call ./ms/do_win64a.bat"
+fi
+if [ "$osarch" = "VC-WIN64I" ]; then
+    cygspawn cmd /C "call ./ms/do_win64i.bat"
+fi
+
+# Cleanup .def files
+if [ -f "ms/libeay32.def" ]; then
+    mv ms/libeay32.def ms/libeay32.def.org
+    $__grep -v "EVP_ecdsa" ms/libeay32.def.org > ms/libeay32.def
+fi
+# Cleanup .mak files
+# Remove all references to unicows.lib
+if [ -f "ms/ntdll.mak" ]; then
+    mv ms/ntdll.mak ms/ntdll.mak.org
+    $__sed -e "s/unicows.lib //g" ms/ntdll.mak.org > ms/ntdll.mak
+fi
+
+install -m 755 -d "$RPM_BUILD_ROOT$_bindir"
+install -m 755 -d "$RPM_BUILD_ROOT$_libdir"
+install -m 700 -d "$RPM_BUILD_ROOT$_sysconfdir/ssl/CA"
+install -m 755 -d "$RPM_BUILD_ROOT$_sysconfdir/ssl/certs"
+install -m 700 -d "$RPM_BUILD_ROOT$_sysconfdir/ssl/private"
+
+$__make -f ms/ntdll.mak
+test $? -ne 0 && exit 1
+$__make -f ms/ntdll.mak INSTALLTOP="`pwd`/distd" install
+test $? -ne 0 && exit 1
+
+copypdir distd/include "$RPM_BUILD_ROOT$_includedir"
+copypdir distd/bin "$RPM_BUILD_ROOT$_bindir"
+copypdir distd/lib "$RPM_BUILD_ROOT$_libdir"
+
+$__make -f ms/nt.mak
+test $? -ne 0 && exit 1
+$__make -f ms/nt.mak INSTALLTOP="`pwd`/dists" install
+test $? -ne 0 && exit 1
+
+cp dists/lib/libeayfips32.lib "$RPM_BUILD_ROOT$_libdir/libeay32s.lib"
+cp dists/lib/ssleay32.lib "$RPM_BUILD_ROOT$_libdir/ssleay32s.lib"
+install -m 644 distd/openssl.cnf "$RPM_BUILD_ROOT$_sysconfdir/ssl"
+
+# Install root CA stuffs.
+cat << EOF > RHNS-blurb.txt
+#
+#  RHNS CA certificate.  Appended to the ca-bundle at package build-time.
+#
+EOF
+cat $_sourcedir/ca-bundle.crt RHNS-blurb.txt $_sourcedir/RHNS-CA-CERT > ca-bundle
+install -m 644 ca-bundle "$RPM_BUILD_ROOT$_sysconfdir/ssl/certs/ca-bundle.crt"
+
+files="$_bindir $_sysconfdir"
+files_doc="CHANGES README $_sourcedir/README.FIPS"
+files_devel="$_libdir $_includedir"
+files_devel_doc="CHANGES README $_sourcedir/README.FIPS @doc/crypto @doc/ssl"
