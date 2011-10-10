@@ -75,12 +75,21 @@ Patch85: openssl-fips-0.9.8e-cve-2009-3555.patch
 Patch86: openssl-fips-0.9.8e-cve-2010-0433.patch
 Patch87: openssl-fips-0.9.8e-cve-2009-3245.patch
 Patch88: openssl-fips-0.9.8e-cve-2010-4180.patch
+# Patches not applied for windows & solaris builds
 Patch89: openssl-fips-0.9.8e-ssl-sha256.patch
 Patch90: openssl-fips-0.9.8e-ciph-sort.patch
 Patch91: openssl-fips-0.9.8e-apps-dgst.patch
 Patch92: openssl-fips-0.9.8e-tls-version.patch
 Patch93: openssl-fips-0.9.8e-chil-fixes.patch
 Patch94: openssl-fips-0.9.8e-dh-check.patch
+# RHATews multiplatform patches
+Patch120: openssl-fips-0.9.8e-cfg-solaris.patch
+Patch121: openssl-fips-0.9.8e-cfg-darwin.patch
+Patch122: openssl-fips-0.9.8e-cfg-hpux.patch
+Patch123: openssl-fips-0.9.8e-win-fips.patch
+Patch124: openssl-fips-0.9.8e-dtls-dos-win.patch
+Patch125: openssl-fips-0.9.8e-cmsc.patch
+ 
 
 License: BSDish
 Group: System Environment/Libraries
@@ -169,6 +178,14 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch92 -p1 -b .tlsver
 %patch93 -p1 -b .chil
 %patch94 -p1 -b .dh-check
+
+%patch120 -p1 -b .solaris
+%patch121 -p1 -b .darwin
+%patch122 -p1 -b .hpux
+%patch123 -p1 -b .win
+%patch124 -p1 -b .dos-win
+%patch125 -p1 -b .cmsc
+
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
