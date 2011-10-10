@@ -1,0 +1,7 @@
+--- openssl-fips-0.9.8e/util/libeay.num.org	2007-09-12 19:46:08.000000000 +0200
++++ openssl-fips-0.9.8e/util/libeay.num	2009-11-16 08:30:29.601080138 +0100
+@@ -3564,3 +3564,4 @@
+ FIPS_corrupt_rsa_keygen                 3958	EXIST:OPENSSL_FIPS:FUNCTION:
+ FIPS_corrupt_dsa_keygen                 3959	EXIST:OPENSSL_FIPS:FUNCTION:
+ FIPS_rng_stick                          3960	EXIST:OPENSSL_FIPS:FUNCTION:
++pqueue_size                             3961	EXIST::FUNCTION:
