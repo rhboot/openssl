@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 20%{?dist}
+Release: 21%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -442,6 +442,10 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Oct 12 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-21
+- Adding a set of multiplatform patches
+- Rebuild
+
 * Wed May  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-20
 - add missing DH_check_pub_key() call when DH key is computed (#698175)
 
