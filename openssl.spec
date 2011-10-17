@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 10%{?dist}.4
+Release: 10%{?dist}.5
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -77,6 +77,7 @@ Patch63: openssl-1.0.0-cve-2010-1633.patch
 Patch64: openssl-1.0.0-cve-2010-3864.patch
 Patch65: openssl-1.0.0-cve-2010-4180.patch
 Patch66: openssl-1.0.0-cve-2011-0014.patch
+Patch68: openssl-1.0.0-cve-2011-3207.patch
 
 License: OpenSSL
 Group: System Environment/Libraries
@@ -173,6 +174,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch64 -p1 -b .extrace
 %patch65 -p1 -b .disable-nsbug
 %patch66 -p0 -b .ocsp-stapling
+%patch68 -p1 -b .crl-init
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -424,6 +426,10 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Oct 17 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-10.5
+- initialize the X509_STORE_CTX properly for CRL lookups - CVE-2011-3207
+  (#736087)
+
 * Wed Jun  8 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-10.4
 - allow the AES-NI engine in the FIPS mode
 
