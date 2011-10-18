@@ -68,6 +68,7 @@ int FIPS_selftest_failed(void);
 void FIPS_selftest_check(void);
 void FIPS_corrupt_sha1(void);
 int FIPS_selftest_sha1(void);
+int FIPS_selftest_sha2(void);
 void FIPS_corrupt_aes(void);
 int FIPS_selftest_aes(void);
 void FIPS_corrupt_des(void);
