@@ -1,7 +1,15 @@
 diff -up openssl-fips-0.9.8e/fips/fips.c.sha2test openssl-fips-0.9.8e/fips/fips.c
 --- openssl-fips-0.9.8e/fips/fips.c.sha2test	2011-04-04 16:40:28.000000000 +0200
-+++ openssl-fips-0.9.8e/fips/fips.c	2011-09-26 11:01:44.000000000 +0200
-@@ -161,6 +161,7 @@ int FIPS_selftest()
++++ openssl-fips-0.9.8e/fips/fips.c	2011-10-18 16:30:21.000000000 +0200
+@@ -56,6 +56,7 @@
+ #include <openssl/bio.h>
+ #include <openssl/hmac.h>
+ #include <openssl/rsa.h>
++#include <openssl/sha.h>
+ #include <string.h>
+ #include <limits.h>
+ #include <dlfcn.h>
+@@ -161,6 +162,7 @@ int FIPS_selftest()
      {
  
      return FIPS_selftest_sha1()
@@ -9,7 +17,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.sha2test openssl-fips-0.9.8e/fips/fips.
  	&& FIPS_selftest_hmac()
  	&& FIPS_selftest_aes()
  	&& FIPS_selftest_des()
-@@ -401,6 +402,8 @@ FIPSCHECK_verify(const char *libname, co
+@@ -401,6 +403,8 @@ FIPSCHECK_verify(const char *libname, co
  		return 0;
  
  	hmacpath = make_hmac_path(path);
@@ -18,7 +26,7 @@ diff -up openssl-fips-0.9.8e/fips/fips.c.sha2test openssl-fips-0.9.8e/fips/fips.
  
  	hf = fopen(hmacpath, "r");
  	if (hf == NULL) {
-@@ -712,6 +715,45 @@ int fips_cipher_test(EVP_CIPHER_CTX *ctx
+@@ -712,6 +716,45 @@ int fips_cipher_test(EVP_CIPHER_CTX *ctx
  	return 1;
  	}
  
