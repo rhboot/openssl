@@ -81,7 +81,7 @@ Patch91: openssl-fips-0.9.8e-apps-dgst.patch
 Patch92: openssl-fips-0.9.8e-tls-version.patch
 Patch93: openssl-fips-0.9.8e-chil-fixes.patch
 Patch94: openssl-fips-0.9.8e-dh-check.patch
-Patch95: openssl-fips-0.9.8e-sha2-test.patch
+Patch95: openssl-fips-0.9.8e-sha2test.patch
 Patch96: openssl-fips-0.9.8e-apps-yesno.patch
 
 License: BSDish
@@ -171,7 +171,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch92 -p1 -b .tlsver
 %patch93 -p1 -b .chil
 %patch94 -p1 -b .dh-check
-%patch95 -p1 -b .sha2-test
+%patch95 -p1 -b .sha2test
 %patch96 -p1 -b .yesno
 
 # Modify the various perl scripts to reference perl in the right location.
