@@ -69,3 +69,40 @@ To query whether the module is in the error state:
 
 - int FIPS_selftest_failed(void) - returns 1 if the module is in the error
 state, 0 otherwise.
+
+To zeroize the FIPS RNG key and internal state the application calls:
+
+- void RAND_cleanup(void)
+
+Possible error states of the OpenSSL FIPS module
+================================================
+
+The effects of self-test failures in the OpenSSL module differ depending
+on the type of self-test that failed.  
+The FIPS_mode_set() function verifies the integrity of the runtime executable
+using a HMAC SHA-256 digest, which is computed at build time. If this computed
+HMAC SHA-256 digest matches the stored, known digest, then the power-up
+self-test (consisting of the algorithm-specific Pairwise Consistency and Known
+Answer tests) is performed.
+
+Non-fatal self-test errors transition the module into an error state. The
+application must be restarted to recover from these errors. The non-fatal
+self-test errors are:
+FIPS_R_FINGERPRINT_DOES_NOT_MATCH - the integrity verification check failed
+FIPS_R_FIPS_SELFTEST_FAILED - a known answer test failed
+FIPS_R_PAIRWISE_TEST_FAILED – a pairwise consistency test during DSA or RSA
+                              key generation failed
+FIPS_R_FIPS_MODE_ALREADY_SET - the application tries to initialize the FIPS
+                               approved mode when it is already initialized
+These errors are reported through the regular ERR interface of the OpenSSL
+library and can be queried by functions such as ERR_get_error(). See the
+OpenSSL manual page for the function description.
+
+A fatal error occurs only when the module is already in the error state
+(a self test has failed) and the application calls a crypto function of
+the module that cannot return an error in normal circumstances (void return
+functions). The error message: 'FATAL FIPS SELFTEST FAILURE' is printed to
+stderr and the application is terminated with the abort() call.
+The only way to recover from a fatal error is to restart the application.
+If failures persist, you must reinstall the Module. If you downloaded the
+software, verify the package hash to confirm a proper download.

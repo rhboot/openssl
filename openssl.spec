@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 20%{?dist}
+Release: 21%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -81,6 +81,8 @@ Patch91: openssl-fips-0.9.8e-apps-dgst.patch
 Patch92: openssl-fips-0.9.8e-tls-version.patch
 Patch93: openssl-fips-0.9.8e-chil-fixes.patch
 Patch94: openssl-fips-0.9.8e-dh-check.patch
+Patch95: openssl-fips-0.9.8e-sha2-test.patch
+Patch96: openssl-fips-0.9.8e-apps-yesno.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -169,6 +171,8 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch92 -p1 -b .tlsver
 %patch93 -p1 -b .chil
 %patch94 -p1 -b .dh-check
+%patch95 -p1 -b .sha2-test
+%patch96 -p1 -b .yesno
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -422,6 +426,14 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Oct 18 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-21
+- add known answer test for SHA2 algorithms (#740866)
+- make default private key length in certificate Makefile 2048 bits
+  (can be changed with PRIVATE_KEY_BITS setting) (#745410)
+- fix incorrect return value in parse_yesno() (#726593)
+- added DigiCert CA certificates to ca-bundle (#735819)
+- added a new section about error states to README.FIPS (#628976)
+
 * Wed May  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-20
 - add missing DH_check_pub_key() call when DH key is computed (#698175)
 
