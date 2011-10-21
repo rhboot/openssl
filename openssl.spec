@@ -444,7 +444,7 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
-* Fri Oct 20 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-22
+* Fri Oct 21 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-22
 - Makefile include for general xbuild Makefile
 - Moving to generated .ini file
 - Add win build requires for xbuild
