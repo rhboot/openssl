@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 21%{?dist}
+Release: 22%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -97,6 +97,8 @@ URL: http://www.openssl.org/
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 BuildRequires: mktemp, krb5-devel, perl, sed, zlib-devel, /usr/bin/cmp
 Requires: mktemp
+
+#win-buildrequires: xbuild
 
 %description
 The OpenSSL toolkit provides support for secure communications between
@@ -442,6 +444,19 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Oct 20 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-22
+- Makefile include for general xbuild Makefile
+- Moving to generated .ini file
+- Add win build requires for xbuild
+
+* Mon Oct 17 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-21.2
+- Add fre parameter to the artifact sources
+- Use local variables inside winspec file
+- Use new version of xbuild 2.0.2
+- Remove the -win suffix
+- Add dist property
+- Add make win-build target to Makefile
+
 * Wed Oct 12 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-21
 - Adding a set of multiplatform patches
 - Rebuild
