@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 19%{?dist}
+Release: 20%{?dist}
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -72,6 +72,7 @@ Patch91: openssl-1.0.0-fips-aesni.patch
 Patch92: openssl-1.0.0-apps-dgst.patch
 Patch93: openssl-1.0.0-intelopts.patch
 Patch94: openssl-1.0.0-sha2test.patch
+Patch95: openssl-1.0.0-x86cpuid.patch
 # Backported fixes including security fixes
 Patch60: openssl-1.0.0-dtls1-backports.patch
 Patch61: openssl-1.0.0-init-sha256.patch
@@ -174,6 +175,7 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch92 -p1 -b .dgst
 %patch93 -p1 -b .intelopts
 %patch94 -p1 -b .sha2test
+%patch95 -p0 -b .cpuid
 
 %patch60 -p1 -b .dtls1
 %patch61 -p1 -b .sha256
@@ -435,6 +437,9 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Mon Oct 31 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-20
+- fix x86cpuid.pl - patch by Paolo Bonzini
+
 * Thu Sep 29 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-19
 - add known answer test for SHA2 algorithms
 
