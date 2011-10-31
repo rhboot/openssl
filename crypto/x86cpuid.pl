@@ -119,20 +119,13 @@ for (@ARGV) { $sse2=1 if (/-DOPENSSL_IA32_SSE2/); }
 	&mov	("esi","edx");
 	&or	("ebp","ecx");		# merge AMD XOP flag
 
-	&bt	("ecx",26);		# check XSAVE bit
-	&jnc	(&label("done"));
 	&bt	("ecx",27);		# check OSXSAVE bit
-	&jnc	(&label("clear_xmm"));
-	&xor	("ecx","ecx");
+	&jnc	(&label("clear_avx"));
+	&xor	("ecx","ecx");          # XCR0
 	&data_byte(0x0f,0x01,0xd0);	# xgetbv
-	&and	("eax",6);
+	&and	("eax",6);              # isolate XMM and YMM state support
 	&cmp	("eax",6);
 	&je	(&label("done"));
-	&cmp	("eax",2);
-	&je	(&label("clear_avx"));
-&set_label("clear_xmm");
-	&and	("ebp",0xfdfffffd);	# clear AESNI and PCLMULQDQ bits
-	&and	("esi",0xfeffffff);	# clear FXSR
 &set_label("clear_avx");
 	&and	("ebp",0xefffe7ff);	# clear AVX, FMA and AMD XOP bits
 &set_label("done");
