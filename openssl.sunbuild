@@ -1,0 +1,102 @@
+# OpenSSL XBuild
+
+$__perl util/perlpath.pl `dirname $__perl`
+mv Makefile Makefile.sav >/dev/null 2>&1 || true
+cat Makefile.sav | $__sed -e "s;/v/openssl/sw/bin/perl;$__perl;" |\
+    $__sed -e "s;/v/openssl/sw/bin/ranlib;ranlib;" > Makefile
+make TABLE >/dev/null 2>&1 || true
+$_sourcedir/hobble-openssl || true
+
+case $_arch_sun in
+    i386    )
+        a=solaris-x86-cc
+    ;;
+    sparc   )
+        a=solaris-sparcv9-cc
+    ;;
+    amd64   )
+        a=solaris64-x86_64-cc
+    ;;
+    sparcv9 )
+        a=solaris64-sparcv9-cc
+    ;;
+esac
+touch -fc Configure
+./Configure --prefix="$RPM_BUILD_ROOT" \
+    --openssldir="$RPM_BUILD_ROOT/etc/ssl" \
+    --enginesdir="$RPM_BUILD_ROOT/$_libdir/openssl/engines" \
+    threads \
+    no-idea no-mdc2 no-rc5 no-ec no-ecdh no-ecdsa no-krb5 \
+    shared $a fipscanisterbuild
+test $? -ne 0 && exit 1
+touch -fc config Makefile.org Makefile
+
+install -m 755 -d "$RPM_BUILD_ROOT$_bindir"
+install -m 755 -d "$RPM_BUILD_ROOT$_libdir"
+install -m 700 -d "$RPM_BUILD_ROOT$_confdir/ssl/CA"
+install -m 755 -d "$RPM_BUILD_ROOT$_confdir/ssl/certs"
+install -m 700 -d "$RPM_BUILD_ROOT$_confdir/ssl/private"
+
+FIPS_SITE_LD=/usr/ccs/bin/ld
+export FIPS_SITE_LD
+RPM_OPT_FLAGS="-DOPENSSL_USE_NEW_FUNCTIONS -Wl,-rpath,$RPM_BUILD_ROOT $SUNCC_CFLAGS"
+export RPM_OPT_FLAGS
+
+make depend
+test $? -ne 0 && exit 1
+make -k all
+test $? -ne 0 && exit 1
+make -k rehash
+test $? -ne 0 && exit 1
+make -k install_sw
+test $? -ne 0 && exit 1
+chmod 755 $RPM_BUILD_ROOT/bin/* >/dev/null 2>&1 || true
+chmod 644 $RPM_BUILD_ROOT/include/openssl/* >/dev/null 2>&1 || true
+chmod 755 $RPM_BUILD_ROOT/lib/lib*.so* >/dev/null 2>&1 || true
+chmod 644 $RPM_BUILD_ROOT/lib/lib*.a >/dev/null 2>&1 || true
+chmod 644 $RPM_BUILD_ROOT/lib/pkgconfig/* >/dev/null 2>&1 || true
+chmod 755 $RPM_BUILD_ROOT/lib/engines/* >/dev/null 2>&1 || true
+
+# Remove all fips validation files
+rm -f $RPM_BUILD_ROOT/lib/fips*  >/dev/null 2>&1 || true
+rm -rf $RPM_BUILD_ROOT/lib/pkgconfig  >/dev/null 2>&1 || true
+
+if [ ".$RPM_BUILD_ROOT/lib" != ".$RPM_BUILD_ROOT$_libdir" ]
+then
+    rm -rf $RPM_BUILD_ROOT$_libdir
+    mv $RPM_BUILD_ROOT/lib $RPM_BUILD_ROOT$_libdir
+fi
+
+$__chrpath -r '.:$ORIGIN' $RPM_BUILD_ROOT$_libdir/*.so || true
+$__chrpath -r '.:$ORIGIN/..' $RPM_BUILD_ROOT$_libdir/engines/*.so || true
+$__chrpath -r '.:$ORIGIN/..'$_libdir $RPM_BUILD_ROOT/bin/openssl || true
+$__chrpath -r '.:$ORIGIN/..'$_libdir $RPM_BUILD_ROOT/bin/c_rehash || true
+
+install -m 700 -d "$RPM_BUILD_ROOT$_confdir/ssl/CA"
+install -m 755 -d "$RPM_BUILD_ROOT$_confdir/ssl/certs"
+install -m 700 -d "$RPM_BUILD_ROOT$_confdir/ssl/private"
+cp $_sourcedir/Makefile.certificate $RPM_BUILD_ROOT$_confdir/ssl/certs/Makefile.in
+cp $_sourcedir/make-dummy-cert $RPM_BUILD_ROOT$_confdir/ssl/certs/make-dummy-cert.in
+
+# Install root CA stuffs.
+cat << EOF > RHNS-blurb.txt
+#
+#  RHNS CA certificate.  Appended to the ca-bundle at package build-time.
+#
+EOF
+cat $_sourcedir/ca-bundle.crt RHNS-blurb.txt $_sourcedir/RHNS-CA-CERT > ca-bundle
+install -m 644 ca-bundle "$RPM_BUILD_ROOT$_confdir/ssl/certs/ca-bundle.crt"
+
+
+files="$_bindir $_confdir $RPM_BUILD_ROOT$_libdir/*.so* $_libdir/engines"
+files_doc="CHANGES README \
+$_sourcedir/README.FIPS \
+doc/openssl.txt \
+doc/openssl-shared.txt \
+doc/fingerprints.txt \
+doc/apps"
+
+files_devel="$RPM_BUILD_ROOT$_libdir/*.a $_includedir"
+files_devel_doc="CHANGES README \
+$_sourcedir/README.FIPS
+doc/crypto doc/ssl"
