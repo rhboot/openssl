@@ -1,10 +1,10 @@
 # Makefile for source module: openssl
-# $Id: Makefile,v 1.3 2011/10/21 15:15:35 vtunka Exp $
+# $Id: Makefile,v 1.4 2011/11/29 06:26:12 mturk Exp $
 NAME := openssl
 SPECFILE = $(firstword $(wildcard *.spec))
 XB_ROOT = ../../xbuild/JB-EP-6-XB
 
-ifndef OS
+ifndef OSTYPE
 $(error "You can not run this Makefile without having OS defined")
 endif
 ifeq (windows,$(OSTYPE))
