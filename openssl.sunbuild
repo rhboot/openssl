@@ -72,7 +72,6 @@ fi
 $__chrpath -r '.:$ORIGIN' $RPM_BUILD_ROOT$_libdir/*.so || true
 $__chrpath -r '.:$ORIGIN/..' $RPM_BUILD_ROOT$_libdir/engines/*.so || true
 $__chrpath -r '.:$ORIGIN/..'$_libdir $RPM_BUILD_ROOT/bin/openssl || true
-$__chrpath -r '.:$ORIGIN/..'$_libdir $RPM_BUILD_ROOT/bin/c_rehash || true
 
 install -m 700 -d "$RPM_BUILD_ROOT$_confdir/ssl/CA"
 install -m 755 -d "$RPM_BUILD_ROOT$_confdir/ssl/certs"
