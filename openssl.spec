@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 22%{?dist}
+Release: 23%{?dist}
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -444,6 +444,9 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Dec  7 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-23
+- Build for EAP 6 / EWS 2
+
 * Fri Oct 21 2011 Vaclav Tunka <vtunka@redhat.com> 0.9.8e-22
 - Makefile include for general xbuild Makefile
 - Moving to generated .ini file
