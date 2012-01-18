@@ -21,7 +21,7 @@
 Summary: The OpenSSL toolkit
 Name: openssl
 Version: 0.9.8e
-Release: 20%{?dist}
+Release: 20%{?dist}.1
 # The tarball is based on the openssl-fips-1.2.0-test.tar.gz tarball
 Source: openssl-fips-%{version}-usa.tar.bz2
 Source1: hobble-openssl
@@ -81,6 +81,10 @@ Patch91: openssl-fips-0.9.8e-apps-dgst.patch
 Patch92: openssl-fips-0.9.8e-tls-version.patch
 Patch93: openssl-fips-0.9.8e-chil-fixes.patch
 Patch94: openssl-fips-0.9.8e-dh-check.patch
+Patch97: openssl-fips-0.9.8e-dtls-fixes2.patch
+Patch98: openssl-fips-0.9.8e-cve-2011-4109.patch
+Patch99: openssl-fips-0.9.8e-cve-2011-4576.patch
+Patch100: openssl-fips-0.9.8e-cve-2011-4619.patch
 
 License: BSDish
 Group: System Environment/Libraries
@@ -169,6 +173,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch92 -p1 -b .tlsver
 %patch93 -p1 -b .chil
 %patch94 -p1 -b .dh-check
+%patch97 -p1 -b .dtls-fixes2
+%patch98 -p1 -b .doublefree
+%patch99 -p1 -b .padding
+%patch100 -p1 -b .sgc-dos
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -422,6 +430,13 @@ rm -rf $RPM_BUILD_ROOT/%{_bindir}/openssl_fips_fingerprint
 %postun -p /sbin/ldconfig
 
 %changelog
+* Wed Jan 18 2012 Tomas Mraz <tmraz@redhat.com> 0.9.8e-20.1
+- fix for CVE-2011-4108 & CVE-2012-0050 - DTLS plaintext recovery
+  vulnerability and additional DTLS fixes (#771770)
+- fix for CVE-2011-4109 - double free in policy checks (#771771)
+- fix for CVE-2011-4576 - uninitialized SSL 3.0 padding (#771775)
+- fix for CVE-2011-4619 - SGC restart DoS attack (#771780)
+
 * Wed May  4 2011 Tomas Mraz <tmraz@redhat.com> 0.9.8e-20
 - add missing DH_check_pub_key() call when DH key is computed (#698175)
 
