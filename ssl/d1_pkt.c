@@ -196,6 +196,9 @@ dtls1_copy_record(SSL *s, pitem *item)
     s->packet_length = rdata->packet_length;
     memcpy(&(s->s3->rbuf), &(rdata->rbuf), sizeof(SSL3_BUFFER));
     memcpy(&(s->s3->rrec), &(rdata->rrec), sizeof(SSL3_RECORD));
+	
+	/* Set proper sequence number for mac calculation */
+	memcpy(&(s->s3->read_sequence[2]), &(rdata->packet[5]), 6);
     
     return(1);
     }
@@ -375,6 +378,8 @@ dtls1_process_record(SSL *s)
 	SSL3_RECORD *rr;
 	unsigned int mac_size;
 	unsigned char md[EVP_MAX_MD_SIZE];
+	int decryption_failed_or_bad_record_mac = 0;
+	unsigned char *mac = NULL;
 
 
 	rr= &(s->s3->rrec);
@@ -409,12 +414,10 @@ dtls1_process_record(SSL *s)
 	enc_err = s->method->ssl3_enc->enc(s,0);
 	if (enc_err <= 0)
 		{
-		if (enc_err == 0)
-			/* SSLerr() and ssl3_send_alert() have been called */
-			goto err;
-
-		/* otherwise enc_err == -1 */
-		goto decryption_failed_or_bad_record_mac;
+		/* To minimize information leaked via timing, we will always
+		 * perform all computations before discarding the message.
+		 */
+		decryption_failed_or_bad_record_mac = 1;
 		}
 
 #ifdef TLS_DEBUG
@@ -444,26 +447,30 @@ printf("\n");
 			SSLerr(SSL_F_DTLS1_PROCESS_RECORD,SSL_R_PRE_MAC_LENGTH_TOO_LONG);
 			goto f_err;
 #else
-			goto decryption_failed_or_bad_record_mac;
+			decryption_failed_or_bad_record_mac = 1;
 #endif			
 			}
 		/* check the MAC for rr->input (it's in mac_size bytes at the tail) */
-		if (rr->length < mac_size)
+		if (rr->length >= mac_size)
 			{
-#if 0 /* OK only for stream ciphers */
-			al=SSL_AD_DECODE_ERROR;
-			SSLerr(SSL_F_DTLS1_PROCESS_RECORD,SSL_R_LENGTH_TOO_SHORT);
-			goto f_err;
-#else
-			goto decryption_failed_or_bad_record_mac;
-#endif
+			rr->length -= mac_size;
+			mac = &rr->data[rr->length];
 			}
-		rr->length-=mac_size;
+		else
+			rr->length = 0;
 		i=s->method->ssl3_enc->mac(s,md,0);
-		if (i < 0 || memcmp(md,&(rr->data[rr->length]),mac_size) != 0)
+		if (i < 0 || mac == NULL || memcmp(md, mac, mac_size) != 0)
 			{
-			goto decryption_failed_or_bad_record_mac;
+			decryption_failed_or_bad_record_mac = 1;
 			}
+		}
+
+	if (decryption_failed_or_bad_record_mac)
+		{
+		/* decryption failed, silently discard message */
+		rr->length = 0;
+		s->packet_length = 0;
+		goto err;
 		}
 
 	/* r->length is now just compressed */
@@ -504,14 +511,6 @@ printf("\n");
 	dtls1_record_bitmap_update(s, &(s->d1->bitmap));/* Mark receipt of record. */
 	return(1);
 
-decryption_failed_or_bad_record_mac:
-	/* Separate 'decryption_failed' alert was introduced with TLS 1.0,
-	 * SSL 3.0 only has 'bad_record_mac'.  But unless a decryption
-	 * failure is directly visible from the ciphertext anyway,
-	 * we should not reveal which kind of error occured -- this
-	 * might become visible to an attacker (e.g. via logfile) */
-	al=SSL_AD_BAD_RECORD_MAC;
-	SSLerr(SSL_F_DTLS1_PROCESS_RECORD,SSL_R_DECRYPTION_FAILED_OR_BAD_RECORD_MAC);
 f_err:
 	ssl3_send_alert(s,SSL3_AL_FATAL,al);
 err:
@@ -533,19 +532,16 @@ int dtls1_get_record(SSL *s)
 	int ssl_major,ssl_minor;
 	int i,n;
 	SSL3_RECORD *rr;
-	SSL_SESSION *sess;
 	unsigned char *p = NULL;
 	unsigned short version;
 	DTLS1_BITMAP *bitmap;
 	unsigned int is_next_epoch;
 
 	rr= &(s->s3->rrec);
-	sess=s->session;
 
 	/* The epoch may have changed.  If so, process all the
 	 * pending records.  This is a non-blocking operation. */
-	if ( ! dtls1_process_buffered_records(s))
-            return 0;
+	dtls1_process_buffered_records(s);
 
 	/* if we're renegotiating, then there may be buffered records */
 	if (dtls1_get_processed_record(s))
@@ -668,10 +664,12 @@ again:
 
 	/* If this record is from the next epoch (either HM or ALERT),
 	 * and a handshake is currently in progress, buffer it since it
-	 * cannot be processed at this time. */
+	 * cannot be processed at this time. However, do not buffer
+	 * anything while listening.
+	 */
 	if (is_next_epoch)
 		{
-		if (SSL_in_init(s) || s->in_handshake)
+		if ((SSL_in_init(s) || s->in_handshake) && !s->d1->listen)
 			{
 			dtls1_buffer_record(s, &(s->d1->unprocessed_rcds), rr->seq_num);
 			}
@@ -680,8 +678,12 @@ again:
 		goto again;
 		}
 
-	if ( ! dtls1_process_record(s))
-		return(0);
+	if (!dtls1_process_record(s))
+		{
+		rr->length = 0;
+		s->packet_length = 0;  /* dump this record */
+		goto again;   /* get another record */
+		}
 
 	dtls1_clear_timeouts(s);  /* done waiting */
 	return(1);
