@@ -446,7 +446,7 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
-* Thu Jan 19 2012 Tomas Mraz <tmraz@redhat.com> 0.9.8e-22
+* Thu Jan 19 2012 Tomas Mraz <tmraz@redhat.com> 1.0.0-21
 - fix for CVE-2011-4108 & CVE-2012-0050 - DTLS plaintext recovery
   vulnerability and additional DTLS fixes (#771770)
 - fix for CVE-2011-4576 - uninitialized SSL 3.0 padding (#771775)
