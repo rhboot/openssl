@@ -21,7 +21,7 @@
 Summary: A general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 1.0.0
-Release: 20%{?dist}
+Release: 20%{?dist}.1
 # We remove certain patented algorithms from the openssl source tarball
 # with the hobble-openssl script which is included below.
 Source: openssl-%{version}-usa.tar.bz2
@@ -83,6 +83,11 @@ Patch65: openssl-1.0.0-cve-2010-4180.patch
 Patch66: openssl-1.0.0-cve-2011-0014.patch
 Patch67: openssl-1.0.0-chil-fixes.patch
 Patch68: openssl-1.0.0-cve-2011-3207.patch
+Patch69: openssl-1.0.0-dtls-fixes.patch
+Patch70: openssl-1.0.0-cve-2011-4576.patch
+Patch71: openssl-1.0.0-cve-2011-4577.patch
+Patch72: openssl-1.0.0-cve-2011-4619.patch
+
 
 
 License: OpenSSL
@@ -186,6 +191,10 @@ from other formats to the formats used by the OpenSSL toolkit.
 %patch66 -p0 -b .ocsp-stapling
 %patch67 -p1 -b .chil
 %patch68 -p1 -b .crl-init
+%patch69 -p1 -b .dtls-fixes
+%patch70 -p1 -b .padding
+%patch71 -p1 -b .rfc3779-assert
+%patch72 -p1 -b .sgc-dos
 
 # Modify the various perl scripts to reference perl in the right location.
 perl util/perlpath.pl `dirname %{__perl}`
@@ -437,6 +446,13 @@ rm -rf $RPM_BUILD_ROOT/%{_libdir}/fipscanister.*
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Jan 19 2012 Tomas Mraz <tmraz@redhat.com> 1.0.0-20.1
+- fix for CVE-2011-4108 & CVE-2012-0050 - DTLS plaintext recovery
+  vulnerability and additional DTLS fixes (#771770)
+- fix for CVE-2011-4576 - uninitialized SSL 3.0 padding (#771775)
+- fix for CVE-2011-4577 - possible DoS through malformed RFC 3779 data (#771778)
+- fix for CVE-2011-4619 - SGC restart DoS attack (#771780)
+
 * Mon Oct 31 2011 Tomas Mraz <tmraz@redhat.com> 1.0.0-20
 - fix x86cpuid.pl - patch by Paolo Bonzini
 
