@@ -27,6 +27,7 @@ B<openssl> B<s_client>
 [B<-nbio>]
 [B<-crlf>]
 [B<-ign_eof>]
+[B<-no_ign_eof>]
 [B<-quiet>]
 [B<-ssl2>]
 [B<-ssl3>]
@@ -160,6 +161,11 @@ by some servers.
 
 inhibit shutting down the connection when end of file is reached in the
 input.
+
+=item B<-no_ign_eof>
+
+shut down the connection when end of file is reached in the
+input. Can be used to override the implicit B<-ign_eof> after B<-quiet>.
 
 =item B<-quiet>
 
