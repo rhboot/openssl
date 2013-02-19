@@ -258,10 +258,9 @@ const EVP_CIPHER *EVP_##cname##_ecb(void) { return &cname##_ecb; }
 	BLOCK_CIPHER_func_cfb(cipher##_##keysize,cprefix,cbits,kstruct,ksched) \
 	BLOCK_CIPHER_def_cfb(cipher##_##keysize,kstruct, \
 			     NID_##cipher##_##keysize, keysize/8, iv_len, cbits, \
-			     0, cipher##_init_key, NULL, \
-			     EVP_CIPHER_set_asn1_iv, \
-			     EVP_CIPHER_get_asn1_iv, \
-			     NULL)
+			     EVP_CIPH_FLAG_DEFAULT_ASN1, \
+			     cipher##_init_key, NULL, NULL, NULL, NULL)
+
 
 struct evp_pkey_ctx_st
 	{
@@ -367,11 +366,6 @@ int PKCS5_v2_PBKDF2_keyivgen(EVP_CIPHER_CTX *ctx, const char *pass, int passlen,
 #define MD2_Init	private_MD2_Init
 #define MDC2_Init	private_MDC2_Init
 #define SHA_Init	private_SHA_Init
-#define SHA1_Init	private_SHA1_Init
-#define SHA224_Init	private_SHA224_Init
-#define SHA256_Init	private_SHA256_Init
-#define SHA384_Init	private_SHA384_Init
-#define SHA512_Init	private_SHA512_Init
 
 #define BF_set_key	private_BF_set_key
 #define CAST_set_key	private_CAST_set_key
@@ -379,7 +373,6 @@ int PKCS5_v2_PBKDF2_keyivgen(EVP_CIPHER_CTX *ctx, const char *pass, int passlen,
 #define SEED_set_key	private_SEED_set_key
 #define RC2_set_key	private_RC2_set_key
 #define RC4_set_key	private_RC4_set_key
-#define DES_set_key_unchecked	private_DES_set_key_unchecked
 #define Camellia_set_key	private_Camellia_set_key
 
 #endif

@@ -206,22 +206,6 @@ static int pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 					RSA_R_INVALID_DIGEST_LENGTH);
 			return -1;
 			}
-#ifdef OPENSSL_FIPS
-		if (ret > 0)
-			{
-			unsigned int slen;
-			ret = FIPS_rsa_sign_digest(rsa, tbs, tbslen, rctx->md,
-							rctx->pad_mode,
-							rctx->saltlen,
-							rctx->mgf1md,
-							sig, &slen);
-			if (ret > 0)
-				*siglen = slen;
-			else
-				*siglen = 0;
-			return ret;
-			}
-#endif
 
 		if (EVP_MD_type(rctx->md) == NID_mdc2)
 			{
@@ -354,19 +338,6 @@ static int pkey_rsa_verify(EVP_PKEY_CTX *ctx,
 #endif
 	if (rctx->md)
 		{
-#ifdef OPENSSL_FIPS
-		if (rv > 0)
-			{
-			return FIPS_rsa_verify_digest(rsa,
-							tbs, tbslen,
-							rctx->md,
-							rctx->pad_mode,
-							rctx->saltlen,
-							rctx->mgf1md,
-							sig, siglen);
-							
-			}
-#endif
 		if (rctx->pad_mode == RSA_PKCS1_PADDING)
 			return RSA_verify(EVP_MD_type(rctx->md), tbs, tbslen,
 					sig, siglen, rsa);

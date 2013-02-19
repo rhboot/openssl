@@ -5,6 +5,10 @@
  * ====================================================================
  */
 #include <openssl/opensslconf.h>
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
+
 #if !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_SHA512)
 /*
  * IMPLEMENTATION NOTES.
@@ -61,6 +65,9 @@ const char SHA512_version[]="SHA-512" OPENSSL_VERSION_PTEXT;
 
 fips_md_init_ctx(SHA384, SHA512)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 	c->h[0]=U64(0xcbbb9d5dc1059ed8);
 	c->h[1]=U64(0x629a292a367cd507);
 	c->h[2]=U64(0x9159015a3070dd17);
@@ -77,6 +84,9 @@ fips_md_init_ctx(SHA384, SHA512)
 
 fips_md_init(SHA512)
 	{
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 	c->h[0]=U64(0x6a09e667f3bcc908);
 	c->h[1]=U64(0xbb67ae8584caa73b);
 	c->h[2]=U64(0x3c6ef372fe94f82b);
