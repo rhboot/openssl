@@ -56,6 +56,8 @@
  * [including the GNU Public Licence.]
  */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
@@ -481,7 +483,7 @@ static int check_chain_extensions(X509_STORE_CTX *ctx)
 			!!(ctx->param->flags & X509_V_FLAG_ALLOW_PROXY_CERTS);
 		/* A hack to keep people who don't want to modify their
 		   software happy */
-		if (getenv("OPENSSL_ALLOW_PROXY_CERTS"))
+		if (secure_getenv("OPENSSL_ALLOW_PROXY_CERTS"))
 			allow_proxy_certs = 1;
 		purpose = ctx->param->purpose;
 		}

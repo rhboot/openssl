@@ -56,6 +56,8 @@
  *
  */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <ctype.h>
 #include <openssl/crypto.h>
@@ -548,8 +550,8 @@ char *CONF_get1_default_config_file(void)
 	char *file;
 	int len;
 
-	file = getenv("OPENSSL_CONF");
-	if (file) 
+	file = secure_getenv("OPENSSL_CONF");
+	if (file)
 		return BUF_strdup(file);
 
 	len = strlen(X509_get_default_cert_area());
