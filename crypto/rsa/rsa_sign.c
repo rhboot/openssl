@@ -138,7 +138,8 @@ int RSA_sign(int type, const unsigned char *m, unsigned int m_len,
 		i2d_X509_SIG(&sig,&p);
 		s=tmps;
 	}
-	i=RSA_private_encrypt(i,s,sigret,rsa,RSA_PKCS1_PADDING);
+	/* NB: call underlying method directly to avoid FIPS blocking */
+	i = rsa->meth->rsa_priv_enc ? rsa->meth->rsa_priv_enc(i,s,sigret,rsa,RSA_PKCS1_PADDING) : 0;
 	if (i <= 0)
 		ret=0;
 	else
@@ -178,8 +179,8 @@ int int_rsa_verify(int dtype, const unsigned char *m,
 
 	if((dtype == NID_md5_sha1) && rm)
 		{
-		i = RSA_public_decrypt((int)siglen,
-					sigbuf,rm,rsa,RSA_PKCS1_PADDING);
+		i = rsa->meth->rsa_pub_dec ? rsa->meth->rsa_pub_dec((int)siglen,
+					sigbuf,rm,rsa,RSA_PKCS1_PADDING) : 0;
 		if (i <= 0)
 			return 0;
 		*prm_len = i;
@@ -196,7 +197,8 @@ int int_rsa_verify(int dtype, const unsigned char *m,
 			RSAerr(RSA_F_INT_RSA_VERIFY,RSA_R_INVALID_MESSAGE_LENGTH);
 			goto err;
 	}
-	i=RSA_public_decrypt((int)siglen,sigbuf,s,rsa,RSA_PKCS1_PADDING);
+	/* NB: call underlying method directly to avoid FIPS blocking */
+	i = rsa->meth->rsa_pub_dec ? rsa->meth->rsa_pub_dec((int)siglen,sigbuf,s,rsa,RSA_PKCS1_PADDING) : 0;
 
 	if (i <= 0) goto err;
 	/* Oddball MDC2 case: signature can be OCTET STRING.

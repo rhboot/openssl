@@ -58,11 +58,25 @@
 
 #include "cryptlib.h"
 #include "eng_int.h"
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
 
 void ENGINE_load_builtin_engines(void)
 	{
 	/* Some ENGINEs need this */
 	OPENSSL_cpuid_setup();
+#ifdef OPENSSL_FIPS
+	OPENSSL_init_library();
+	if (FIPS_mode()) {
+		/* We allow loading dynamic engine as a third party
+		   engine might be FIPS validated.
+		   User is disallowed to load non-validated engines
+		   by security policy. */
+		ENGINE_load_dynamic();
+		return;
+	}
+#endif
 #if 0
 	/* There's no longer any need for an "openssl" ENGINE unless, one day,
 	 * it is the *only* way for standard builtin implementations to be be
