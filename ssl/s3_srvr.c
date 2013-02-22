@@ -1264,7 +1264,10 @@ int ssl3_get_client_hello(SSL *s)
 		}
 
 	if (!ssl3_digest_cached_records(s))
+		{
+		al = SSL_AD_INTERNAL_ERROR;
 		goto f_err;
+		}
 	
 	/* we now have the following setup. 
 	 * client_random
