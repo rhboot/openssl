@@ -78,7 +78,7 @@ const char MD5_version[]="MD5" OPENSSL_VERSION_PTEXT;
 int MD5_Init(MD5_CTX *c)
 #ifdef OPENSSL_FIPS
 	{
-	if (FIPS_mode() && getenv("OPENSSL_FIPS_NON_APPROVED_MD5_ALLOW") == NULL)
+	if (FIPS_mode() && __secure_getenv("OPENSSL_FIPS_NON_APPROVED_MD5_ALLOW") == NULL)
 		FIPS_BAD_ALGORITHM(alg)
 	return private_MD5_Init(c);
 	}

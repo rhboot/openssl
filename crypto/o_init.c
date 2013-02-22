@@ -75,7 +75,7 @@ static void init_fips_mode(void)
 	char buf[2] = "0";
 	int fd;
 	
-	if (getenv("OPENSSL_FORCE_FIPS_MODE") != NULL)
+	if (__secure_getenv("OPENSSL_FORCE_FIPS_MODE") != NULL)
 		{
 		buf[0] = '1';
 		}
