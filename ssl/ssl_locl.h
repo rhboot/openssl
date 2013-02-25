@@ -133,6 +133,7 @@
 #ifndef OPENSSL_NO_DSA
 #include <openssl/dsa.h>
 #endif
+#include <openssl/hmac.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/symhacks.h>
@@ -181,6 +182,15 @@
 			 *((c)++)=(unsigned char)(((l)    )&0xff))
 
 #define l2n6(l,c)	(*((c)++)=(unsigned char)(((l)>>40)&0xff), \
+			 *((c)++)=(unsigned char)(((l)>>32)&0xff), \
+			 *((c)++)=(unsigned char)(((l)>>24)&0xff), \
+			 *((c)++)=(unsigned char)(((l)>>16)&0xff), \
+			 *((c)++)=(unsigned char)(((l)>> 8)&0xff), \
+			 *((c)++)=(unsigned char)(((l)    )&0xff))
+
+#define l2n8(l,c)	(*((c)++)=(unsigned char)(((l)>>56)&0xff), \
+			 *((c)++)=(unsigned char)(((l)>>48)&0xff), \
+			 *((c)++)=(unsigned char)(((l)>>40)&0xff), \
 			 *((c)++)=(unsigned char)(((l)>>32)&0xff), \
 			 *((c)++)=(unsigned char)(((l)>>24)&0xff), \
 			 *((c)++)=(unsigned char)(((l)>>16)&0xff), \
@@ -946,5 +956,33 @@ int ssl_add_clienthello_renegotiate_ext(SSL *s, unsigned char *p, int *len,
 					int maxlen);
 int ssl_parse_clienthello_renegotiate_ext(SSL *s, unsigned char *d, int len,
 					  int *al);
+/* s3_cbc.c */
+void ssl3_cbc_copy_mac(unsigned char* out,
+		       const SSL3_RECORD *rec,
+		       unsigned md_size,unsigned orig_len);
+int ssl3_cbc_remove_padding(const SSL* s,
+			    SSL3_RECORD *rec,
+			    unsigned block_size,
+			    unsigned mac_size);
+int tls1_cbc_remove_padding(const SSL* s,
+			    SSL3_RECORD *rec,
+			    unsigned block_size,
+			    unsigned mac_size);
+char ssl3_cbc_record_digest_supported(const EVP_MD *hash);
+void ssl3_cbc_digest_record(
+	const EVP_MD *hash,
+	unsigned char* md_out,
+	size_t* md_out_size,
+	const unsigned char header[13],
+	const unsigned char *data,
+	size_t data_plus_mac_size,
+	size_t data_plus_mac_plus_padding_size,
+	const unsigned char *mac_secret,
+	unsigned mac_secret_length,
+	char is_sslv3);
+
+void tls_fips_digest_extra(
+	const EVP_CIPHER_CTX *cipher_ctx, const EVP_MD *hash, HMAC_CTX *hctx,
+	const unsigned char *data, size_t data_len, size_t orig_len);
 
 #endif
