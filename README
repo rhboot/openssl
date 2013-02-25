@@ -8,8 +8,22 @@
  WARNING
  -------
 
- This version of OpenSSL is an initial port of the FIPS 140-2 code to OpenSSL
- 0.9.8. See the file README.FIPS for brief usage details.
+ This version of OpenSSL is based on upstream openssl-fips-1.2.0 code
+ which is also undergoing FIPS validation.
+ 
+ However this version contains a few differences from the upstream code
+ some of which are:
+   * The module respects the kernel FIPS flag /proc/sys/crypto/fips and
+     tries to initialize the FIPS mode if it is set to 1 aborting if the
+     FIPS mode could not be initialized. It is also possible to force the
+     OpenSSL library to FIPS mode especially for debugging purposes by
+     setting the environment variable OPENSSL_FORCE_FIPS_MODE.
+   * If the environment variable OPENSSL_DEFAULT_ZLIB is set the module
+     will automatically load the built in compression method ZLIB
+     when initialized. Applications can still explicitely ask for ZLIB
+     compression method with API calls. Otherwise the compression is not
+     loaded and used due to protocol vulnerability as described in the
+     CRIME attack.
 
  DESCRIPTION
  -----------
