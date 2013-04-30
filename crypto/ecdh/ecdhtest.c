@@ -323,8 +323,10 @@ int main(int argc, char *argv[])
 	if ((ctx=BN_CTX_new()) == NULL) goto err;
 
 	/* NIST PRIME CURVES TESTS */
+#if 0
 	if (!test_ecdh_curve(NID_X9_62_prime192v1, "NIST Prime-Curve P-192", ctx, out)) goto err;
 	if (!test_ecdh_curve(NID_secp224r1, "NIST Prime-Curve P-224", ctx, out)) goto err;
+#endif
 	if (!test_ecdh_curve(NID_X9_62_prime256v1, "NIST Prime-Curve P-256", ctx, out)) goto err;
 	if (!test_ecdh_curve(NID_secp384r1, "NIST Prime-Curve P-384", ctx, out)) goto err;
 	if (!test_ecdh_curve(NID_secp521r1, "NIST Prime-Curve P-521", ctx, out)) goto err;

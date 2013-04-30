@@ -64,9 +64,6 @@
 #include <string.h>
 #include "ec_lcl.h"
 #include <openssl/err.h>
-#ifdef OPENSSL_FIPS
-#include <openssl/fips.h>
-#endif
 
 EC_KEY *EC_KEY_new(void)
 	{
@@ -234,6 +231,39 @@ int EC_KEY_up_ref(EC_KEY *r)
 	return ((i > 1) ? 1 : 0);
 	}
 
+#ifdef OPENSSL_FIPS
+
+#include <openssl/evp.h>
+#include <openssl/fips.h>
+#include <openssl/fips_rand.h>
+
+static int fips_check_ec(EC_KEY *key)
+	{
+	EVP_PKEY *pk;
+	unsigned char tbs[] = "ECDSA Pairwise Check Data";
+	int ret = 0;
+
+	if ((pk=EVP_PKEY_new()) == NULL)
+		goto err;
+
+	EVP_PKEY_set1_EC_KEY(pk, key);
+
+	if (fips_pkey_signature_test(pk, tbs, -1, NULL, 0, NULL, 0, NULL))
+		ret = 1;
+
+	err:
+	if (ret == 0)
+		{
+		FIPSerr(FIPS_F_FIPS_CHECK_EC,FIPS_R_PAIRWISE_TEST_FAILED);
+		fips_set_selftest_fail();
+		}
+	if (pk)
+		EVP_PKEY_free(pk);
+	return ret;
+	}
+
+#endif
+
 int EC_KEY_generate_key(EC_KEY *eckey)
 	{	
 	int	ok = 0;
@@ -242,8 +272,11 @@ int EC_KEY_generate_key(EC_KEY *eckey)
 	EC_POINT *pub_key = NULL;
 
 #ifdef OPENSSL_FIPS
-	if (FIPS_mode())
-		return FIPS_ec_key_generate_key(eckey);
+	if(FIPS_selftest_failed())
+		{
+		FIPSerr(FIPS_F_EC_KEY_GENERATE_KEY,FIPS_R_FIPS_SELFTEST_FAILED);
+		return 0;
+		}
 #endif
 
 	if (!eckey || !eckey->group)
@@ -286,6 +319,15 @@ int EC_KEY_generate_key(EC_KEY *eckey)
 
 	eckey->priv_key = priv_key;
 	eckey->pub_key  = pub_key;
+
+#ifdef OPENSSL_FIPS
+	if(!fips_check_ec(eckey))
+		{
+		eckey->priv_key = NULL;
+		eckey->pub_key  = NULL;
+	    	goto err;
+		}
+#endif
 
 	ok=1;
 
@@ -429,10 +471,12 @@ int EC_KEY_set_public_key_affine_coordinates(EC_KEY *key, BIGNUM *x, BIGNUM *y)
 								tx, ty, ctx))
 			goto err;
 		}
-	/* Check if retrieved coordinates match originals: if not values
-	 * are out of range.
+	/* Check if retrieved coordinates match originals and are less than
+	 * field order: if not values are out of range.
 	 */
-	if (BN_cmp(x, tx) || BN_cmp(y, ty))
+	if (BN_cmp(x, tx) || BN_cmp(y, ty)
+		|| (BN_cmp(x, &key->group->field) >= 0)
+		|| (BN_cmp(y, &key->group->field) >= 0))
 		{
 		ECerr(EC_F_EC_KEY_SET_PUBLIC_KEY_AFFINE_COORDINATES,
 			EC_R_COORDINATES_OUT_OF_RANGE);

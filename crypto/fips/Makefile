@@ -24,13 +24,13 @@ LIBSRC=fips_aes_selftest.c fips_des_selftest.c fips_hmac_selftest.c fips_rand_se
     fips_rsa_selftest.c fips_sha_selftest.c fips.c fips_dsa_selftest.c  fips_rand.c \
     fips_rsa_x931g.c fips_post.c fips_drbg_ctr.c fips_drbg_hash.c fips_drbg_hmac.c \
     fips_drbg_lib.c fips_drbg_rand.c fips_drbg_selftest.c fips_rand_lib.c \
-    fips_cmac_selftest.c fips_enc.c fips_md.c
+    fips_cmac_selftest.c fips_ecdh_selftest.c fips_ecdsa_selftest.c fips_enc.c fips_md.c
 
 LIBOBJ=fips_aes_selftest.o fips_des_selftest.o fips_hmac_selftest.o fips_rand_selftest.o \
     fips_rsa_selftest.o fips_sha_selftest.o fips.o fips_dsa_selftest.o  fips_rand.o \
     fips_rsa_x931g.o fips_post.o fips_drbg_ctr.o fips_drbg_hash.o fips_drbg_hmac.o \
     fips_drbg_lib.o fips_drbg_rand.o fips_drbg_selftest.o fips_rand_lib.o \
-    fips_cmac_selftest.o fips_enc.o fips_md.o
+    fips_cmac_selftest.o fips_ecdh_selftest.o fips_ecdsa_selftest.o fips_enc.o fips_md.o
 
 LIBCRYPTO=-L.. -lcrypto
 
@@ -119,6 +119,21 @@ fips_aes_selftest.o: ../../include/openssl/ossl_typ.h
 fips_aes_selftest.o: ../../include/openssl/safestack.h
 fips_aes_selftest.o: ../../include/openssl/stack.h
 fips_aes_selftest.o: ../../include/openssl/symhacks.h fips_aes_selftest.c
+fips_cmac_selftest.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+fips_cmac_selftest.o: ../../include/openssl/cmac.h
+fips_cmac_selftest.o: ../../include/openssl/crypto.h
+fips_cmac_selftest.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
+fips_cmac_selftest.o: ../../include/openssl/evp.h ../../include/openssl/fips.h
+fips_cmac_selftest.o: ../../include/openssl/lhash.h
+fips_cmac_selftest.o: ../../include/openssl/obj_mac.h
+fips_cmac_selftest.o: ../../include/openssl/objects.h
+fips_cmac_selftest.o: ../../include/openssl/opensslconf.h
+fips_cmac_selftest.o: ../../include/openssl/opensslv.h
+fips_cmac_selftest.o: ../../include/openssl/ossl_typ.h
+fips_cmac_selftest.o: ../../include/openssl/safestack.h
+fips_cmac_selftest.o: ../../include/openssl/stack.h
+fips_cmac_selftest.o: ../../include/openssl/symhacks.h fips_cmac_selftest.c
+fips_cmac_selftest.o: fips_locl.h
 fips_des_selftest.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
 fips_des_selftest.o: ../../include/openssl/crypto.h
 fips_des_selftest.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
@@ -232,6 +247,46 @@ fips_dsa_selftest.o: ../../include/openssl/safestack.h
 fips_dsa_selftest.o: ../../include/openssl/stack.h
 fips_dsa_selftest.o: ../../include/openssl/symhacks.h fips_dsa_selftest.c
 fips_dsa_selftest.o: fips_locl.h
+fips_ecdh_selftest.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+fips_ecdh_selftest.o: ../../include/openssl/bn.h ../../include/openssl/crypto.h
+fips_ecdh_selftest.o: ../../include/openssl/e_os2.h ../../include/openssl/ec.h
+fips_ecdh_selftest.o: ../../include/openssl/ecdh.h ../../include/openssl/err.h
+fips_ecdh_selftest.o: ../../include/openssl/evp.h ../../include/openssl/fips.h
+fips_ecdh_selftest.o: ../../include/openssl/lhash.h
+fips_ecdh_selftest.o: ../../include/openssl/obj_mac.h
+fips_ecdh_selftest.o: ../../include/openssl/objects.h
+fips_ecdh_selftest.o: ../../include/openssl/opensslconf.h
+fips_ecdh_selftest.o: ../../include/openssl/opensslv.h
+fips_ecdh_selftest.o: ../../include/openssl/ossl_typ.h
+fips_ecdh_selftest.o: ../../include/openssl/safestack.h
+fips_ecdh_selftest.o: ../../include/openssl/stack.h
+fips_ecdh_selftest.o: ../../include/openssl/symhacks.h fips_ecdh_selftest.c
+fips_ecdh_selftest.o: fips_locl.h
+fips_ecdsa_selftest.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+fips_ecdsa_selftest.o: ../../include/openssl/bn.h
+fips_ecdsa_selftest.o: ../../include/openssl/crypto.h
+fips_ecdsa_selftest.o: ../../include/openssl/e_os2.h ../../include/openssl/ec.h
+fips_ecdsa_selftest.o: ../../include/openssl/ecdsa.h
+fips_ecdsa_selftest.o: ../../include/openssl/err.h ../../include/openssl/evp.h
+fips_ecdsa_selftest.o: ../../include/openssl/fips.h
+fips_ecdsa_selftest.o: ../../include/openssl/lhash.h
+fips_ecdsa_selftest.o: ../../include/openssl/obj_mac.h
+fips_ecdsa_selftest.o: ../../include/openssl/objects.h
+fips_ecdsa_selftest.o: ../../include/openssl/opensslconf.h
+fips_ecdsa_selftest.o: ../../include/openssl/opensslv.h
+fips_ecdsa_selftest.o: ../../include/openssl/ossl_typ.h
+fips_ecdsa_selftest.o: ../../include/openssl/safestack.h
+fips_ecdsa_selftest.o: ../../include/openssl/stack.h
+fips_ecdsa_selftest.o: ../../include/openssl/symhacks.h fips_ecdsa_selftest.c
+fips_enc.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+fips_enc.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+fips_enc.o: ../../include/openssl/err.h ../../include/openssl/evp.h
+fips_enc.o: ../../include/openssl/fips.h ../../include/openssl/lhash.h
+fips_enc.o: ../../include/openssl/obj_mac.h ../../include/openssl/objects.h
+fips_enc.o: ../../include/openssl/opensslconf.h
+fips_enc.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+fips_enc.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
+fips_enc.o: ../../include/openssl/symhacks.h fips_enc.c
 fips_hmac_selftest.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
 fips_hmac_selftest.o: ../../include/openssl/crypto.h
 fips_hmac_selftest.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
@@ -246,6 +301,15 @@ fips_hmac_selftest.o: ../../include/openssl/ossl_typ.h
 fips_hmac_selftest.o: ../../include/openssl/safestack.h
 fips_hmac_selftest.o: ../../include/openssl/stack.h
 fips_hmac_selftest.o: ../../include/openssl/symhacks.h fips_hmac_selftest.c
+fips_md.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+fips_md.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+fips_md.o: ../../include/openssl/err.h ../../include/openssl/evp.h
+fips_md.o: ../../include/openssl/fips.h ../../include/openssl/lhash.h
+fips_md.o: ../../include/openssl/obj_mac.h ../../include/openssl/objects.h
+fips_md.o: ../../include/openssl/opensslconf.h ../../include/openssl/opensslv.h
+fips_md.o: ../../include/openssl/ossl_typ.h ../../include/openssl/safestack.h
+fips_md.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
+fips_md.o: fips_md.c
 fips_post.o: ../../include/openssl/aes.h ../../include/openssl/asn1.h
 fips_post.o: ../../include/openssl/bio.h ../../include/openssl/crypto.h
 fips_post.o: ../../include/openssl/dsa.h ../../include/openssl/e_os2.h

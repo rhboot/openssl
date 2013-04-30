@@ -6,3 +6,7 @@ OPENSSL_1.0.1 {
 	    _original*;
 	    _current*;
 };
+OPENSSL_1.0.1_EC {
+    global:
+	    EC*;
+};
