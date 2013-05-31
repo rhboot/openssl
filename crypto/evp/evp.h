@@ -75,6 +75,10 @@
 #include <openssl/bio.h>
 #endif
 
+#ifdef OPENSSL_FIPS
+#include <openssl/fips.h>
+#endif
+
 /*
 #define EVP_RC2_KEY_SIZE		16
 #define EVP_RC4_KEY_SIZE		16
@@ -282,10 +286,6 @@ struct env_md_ctx_st
 						* cleaned */
 #define EVP_MD_CTX_FLAG_REUSE		0x0004 /* Don't free up ctx->md_data
 						* in EVP_MD_CTX_cleanup */
-/* FIPS and pad options are ignored in 1.0.0, definitions are here
- * so we don't accidentally reuse the values for other purposes.
- */
-
 #define EVP_MD_CTX_FLAG_NON_FIPS_ALLOW	0x0008	/* Allow use of non FIPS digest
 						 * in FIPS mode */
 
@@ -297,6 +297,10 @@ struct env_md_ctx_st
 #define EVP_MD_CTX_FLAG_PAD_PKCS1	0x00	/* PKCS#1 v1.5 mode */
 #define EVP_MD_CTX_FLAG_PAD_X931	0x10	/* X9.31 mode */
 #define EVP_MD_CTX_FLAG_PAD_PSS		0x20	/* PSS mode */
+#define M_EVP_MD_CTX_FLAG_PSS_SALT(ctx) \
+		((ctx->flags>>16) &0xFFFF) /* seed length */
+#define EVP_MD_CTX_FLAG_PSS_MDLEN	0xFFFF	/* salt len same as digest */
+#define EVP_MD_CTX_FLAG_PSS_MREC	0xFFFE	/* salt max or auto recovered */
 
 #define EVP_MD_CTX_FLAG_NO_INIT		0x0100 /* Don't initialize md_data */
 
@@ -348,15 +352,15 @@ struct evp_cipher_st
 /* cipher handles random key generation */
 #define 	EVP_CIPH_RAND_KEY		0x200
 /* cipher has its own additional copying logic */
-#define 	EVP_CIPH_CUSTOM_COPY		0x400
+#define 	EVP_CIPH_CUSTOM_COPY		0x4000
 /* Allow use default ASN1 get/set iv */
 #define		EVP_CIPH_FLAG_DEFAULT_ASN1	0x1000
 /* Buffer length in bits not bytes: CFB1 mode only */
 #define		EVP_CIPH_FLAG_LENGTH_BITS	0x2000
 /* Note if suitable for use in FIPS mode */
-#define		EVP_CIPH_FLAG_FIPS		0x4000
+#define		EVP_CIPH_FLAG_FIPS		0x400
 /* Allow non FIPS cipher in FIPS mode */
-#define		EVP_CIPH_FLAG_NON_FIPS_ALLOW	0x8000
+#define		EVP_CIPH_FLAG_NON_FIPS_ALLOW	0x800
 /* Cipher handles any and all padding logic as well
  * as finalisation.
  */

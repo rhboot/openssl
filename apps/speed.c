@@ -195,7 +195,6 @@
 #ifdef OPENSSL_DOING_MAKEDEPEND
 #undef AES_set_encrypt_key
 #undef AES_set_decrypt_key
-#undef DES_set_key_unchecked
 #endif
 #define BF_set_key	private_BF_set_key
 #define CAST_set_key	private_CAST_set_key
@@ -203,7 +202,6 @@
 #define SEED_set_key	private_SEED_set_key
 #define RC2_set_key	private_RC2_set_key
 #define RC4_set_key	private_RC4_set_key
-#define DES_set_key_unchecked	private_DES_set_key_unchecked
 #define AES_set_encrypt_key	private_AES_set_encrypt_key
 #define AES_set_decrypt_key	private_AES_set_decrypt_key
 #define Camellia_set_key	private_Camellia_set_key
@@ -941,7 +939,12 @@ int MAIN(int argc, char **argv)
 #ifndef OPENSSL_NO_RSA
 			if (strcmp(*argv,"rsa") == 0)
 			{
+#ifdef OPENSSL_FIPS
+				if (!FIPS_mode())
+#endif
+				{
 			rsa_doit[R_RSA_512]=1;
+				}
 			rsa_doit[R_RSA_1024]=1;
 			rsa_doit[R_RSA_2048]=1;
 			rsa_doit[R_RSA_4096]=1;
@@ -951,7 +954,12 @@ int MAIN(int argc, char **argv)
 #ifndef OPENSSL_NO_DSA
 			if (strcmp(*argv,"dsa") == 0)
 			{
+#ifdef OPENSSL_FIPS
+				if (!FIPS_mode())
+#endif
+				{
 			dsa_doit[R_DSA_512]=1;
+				}
 			dsa_doit[R_DSA_1024]=1;
 			dsa_doit[R_DSA_2048]=1;
 			}
@@ -1162,12 +1170,18 @@ int MAIN(int argc, char **argv)
 		{
 		for (i=0; i<ALGOR_NUM; i++)
 			{
-			if (i != D_EVP)
+			if (i != D_EVP &&
+			    (!FIPS_mode() || (i != D_WHIRLPOOL &&
+				i != D_MD2 && i != D_MD4 &&
+				i != D_MD5 && i != D_MDC2 &&
+				i != D_RMD160)))
 				doit[i]=1;
 			}
 		for (i=0; i<RSA_NUM; i++)
+		    if (!FIPS_mode() || i != R_RSA_512)
 			rsa_doit[i]=1;
 		for (i=0; i<DSA_NUM; i++)
+		    if (!FIPS_mode() || i != R_DSA_512)
 			dsa_doit[i]=1;
 #ifndef OPENSSL_NO_ECDSA
 		for (i=0; i<EC_NUM; i++)
@@ -1226,30 +1240,54 @@ int MAIN(int argc, char **argv)
 	AES_set_encrypt_key(key32,256,&aes_ks3);
 #endif
 #ifndef OPENSSL_NO_CAMELLIA
+	if (doit[D_CBC_128_CML] || doit[D_CBC_192_CML] || doit[D_CBC_256_CML])
+	    {
 	Camellia_set_key(key16,128,&camellia_ks1);
 	Camellia_set_key(ckey24,192,&camellia_ks2);
 	Camellia_set_key(ckey32,256,&camellia_ks3);
+	    }
 #endif
 #ifndef OPENSSL_NO_IDEA
+	if (doit[D_CBC_IDEA])
+	    {
 	idea_set_encrypt_key(key16,&idea_ks);
+	    }
 #endif
 #ifndef OPENSSL_NO_SEED
+	if (doit[D_CBC_SEED])
+	    {
 	SEED_set_key(key16,&seed_ks);
+	    }
 #endif
 #ifndef OPENSSL_NO_RC4
+	if (doit[D_RC4])
+	    {
 	RC4_set_key(&rc4_ks,16,key16);
+	    }
 #endif
 #ifndef OPENSSL_NO_RC2
+	if (doit[D_CBC_RC2])
+	    {
 	RC2_set_key(&rc2_ks,16,key16,128);
+	    }
 #endif
 #ifndef OPENSSL_NO_RC5
+	if (doit[D_CBC_RC5])
+	    {
 	RC5_32_set_key(&rc5_ks,16,key16,12);
+	    }
 #endif
 #ifndef OPENSSL_NO_BF
+	if (doit[D_CBC_BF])
+	    {
 	BF_set_key(&bf_ks,16,key16);
+	    }
 #endif
 #ifndef OPENSSL_NO_CAST
+	if (doit[D_CBC_CAST])
+	    {
 	CAST_set_key(&cast_ks,16,key16);
+	    }
 #endif
 #ifndef OPENSSL_NO_RSA
 	memset(rsa_c,0,sizeof(rsa_c));
@@ -1564,6 +1602,7 @@ int MAIN(int argc, char **argv)
 		HMAC_CTX hctx;
 
 		HMAC_CTX_init(&hctx);
+		HMAC_CTX_set_flags(&hctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
 		HMAC_Init_ex(&hctx,(unsigned char *)"This is a key...",
 			16,EVP_md5(), NULL);
 
