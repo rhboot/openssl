@@ -47,6 +47,13 @@ Once the identities of the compression methods for the TLS protocol have
 been standardized, the compression API will most likely be changed. Using
 it in the current state is not recommended.
 
+It is also not recommended to use compression if data transfered contain
+untrusted parts that can be manipulated by an attacker as he could then
+get information about the encrypted data. See the CRIME attack. For
+that reason the default loading of the zlib compression method is
+disabled and enabled only if the environment variable B<OPENSSL_DEFAULT_ZLIB>
+is present during the library initialization.
+
 =head1 RETURN VALUES
 
 SSL_COMP_add_compression_method() may return the following values:
