@@ -91,6 +91,32 @@ EVP_CIPHER_CTX_set_padding - EVP cipher routines
  int EVP_CIPHER_param_to_asn1(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
  int EVP_CIPHER_asn1_to_param(EVP_CIPHER_CTX *c, ASN1_TYPE *type);
 
+ const EVP_CIPHER *EVP_des_ede3(void);
+ const EVP_CIPHER *EVP_des_ede3_ecb(void);
+ const EVP_CIPHER *EVP_des_ede3_cfb64(void);
+ const EVP_CIPHER *EVP_des_ede3_cfb1(void);
+ const EVP_CIPHER *EVP_des_ede3_cfb8(void);
+ const EVP_CIPHER *EVP_des_ede3_ofb(void);
+ const EVP_CIPHER *EVP_des_ede3_cbc(void);
+ const EVP_CIPHER *EVP_aes_128_ecb(void);
+ const EVP_CIPHER *EVP_aes_128_cbc(void);
+ const EVP_CIPHER *EVP_aes_128_cfb1(void);
+ const EVP_CIPHER *EVP_aes_128_cfb8(void);
+ const EVP_CIPHER *EVP_aes_128_cfb128(void);
+ const EVP_CIPHER *EVP_aes_128_ofb(void);
+ const EVP_CIPHER *EVP_aes_192_ecb(void);
+ const EVP_CIPHER *EVP_aes_192_cbc(void);
+ const EVP_CIPHER *EVP_aes_192_cfb1(void);
+ const EVP_CIPHER *EVP_aes_192_cfb8(void);
+ const EVP_CIPHER *EVP_aes_192_cfb128(void);
+ const EVP_CIPHER *EVP_aes_192_ofb(void);
+ const EVP_CIPHER *EVP_aes_256_ecb(void);
+ const EVP_CIPHER *EVP_aes_256_cbc(void);
+ const EVP_CIPHER *EVP_aes_256_cfb1(void);
+ const EVP_CIPHER *EVP_aes_256_cfb8(void);
+ const EVP_CIPHER *EVP_aes_256_cfb128(void);
+ const EVP_CIPHER *EVP_aes_256_ofb(void);
+
 =head1 DESCRIPTION
 
 The EVP cipher routines are a high level interface to certain
@@ -296,6 +322,18 @@ Three key triple DES in CBC, ECB, CFB and OFB modes respectively.
 =item EVP_desx_cbc(void)
 
 DESX algorithm in CBC mode.
+
+=item EVP_aes_128_cbc(void), EVP_aes_128_ecb(), EVP_aes_128_ofb(void), EVP_aes_128_cfb1(void), EVP_aes_128_cfb8(void), EVP_aes_128_cfb128(void)
+
+AES with 128 bit key length in CBC, ECB, OFB and CFB modes respectively.
+
+=item EVP_aes_192_cbc(void), EVP_aes_192_ecb(), EVP_aes_192_ofb(void), EVP_aes_192_cfb1(void), EVP_aes_192_cfb8(void), EVP_aes_192_cfb128(void)
+
+AES with 192 bit key length in CBC, ECB, OFB and CFB modes respectively.
+
+=item EVP_aes_256_cbc(void), EVP_aes_256_ecb(), EVP_aes_256_ofb(void), EVP_aes_256_cfb1(void), EVP_aes_256_cfb8(void), EVP_aes_256_cfb128(void)
+
+AES with 256 bit key length in CBC, ECB, OFB and CFB modes respectively.
 
 =item EVP_rc4(void)
 
