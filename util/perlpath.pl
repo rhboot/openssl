@@ -4,10 +4,10 @@
 # line in all scripts that rely on perl.
 #
 
-require "find.pl";
+use File::Find;
 
 $#ARGV == 0 || print STDERR "usage: perlpath newpath  (eg /usr/bin)\n";
-&find(".");
+find(\&wanted, ".");
 
 sub wanted
 	{
