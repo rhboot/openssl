@@ -77,6 +77,8 @@
 # define OPENSSL_DH_MAX_MODULUS_BITS	10000
 #endif
 
+#define OPENSSL_DH_FIPS_MIN_MODULUS_BITS 1024
+
 #define DH_FLAG_CACHE_MONT_P     0x01
 #define DH_FLAG_NO_EXP_CONSTTIME 0x02 /* new with 0.9.7h; the built-in DH
                                        * implementation now uses constant time
@@ -210,6 +212,7 @@ int	DH_check(const DH *dh,int *codes);
 int	DH_check_pub_key(const DH *dh,const BIGNUM *pub_key, int *codes);
 int	DH_generate_key(DH *dh);
 int	DH_compute_key(unsigned char *key,const BIGNUM *pub_key,DH *dh);
+int	DH_compute_key_padded(unsigned char *key,const BIGNUM *pub_key,DH *dh);
 DH *	d2i_DHparams(DH **a,const unsigned char **pp, long length);
 int	i2d_DHparams(const DH *a,unsigned char **pp);
 #ifndef OPENSSL_NO_FP_API
