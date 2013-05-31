@@ -77,6 +77,8 @@
 # define OPENSSL_DH_MAX_MODULUS_BITS	10000
 #endif
 
+#define OPENSSL_DH_FIPS_MIN_MODULUS_BITS 1024
+
 #define DH_FLAG_CACHE_MONT_P     0x01
 #define DH_FLAG_NO_EXP_CONSTTIME 0x02 /* new with 0.9.7h; the built-in DH
                                        * implementation now uses constant time
