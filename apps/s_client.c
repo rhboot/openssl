@@ -1486,7 +1486,7 @@ SSL_set_tlsext_status_ids(con, ids);
 		    "xmlns='jabber:client' to='%s' version='1.0'>", host);
 		seen = BIO_read(sbio,mbuf,BUFSIZZ);
 		mbuf[seen] = 0;
-		while (!strstr(mbuf, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'"))
+		while (!strcasestr(mbuf, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'") && !strcasestr(mbuf, "<starttls xmlns=\"urn:ietf:params:xml:ns:xmpp-tls\""))
 			{
 			if (strstr(mbuf, "/stream:features>"))
 				goto shut;
