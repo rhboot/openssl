@@ -201,7 +201,8 @@ will not be encrypted.
 
 this specifies the message digest to sign the request with (such as
 B<-md5>, B<-sha1>). This overrides the digest algorithm specified in
-the configuration file.
+the configuration file. For full list of possible digests see openssl
+dgst -h output.
 
 Some public key algorithms may override this choice. For instance, DSA
 signatures always use SHA1, GOST R 34.10 signatures always use
