@@ -64,6 +64,12 @@
 int SSL_library_init(void)
 	{
 
+#ifdef OPENSSL_FIPS
+	OPENSSL_init_library();
+	if (!FIPS_mode())
+		{
+#endif
+
 #ifndef OPENSSL_NO_DES
 	EVP_add_cipher(EVP_des_cbc());
 	EVP_add_cipher(EVP_des_ede3_cbc());
@@ -136,6 +142,50 @@ int SSL_library_init(void)
 #if 0
 	EVP_add_digest(EVP_sha());
 	EVP_add_digest(EVP_dss());
+#endif
+#ifdef OPENSSL_FIPS
+		}
+	else
+		{
+#ifndef OPENSSL_NO_DES
+	EVP_add_cipher(EVP_des_ede3_cbc());
+#endif
+#ifndef OPENSSL_NO_AES
+	EVP_add_cipher(EVP_aes_128_cbc());
+	EVP_add_cipher(EVP_aes_192_cbc());
+	EVP_add_cipher(EVP_aes_256_cbc());
+	EVP_add_cipher(EVP_aes_128_gcm());
+	EVP_add_cipher(EVP_aes_256_gcm());
+#endif
+#ifndef OPENSSL_NO_MD5
+	/* needed even in the FIPS mode for TLS MAC */
+	EVP_add_digest(EVP_md5());
+	EVP_add_digest_alias(SN_md5,"ssl2-md5");
+	EVP_add_digest_alias(SN_md5,"ssl3-md5");
+#endif
+#ifndef OPENSSL_NO_SHA
+	EVP_add_digest(EVP_sha1()); /* RSA with sha1 */
+	EVP_add_digest_alias(SN_sha1,"ssl3-sha1");
+	EVP_add_digest_alias(SN_sha1WithRSAEncryption,SN_sha1WithRSA);
+#endif
+#ifndef OPENSSL_NO_SHA256
+	EVP_add_digest(EVP_sha224());
+	EVP_add_digest(EVP_sha256());
+#endif
+#ifndef OPENSSL_NO_SHA512
+	EVP_add_digest(EVP_sha384());
+	EVP_add_digest(EVP_sha512());
+#endif
+#if !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_DSA)
+	EVP_add_digest(EVP_dss1()); /* DSA with sha1 */
+	EVP_add_digest_alias(SN_dsaWithSHA1,SN_dsaWithSHA1_2);
+	EVP_add_digest_alias(SN_dsaWithSHA1,"DSS1");
+	EVP_add_digest_alias(SN_dsaWithSHA1,"dss1");
+#endif
+#ifndef OPENSSL_NO_ECDSA
+	EVP_add_digest(EVP_ecdsa());
+#endif
+		}
 #endif
 #ifndef OPENSSL_NO_COMP
 	/* This will initialise the built-in compression algorithms.
