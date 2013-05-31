@@ -65,7 +65,7 @@ const char *get_gost_engine_param(int param)
 		{
 		return gost_params[param];
 		}
-	tmp = getenv(gost_envnames[param]);
+	tmp = __secure_getenv(gost_envnames[param]);
 	if (tmp) 
 		{
 		if (gost_params[param]) OPENSSL_free(gost_params[param]);
@@ -79,7 +79,7 @@ int gost_set_default_param(int param, const char *value)
 	{
 	const char *tmp;
 	if (param <0 || param >GOST_PARAM_MAX) return 0;
-	tmp = getenv(gost_envnames[param]);
+	tmp = __secure_getenv(gost_envnames[param]);
 	/* if there is value in the environment, use it, else -passed string * */
 	if (!tmp) tmp=value;
 	if (gost_params[param]) OPENSSL_free(gost_params[param]);

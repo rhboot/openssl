@@ -142,7 +142,7 @@ char *_CONF_get_string(const CONF *conf, const char *section, const char *name)
 			if (v != NULL) return(v->value);
 			if (strcmp(section,"ENV") == 0)
 				{
-				p=getenv(name);
+				p=__secure_getenv(name);
 				if (p != NULL) return(p);
 				}
 			}
@@ -155,7 +155,7 @@ char *_CONF_get_string(const CONF *conf, const char *section, const char *name)
 			return(NULL);
 		}
 	else
-		return(getenv(name));
+		return (__secure_getenv(name));
 	}
 
 #if 0 /* There's no way to provide error checking with this function, so
