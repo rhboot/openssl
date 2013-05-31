@@ -1174,12 +1174,19 @@ bad:
 	if (!set_cert_key_stuff(ctx,cert,key))
 		goto end;
 
-	if ((!SSL_CTX_load_verify_locations(ctx,CAfile,CApath)) ||
-		(!SSL_CTX_set_default_verify_paths(ctx)))
+	if (CAfile == NULL && CApath == NULL)
 		{
-		/* BIO_printf(bio_err,"error setting default verify locations\n"); */
-		ERR_print_errors(bio_err);
-		/* goto end; */
+		if (!SSL_CTX_set_default_verify_paths(ctx))
+			{
+			ERR_print_errors(bio_err);
+			}
+		}
+	else
+		{
+		if (!SSL_CTX_load_verify_locations(ctx,CAfile,CApath))
+			{
+			ERR_print_errors(bio_err);
+			}
 		}
 
 #ifndef OPENSSL_NO_TLSEXT
