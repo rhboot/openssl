@@ -40,10 +40,16 @@ B<openssl> B<s_server>
 [B<-ssl2>]
 [B<-ssl3>]
 [B<-tls1>]
+[B<-tls1_1>]
+[B<-tls1_2>]
+[B<-dtls1>]
 [B<-no_ssl2>]
 [B<-no_ssl3>]
 [B<-no_tls1>]
+[B<-no_tls1_1>]
+[B<-no_tls1_2>]
 [B<-no_dhe>]
+[B<-no_ecdhe>]
 [B<-bugs>]
 [B<-hack>]
 [B<-www>]
@@ -54,6 +60,7 @@ B<openssl> B<s_server>
 [B<-no_ticket>]
 [B<-id_prefix arg>]
 [B<-rand file(s)>]
+[B<-nextprotoneg protocols>]
 
 =head1 DESCRIPTION
 
@@ -131,6 +138,10 @@ a static set of parameters hard coded into the s_server program will be used.
 if this option is set then no DH parameters will be loaded effectively
 disabling the ephemeral DH cipher suites.
 
+=item B<-no_ecdhe>
+
+if this option is set then ephemeral ECDH cipher suites will be disabled.
+
 =item B<-no_tmp_rsa>
 
 certain export cipher suites sometimes use a temporary RSA key, this option
@@ -201,7 +212,7 @@ Use the PSK key B<key> when using a PSK cipher suite. The key is
 given as a hexadecimal number without leading 0x, for example -psk
 1a2b3c4d.
 
-=item B<-ssl2>, B<-ssl3>, B<-tls1>, B<-no_ssl2>, B<-no_ssl3>, B<-no_tls1>
+=item B<-ssl2>, B<-ssl3>, B<-tls1>, B<-tls1_1>, B<-tls1_2>, B<-dtls1>, B<-no_ssl2>, B<-no_ssl3>, B<-no_tls1>, B<-no_tls1_1>, B<-no_tls1_2>
 
 these options disable the use of certain SSL or TLS protocols. By default
 the initial handshake uses a method which should be compatible with all
@@ -275,6 +286,14 @@ generator, or an EGD socket (see L<RAND_egd(3)|RAND_egd(3)>).
 Multiple files can be specified separated by a OS-dependent character.
 The separator is B<;> for MS-Windows, B<,> for OpenVMS, and B<:> for
 all others.
+
+=item B<-nextprotoneg protocols>
+
+enable Next Protocol Negotiation TLS extension and provide a
+comma-separated list of supported protocol names.
+The list should contain most wanted protocols first.
+Protocol names are printable ASCII strings, for example "http/1.1" or
+"spdy/3".
 
 =back
 
