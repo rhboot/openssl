@@ -226,9 +226,6 @@ typedef struct dtls1_state_st
 	 */
 	record_pqueue buffered_app_data;
 
-	/* Is set when listening for new connections with dtls1_listen() */
-	unsigned int listen;
-
 	unsigned int mtu; /* max DTLS packet size */
 
 	struct hm_header_st w_msg_hdr;
@@ -251,6 +248,9 @@ typedef struct dtls1_state_st
 
 	unsigned int retransmitting;
 	unsigned int change_cipher_spec_ok;
+
+	/* Is set when listening for new connections with dtls1_listen() */
+	unsigned int listen;
 
 #ifndef OPENSSL_NO_SCTP
 	/* used when SSL_ST_XX_FLUSH is entered */
