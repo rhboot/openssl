@@ -705,6 +705,10 @@ void OPENSSL_cpuid_setup(void)
     else
 	vec = OPENSSL_ia32_cpuid();
 
+    if (getenv("OPENSSL_DISABLE_AESNI") != NULL) {
+	vec = vec & ~(1ULL<<57); 
+    }
+
     /*
      * |(1<<10) sets a reserved bit to signal that variable
      * was initialized already... This is to avoid interference
