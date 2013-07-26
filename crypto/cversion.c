@@ -62,7 +62,7 @@
 #include "buildinf.h"
 #endif
 
-const char *SSLeay_version(int t)
+const char *_current_SSLeay_version(int t)
 	{
 	if (t == SSLEAY_VERSION)
 		return OPENSSL_VERSION_TEXT;
@@ -110,8 +110,25 @@ const char *SSLeay_version(int t)
 	return("not available");
 	}
 
-unsigned long SSLeay(void)
+const char *_original_SSLeay_version(int t)
+	{
+	if (t == SSLEAY_VERSION)
+		return "OpenSSL 1.0.0-fips 29 Mar 2010";
+	else
+		return _current_SSLeay_version(t);
+	}
+
+unsigned long _original_SSLeay(void)
+	{
+	return(0x10000003);
+	}
+
+unsigned long _current_SSLeay(void)
 	{
 	return(SSLEAY_VERSION_NUMBER);
 	}
 
+__asm__(".symver _original_SSLeay,SSLeay@");
+__asm__(".symver _original_SSLeay_version,SSLeay_version@");
+__asm__(".symver _current_SSLeay,SSLeay@@OPENSSL_1.0.1");
+__asm__(".symver _current_SSLeay_version,SSLeay_version@@OPENSSL_1.0.1");
