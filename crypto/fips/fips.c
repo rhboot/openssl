@@ -60,6 +60,8 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 #include "fips_locl.h"
 
 #ifdef OPENSSL_FIPS
@@ -198,8 +200,10 @@ bin2hex(void *buf, size_t len)
 	return hex;
 }
 
-#define HMAC_PREFIX "." 
-#define HMAC_SUFFIX ".hmac" 
+#define HMAC_PREFIX "."
+#ifndef HMAC_SUFFIX
+#define HMAC_SUFFIX ".hmac"
+#endif
 #define READ_BUFFER_LENGTH 16384
 
 static char *
@@ -279,19 +283,13 @@ end:
 }
 
 static int
-FIPSCHECK_verify(const char *libname, const char *symbolname)
+FIPSCHECK_verify(const char *path)
 {
-	char path[PATH_MAX+1];
-	int rv;
+	int rv = 0;
 	FILE *hf;
 	char *hmacpath, *p;
 	char *hmac = NULL;
 	size_t n;
-	
-	rv = get_library_path(libname, symbolname, path, sizeof(path));
-
-	if (rv < 0)
-		return 0;
 
 	hmacpath = make_hmac_path(path);
 	if (hmacpath == NULL)
@@ -342,6 +340,53 @@ end:
 	return 1;	
 }
 
+static int
+verify_checksums(void)
+    {
+	int rv;
+	char path[PATH_MAX+1];
+	char *p;
+
+	/* we need to avoid dlopening libssl, assume both libcrypto and libssl
+	   are in the same directory */
+
+	rv = get_library_path("libcrypto.so." SHLIB_VERSION_NUMBER, "FIPS_mode_set", path, sizeof(path));
+	if (rv < 0)
+		return 0;
+
+	rv = FIPSCHECK_verify(path);
+	if (!rv)
+		return 0;
+
+	/* replace libcrypto with libssl */
+	while ((p = strstr(path, "libcrypto.so")) != NULL)
+	    {
+		p = stpcpy(p, "libssl");
+                memmove(p, p+3, strlen(p+2));
+	    }
+
+	rv = FIPSCHECK_verify(path);
+	if (!rv)
+		return 0;
+	return 1;
+    }
+
+#ifndef FIPS_MODULE_PATH
+#define FIPS_MODULE_PATH "/usr/share/dracut/modules.d/01fips"
+#endif
+
+int
+FIPS_module_installed(void)
+    {
+    int rv;
+    rv = access(FIPS_MODULE_PATH, F_OK);
+    if (rv < 0 && errno != ENOENT)
+	rv = 0;
+
+    /* Installed == true */
+    return !rv;
+    }
+
 int FIPS_module_mode_set(int onoff, const char *auth)
     {
     int ret = 0;
@@ -380,15 +425,7 @@ int FIPS_module_mode_set(int onoff, const char *auth)
 	}
 #endif
 
-	if(!FIPSCHECK_verify("libcrypto.so." SHLIB_VERSION_NUMBER,"FIPS_mode_set"))
-	    {
-	    FIPSerr(FIPS_F_FIPS_MODULE_MODE_SET,FIPS_R_FINGERPRINT_DOES_NOT_MATCH);
-	    fips_selftest_fail = 1;
-	    ret = 0;
-	    goto end;
-	    }
-
-	if(!FIPSCHECK_verify("libssl.so." SHLIB_VERSION_NUMBER,"SSL_CTX_new"))
+	if(!verify_checksums())
 	    {
 	    FIPSerr(FIPS_F_FIPS_MODULE_MODE_SET,FIPS_R_FINGERPRINT_DOES_NOT_MATCH);
 	    fips_selftest_fail = 1;
