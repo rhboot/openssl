@@ -74,6 +74,7 @@ struct hmac_ctx_st;
 
 int FIPS_module_mode_set(int onoff, const char *auth);
 int FIPS_module_mode(void);
+int FIPS_module_installed(void);
 const void *FIPS_rand_check(void);
 int FIPS_selftest(void);
 int FIPS_selftest_failed(void);
