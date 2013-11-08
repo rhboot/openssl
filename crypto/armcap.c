@@ -9,11 +9,6 @@
 
 unsigned int OPENSSL_armcap_P;
 
-static sigset_t all_masked;
-
-static sigjmp_buf ill_jmp;
-static void ill_handler (int sig) { siglongjmp(ill_jmp,sig); }
-
 /*
  * Following subroutines could have been inlined, but it's not all
  * ARM compilers support inline assembler...
@@ -29,24 +24,26 @@ unsigned int OPENSSL_rdtsc(void)
 		return 0;
 	}
 
-#if defined(__GNUC__) && __GNUC__>=2
-void OPENSSL_cpuid_setup(void) __attribute__((constructor));
-#endif
-void OPENSSL_cpuid_setup(void)
+#if defined(__GLIBC__) && __GLIBC__>=2 && __GLIBC_MINOR__>=16
+#include <sys/auxv.h>
+
+void OPENSSL_cpuid_find(void)
 	{
-	char *e;
+		unsigned long hwcap = getauxval(AT_HWCAP);
+		char *plat = (char *)getauxval(AT_PLATFORM);
+
+		OPENSSL_armcap_P |= hwcap & HWCAP_ARM_NEON ? ARMV7_NEON : 0;
+		OPENSSL_armcap_P |= plat ? (plat[1] == '7' ? ARMV7_TICK : 0) : 0;
+	}
+#else
+static sigset_t all_masked;
+static sigjmp_buf ill_jmp;
+static void ill_handler (int sig) { siglongjmp(ill_jmp,sig); }
+
+void OPENSSL_cpuid_find(void)
+	{
 	struct sigaction	ill_oact,ill_act;
 	sigset_t		oset;
-	static int trigger=0;
-
-	if (trigger) return;
-	trigger=1;
- 
-	if ((e=getenv("OPENSSL_armcap")))
-		{
-		OPENSSL_armcap_P=strtoul(e,NULL,0);
-		return;
-		}
 
 	sigfillset(&all_masked);
 	sigdelset(&all_masked,SIGILL);
@@ -54,8 +51,6 @@ void OPENSSL_cpuid_setup(void)
 	sigdelset(&all_masked,SIGFPE);
 	sigdelset(&all_masked,SIGBUS);
 	sigdelset(&all_masked,SIGSEGV);
-
-	OPENSSL_armcap_P = 0;
 
 	memset(&ill_act,0,sizeof(ill_act));
 	ill_act.sa_handler = ill_handler;
@@ -77,4 +72,26 @@ void OPENSSL_cpuid_setup(void)
 
 	sigaction (SIGILL,&ill_oact,NULL);
 	sigprocmask(SIG_SETMASK,&oset,NULL);
+	}
+#endif
+
+#if defined(__GNUC__) && __GNUC__>=2
+void OPENSSL_cpuid_setup(void) __attribute__((constructor));
+#endif
+void OPENSSL_cpuid_setup(void)
+	{
+	char *e;
+	static int trigger=0;
+
+	if (trigger) return;
+	trigger=1;
+
+	if ((e=getenv("OPENSSL_armcap")))
+		{
+		OPENSSL_armcap_P=strtoul(e,NULL,0);
+		return;
+		}
+
+	OPENSSL_armcap_P = 0;
+	OPENSSL_cpuid_find();
 	}
