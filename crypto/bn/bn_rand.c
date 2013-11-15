@@ -138,9 +138,12 @@ static int bnrand(int pseudorand, BIGNUM *rnd, int bits, int top, int bottom)
 		goto err;
 		}
 
-	/* make a random number and set the top and bottom bits */
-	time(&tim);
-	RAND_add(&tim,sizeof(tim),0.0);
+	if (!FIPS_mode()) /* in FIPS mode the RNG is always properly seeded or the module fails */
+		{
+		/* make a random number and set the top and bottom bits */
+		time(&tim);
+		RAND_add(&tim,sizeof(tim),0.0);
+		}
 
 	if (pseudorand)
 		{

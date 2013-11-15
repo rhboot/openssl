@@ -340,6 +340,42 @@ static const unsigned char kat_RSA_X931_SHA512[] = {
   0x60, 0x83, 0x18, 0x88, 0xA3, 0xF5, 0x59, 0xC3
 };
 
+static int fips_rsa_encrypt_test(RSA *rsa, const unsigned char *plaintext, int ptlen)
+	{
+	unsigned char *ctbuf = NULL, *ptbuf = NULL;
+	int ret = 0;
+	int len;
+
+	ctbuf = OPENSSL_malloc(RSA_size(rsa));
+	if (!ctbuf)
+		goto err;
+
+	len = RSA_public_encrypt(ptlen, plaintext, ctbuf, rsa, RSA_PKCS1_PADDING);
+	if (len <= 0)
+		goto err;
+	/* Check ciphertext doesn't match plaintext */
+	if (len >= ptlen && !memcmp(plaintext, ctbuf, ptlen))
+		goto err;
+
+	ptbuf = OPENSSL_malloc(RSA_size(rsa));
+	if (!ptbuf)
+		goto err;
+
+	len = RSA_private_decrypt(len, ctbuf, ptbuf, rsa, RSA_PKCS1_PADDING);
+	if (len != ptlen)
+		goto err;
+	if (memcmp(ptbuf, plaintext, len))
+		goto err;
+
+	ret = 1;
+
+	err:
+	if (ctbuf)
+		OPENSSL_free(ctbuf);
+	if (ptbuf)
+		OPENSSL_free(ptbuf);
+	return ret;
+	}
 
 int FIPS_selftest_rsa()
 	{
@@ -353,7 +389,7 @@ int FIPS_selftest_rsa()
 	if ((pk=EVP_PKEY_new()) == NULL)
 		goto err;
 
-	EVP_PKEY_assign_RSA(pk, key);
+	EVP_PKEY_set1_RSA(pk, key);
 
 	if (!fips_pkey_signature_test(pk, kat_tbs, sizeof(kat_tbs) - 1,
 				kat_RSA_SHA1, sizeof(kat_RSA_SHA1),
@@ -430,13 +466,15 @@ int FIPS_selftest_rsa()
 			"RSA SHA512 X931"))
 		goto err;
 
+	if (!fips_rsa_encrypt_test(key, kat_tbs, sizeof(kat_tbs) - 1))
+		goto err;
 
 	ret = 1;
 
 	err:
 	if (pk)
 		EVP_PKEY_free(pk);
-	else if (key)
+	if (key)
 		RSA_free(key);
 	return ret;
 	}

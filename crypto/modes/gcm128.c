@@ -898,6 +898,10 @@ int CRYPTO_gcm128_encrypt(GCM128_CONTEXT *ctx,
 # endif
 #endif
 
+	ctx->totlen += len;
+	if (ctx->totlen>(U64(1)<<36) || (sizeof(len)==8 && ctx->totlen<len))
+		return -1;
+
 #if 0
 	n = (unsigned int)mlen%16; /* alternative to ctx->mres */
 #endif
@@ -1199,6 +1203,10 @@ int CRYPTO_gcm128_encrypt_ctr32(GCM128_CONTEXT *ctx,
 				const u8 *inp,size_t len)	= ctx->ghash;
 # endif
 #endif
+
+	ctx->totlen += len;
+	if (ctx->totlen>(U64(1)<<36) || (sizeof(len)==8 && ctx->totlen<len))
+		return -1;
 
 	mlen += len;
 	if (mlen>((U64(1)<<36)-32) || (sizeof(len)==8 && mlen<len))
