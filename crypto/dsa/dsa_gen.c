@@ -159,7 +159,7 @@ int dsa_builtin_paramgen(DSA *ret, size_t bits, size_t qbits,
 	    }
 
 	if (FIPS_module_mode() &&
-	    (bits != 1024 || qbits != 160) &&
+	    (getenv("OPENSSL_ENFORCE_MODULUS_BITS") || bits != 1024 || qbits != 160) &&
 	    (bits != 2048 || qbits != 224) &&
 	    (bits != 2048 || qbits != 256) &&
 	    (bits != 3072 || qbits != 256))
