@@ -111,6 +111,12 @@ int FIPS_module_mode(void)
 	return ret;
 	}
 
+/* just a compat symbol - return NULL */
+const void *FIPS_rand_check(void)
+	{
+	return NULL;
+	}
+
 int FIPS_selftest_failed(void)
     {
     int ret = 0;
