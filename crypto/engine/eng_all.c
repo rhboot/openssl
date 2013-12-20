@@ -62,6 +62,11 @@
 #include <openssl/fips.h>
 #endif
 
+/* just backwards compatibility symbol - no-op */
+void ENGINE_load_aesni (void)
+{
+}
+
 void ENGINE_load_builtin_engines(void)
 	{
 	/* Some ENGINEs need this */
