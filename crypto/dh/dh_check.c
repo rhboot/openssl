@@ -134,7 +134,33 @@ int DH_check_pub_key(const DH *dh, const BIGNUM *pub_key, int *ret)
 	BN_sub_word(q,1);
 	if (BN_cmp(pub_key,q)>=0)
 		*ret|=DH_CHECK_PUBKEY_TOO_LARGE;
+#ifdef OPENSSL_FIPS
+	if (FIPS_mode() && dh->q != NULL)
+		{
+		BN_CTX *ctx = NULL;
 
+		ctx = BN_CTX_new();
+		if (ctx == NULL)
+			goto err;
+
+		if (BN_mod_exp_mont(q, pub_key, dh->q, dh->p, ctx, NULL) <= 0)
+			{
+			BN_CTX_free(ctx);
+			goto err;
+			}
+		if (!BN_is_one(q))
+			{
+			/* it would be more correct to add new return flag 
+			 * for this test, but we do not want to do it
+			 * so just error out
+			 */
+			BN_CTX_free(ctx);
+			goto err;
+			}
+		
+		BN_CTX_free(ctx);
+		}
+#endif
 	ok = 1;
 err:
 	if (q != NULL) BN_free(q);

@@ -125,7 +125,7 @@ static int dh_builtin_genparams(DH *ret, int prime_len, int generator, BN_GENCB 
 		return 0;
 		}
 
-	if (FIPS_mode() && (prime_len < OPENSSL_DH_FIPS_MIN_MODULUS_BITS))
+	if (FIPS_mode() && (prime_len < OPENSSL_DH_FIPS_MIN_MODULUS_BITS_GEN))
 		{
 		DHerr(DH_F_DH_BUILTIN_GENPARAMS, DH_R_KEY_SIZE_TOO_SMALL);
 		goto err;
