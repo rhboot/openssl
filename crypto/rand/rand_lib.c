@@ -181,6 +181,41 @@ int RAND_status(void)
 	return 0;
 	}
 
+int private_RAND_lock(int lock)
+	{
+	static int crypto_lock_rand;
+	static CRYPTO_THREADID locking_threadid;
+	int do_lock;
+
+	if (!lock)
+		{
+		crypto_lock_rand = 0;
+		CRYPTO_w_unlock(CRYPTO_LOCK_RAND);
+		return 0;
+		}
+
+	/* check if we already have the lock */
+	if (crypto_lock_rand)
+		{
+		CRYPTO_THREADID cur;
+		CRYPTO_THREADID_current(&cur);
+		CRYPTO_r_lock(CRYPTO_LOCK_RAND2);
+		do_lock = !!CRYPTO_THREADID_cmp(&locking_threadid, &cur);
+		CRYPTO_r_unlock(CRYPTO_LOCK_RAND2);
+		}
+        else
+		do_lock = 1;
+	if (do_lock)
+		{
+		CRYPTO_w_lock(CRYPTO_LOCK_RAND);
+		CRYPTO_w_lock(CRYPTO_LOCK_RAND2);
+		CRYPTO_THREADID_current(&locking_threadid);
+		CRYPTO_w_unlock(CRYPTO_LOCK_RAND2);
+		crypto_lock_rand = 1;
+		}
+	return do_lock;
+	}
+
 #ifdef OPENSSL_FIPS
 
 /* FIPS DRBG initialisation code. This sets up the DRBG for use by the
@@ -239,12 +274,16 @@ static int drbg_rand_add(DRBG_CTX *ctx, const void *in, int inlen,
 				double entropy)
 	{
 	RAND_SSLeay()->add(in, inlen, entropy);
+	if (FIPS_rand_status())
+		FIPS_drbg_reseed(ctx, NULL, 0);
 	return 1;
 	}
 
 static int drbg_rand_seed(DRBG_CTX *ctx, const void *in, int inlen)
 	{
 	RAND_SSLeay()->seed(in, inlen);
+	if (FIPS_rand_status())
+		FIPS_drbg_reseed(ctx, NULL, 0);
 	return 1;
 	}
 

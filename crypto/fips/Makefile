@@ -24,13 +24,15 @@ LIBSRC=fips_aes_selftest.c fips_des_selftest.c fips_hmac_selftest.c fips_rand_se
     fips_rsa_selftest.c fips_sha_selftest.c fips.c fips_dsa_selftest.c  fips_rand.c \
     fips_rsa_x931g.c fips_post.c fips_drbg_ctr.c fips_drbg_hash.c fips_drbg_hmac.c \
     fips_drbg_lib.c fips_drbg_rand.c fips_drbg_selftest.c fips_rand_lib.c \
-    fips_cmac_selftest.c fips_ecdh_selftest.c fips_ecdsa_selftest.c fips_enc.c fips_md.c
+    fips_cmac_selftest.c fips_ecdh_selftest.c fips_ecdsa_selftest.c fips_enc.c fips_md.c \
+    fips_dh_selftest.c
 
 LIBOBJ=fips_aes_selftest.o fips_des_selftest.o fips_hmac_selftest.o fips_rand_selftest.o \
     fips_rsa_selftest.o fips_sha_selftest.o fips.o fips_dsa_selftest.o  fips_rand.o \
     fips_rsa_x931g.o fips_post.o fips_drbg_ctr.o fips_drbg_hash.o fips_drbg_hmac.o \
     fips_drbg_lib.o fips_drbg_rand.o fips_drbg_selftest.o fips_rand_lib.o \
-    fips_cmac_selftest.o fips_ecdh_selftest.o fips_ecdsa_selftest.o fips_enc.o fips_md.o
+    fips_cmac_selftest.o fips_ecdh_selftest.o fips_ecdsa_selftest.o fips_enc.o fips_md.o \
+    fips_dh_selftest.o
 
 LIBCRYPTO=-L.. -lcrypto
 

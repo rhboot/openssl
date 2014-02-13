@@ -77,7 +77,8 @@ static int fips_drbg_bytes(unsigned char *out, int count)
 	int rv = 0;
 	unsigned char *adin = NULL;
 	size_t adinlen = 0;
-	CRYPTO_w_lock(CRYPTO_LOCK_RAND);
+	int locked;
+	locked = private_RAND_lock(1);
 	do 
 		{
 		size_t rcnt;
@@ -109,7 +110,8 @@ static int fips_drbg_bytes(unsigned char *out, int count)
 	while (count);
 	rv = 1;
 	err:
-	CRYPTO_w_unlock(CRYPTO_LOCK_RAND);
+	if (locked)
+		private_RAND_lock(0);
 	return rv;
 	}
 
@@ -124,35 +126,51 @@ static int fips_drbg_status(void)
 	{
 	DRBG_CTX *dctx = &ossl_dctx;
 	int rv;
-	CRYPTO_r_lock(CRYPTO_LOCK_RAND);
+	int locked;
+	locked = private_RAND_lock(1);
 	rv = dctx->status == DRBG_STATUS_READY ? 1 : 0;
-	CRYPTO_r_unlock(CRYPTO_LOCK_RAND);
+	if (locked)
+		private_RAND_lock(0);
 	return rv;
 	}
 
 static void fips_drbg_cleanup(void)
 	{
 	DRBG_CTX *dctx = &ossl_dctx;
-	CRYPTO_w_lock(CRYPTO_LOCK_RAND);
+	int locked;
+	locked = private_RAND_lock(1);
 	FIPS_drbg_uninstantiate(dctx);
-	CRYPTO_w_unlock(CRYPTO_LOCK_RAND);
+	if (locked)
+		private_RAND_lock(0);
 	}
 
 static int fips_drbg_seed(const void *seed, int seedlen)
 	{
 	DRBG_CTX *dctx = &ossl_dctx;
+	int locked;
+	int ret = 1;
+
+	locked = private_RAND_lock(1);
 	if (dctx->rand_seed_cb)
-		return dctx->rand_seed_cb(dctx, seed, seedlen);
-	return 1;
+		ret = dctx->rand_seed_cb(dctx, seed, seedlen);
+	if (locked)
+		private_RAND_lock(0);
+	return ret;
 	}
 
 static int fips_drbg_add(const void *seed, int seedlen,
 					double add_entropy)
 	{
 	DRBG_CTX *dctx = &ossl_dctx;
+	int locked;
+	int ret = 1;
+
+	locked = private_RAND_lock(1);
 	if (dctx->rand_add_cb)
-		return dctx->rand_add_cb(dctx, seed, seedlen, add_entropy);
-	return 1;
+		ret = dctx->rand_add_cb(dctx, seed, seedlen, add_entropy);
+	if (locked)
+		private_RAND_lock(0);
+	return ret;
 	}
 
 static const RAND_METHOD rand_drbg_meth =

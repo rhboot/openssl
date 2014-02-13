@@ -96,6 +96,7 @@ void FIPS_corrupt_dsa_keygen(void);
 int FIPS_selftest_dsa(void);
 int FIPS_selftest_ecdsa(void);
 int FIPS_selftest_ecdh(void);
+int FIPS_selftest_dh(void);
 void FIPS_corrupt_rng(void);
 void FIPS_rng_stick(void);
 void FIPS_x931_stick(int onoff);

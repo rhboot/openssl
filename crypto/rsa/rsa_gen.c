@@ -1,5 +1,6 @@
 /* crypto/rsa/rsa_gen.c */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
+ * Copyright (C) 2013 Red Hat, Inc.
  * All rights reserved.
  *
  * This package is an SSL implementation written
@@ -165,6 +166,236 @@ int RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 	return rsa_builtin_keygen(rsa, bits, e_value, cb);
 	}
 
+#ifdef OPENSSL_FIPS
+static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
+	{
+	BIGNUM *r0 = NULL, *r1 = NULL, *r2 = NULL, *r3 = NULL, *tmp;
+	BIGNUM local_r0, local_d, local_p;
+	BIGNUM *pr0, *d, *p;
+	BN_CTX *ctx = NULL;
+	int ok = -1;
+	int i;
+        int n = 0;
+	int test = 0;
+        int pbits = bits/2;
+
+	if(FIPS_selftest_failed())
+		{
+		FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN, FIPS_R_FIPS_SELFTEST_FAILED);
+	    	return 0;
+	    	}
+
+	if ((pbits & 0xFF) || (getenv("OPENSSL_ENFORCE_MODULUS_BITS") && bits != 2048 && bits != 3072))
+		{
+		FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN, FIPS_R_INVALID_KEY_LENGTH);
+		return 0;
+		}
+
+	ctx = BN_CTX_new();
+	if (ctx == NULL) goto err;
+	BN_CTX_start(ctx);
+	r0 = BN_CTX_get(ctx);
+	r1 = BN_CTX_get(ctx);
+	r2 = BN_CTX_get(ctx);
+	r3 = BN_CTX_get(ctx);
+
+	if (r3 == NULL) goto err;
+
+	/* We need the RSA components non-NULL */
+	if (!rsa->n && ((rsa->n=BN_new()) == NULL)) goto err;
+	if (!rsa->d && ((rsa->d=BN_new()) == NULL)) goto err;
+	if (!rsa->e && ((rsa->e=BN_new()) == NULL)) goto err;
+	if (!rsa->p && ((rsa->p=BN_new()) == NULL)) goto err;
+	if (!rsa->q && ((rsa->q=BN_new()) == NULL)) goto err;
+	if (!rsa->dmp1 && ((rsa->dmp1=BN_new()) == NULL)) goto err;
+	if (!rsa->dmq1 && ((rsa->dmq1=BN_new()) == NULL)) goto err;
+	if (!rsa->iqmp && ((rsa->iqmp=BN_new()) == NULL)) goto err;
+
+	if (!BN_set_word(r0, RSA_F4)) goto err;
+	if (BN_cmp(e_value, r0) < 0 || BN_num_bits(e_value) > 256)
+		{
+		ok = 0; /* we set our own err */
+		RSAerr(RSA_F_RSA_BUILTIN_KEYGEN,RSA_R_BAD_E_VALUE);
+		goto err;
+		}
+
+	/* prepare approximate minimum p and q */
+	if (!BN_set_word(r0, 0xB504F334)) goto err;
+	if (!BN_lshift(r0, r0, pbits - 32)) goto err;
+
+	/* prepare minimum p and q difference */
+	if (!BN_one(r3)) goto err;
+	if (!BN_lshift(r3, r3, pbits - 100)) goto err;
+
+	BN_copy(rsa->e, e_value);
+
+	if (!BN_is_zero(rsa->p) && !BN_is_zero(rsa->q))
+		test = 1;
+
+retry:
+	/* generate p and q */
+	for (i = 0; i < 5 * pbits; i++)
+		{
+        ploop:
+                if (!test)
+                        if (!BN_rand(rsa->p, pbits, 0, 1)) goto err;
+                if (BN_cmp(rsa->p, r0) < 0)
+                        {
+                        if (test) goto err;
+                        goto ploop;
+                        }
+
+		if (!BN_sub(r2, rsa->p, BN_value_one())) goto err;
+		if (!BN_gcd(r1, r2, rsa->e, ctx)) goto err;
+		if (BN_is_one(r1))
+                        {
+                        int r;
+                        r = BN_is_prime_fasttest_ex(rsa->p, pbits>1024?4:5, ctx, 0, cb);
+        		if (r == -1 || (test && r <= 0)) goto err;
+        		if (r > 0) break;
+                        } 
+
+		if(!BN_GENCB_call(cb, 2, n++))
+			goto err;
+		}
+
+	if(!BN_GENCB_call(cb, 3, 0))
+		goto err;
+
+        if(i >= 5*pbits)
+                /* prime not found */
+                goto err;
+
+	for (i = 0; i < 5 * pbits; i++)
+		{
+        qloop:
+                if (!test)
+                        if (!BN_rand(rsa->q, pbits, 0, 1)) goto err;
+                if (BN_cmp(rsa->q, r0) < 0)
+                        {
+                        if (test) goto err;
+                        goto qloop;
+                        }
+       		if (!BN_sub(r2, rsa->q, rsa->p)) goto err;
+                if (BN_ucmp(r2, r3) <= 0)
+                        {
+                        if (test) goto err;
+                        goto qloop;
+                        }
+
+		if (!BN_sub(r2, rsa->q, BN_value_one())) goto err;
+		if (!BN_gcd(r1, r2, rsa->e, ctx)) goto err;
+		if (BN_is_one(r1))
+                        {
+                        int r;
+                        r = BN_is_prime_fasttest_ex(rsa->q, pbits>1024?4:5, ctx, 0, cb);
+        		if (r == -1 || (test && r <= 0)) goto err;
+        		if (r > 0) break;
+                        } 
+
+		if(!BN_GENCB_call(cb, 2, n++))
+			goto err;
+		}
+
+	if(!BN_GENCB_call(cb, 3, 1))
+		goto err;
+
+        if(i >= 5*pbits)
+                /* prime not found */
+                goto err;
+
+        if (test)
+                {
+                /* do not try to calculate the remaining key values */
+                BN_clear(rsa->n);
+                ok = 1;
+                goto err;
+                }
+
+	if (BN_cmp(rsa->p,rsa->q) < 0)
+		{
+		tmp=rsa->p;
+		rsa->p=rsa->q;
+		rsa->q=tmp;
+		}
+
+	/* calculate n */
+	if (!BN_mul(rsa->n,rsa->p,rsa->q,ctx)) goto err;
+
+	/* calculate d */
+	if (!BN_sub(r1,rsa->p,BN_value_one())) goto err;	/* p-1 */
+	if (!BN_sub(r2,rsa->q,BN_value_one())) goto err;	/* q-1 */
+	
+	if (!BN_gcd(r0, r1, r2, ctx)) goto err;
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		  pr0 = &local_r0;
+		  BN_with_flags(pr0, r0, BN_FLG_CONSTTIME);
+		}
+	else
+	  pr0 = r0;
+	if (!BN_div(r0, NULL, r1, pr0, ctx)) goto err;
+	if (!BN_mul(r0,r0,r2,ctx)) goto err;	/* lcm(p-1, q-1) */
+
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		  pr0 = &local_r0;
+		  BN_with_flags(pr0, r0, BN_FLG_CONSTTIME);
+		}
+	else
+	  pr0 = r0;
+	if (!BN_mod_inverse(rsa->d,rsa->e,pr0,ctx)) goto err;	/* d */
+
+	if (BN_num_bits(rsa->d) < pbits) goto retry; /* d is too small */
+
+	/* set up d for correct BN_FLG_CONSTTIME flag */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		d = &local_d;
+		BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
+		}
+	else
+		d = rsa->d;
+
+	/* calculate d mod (p-1) */
+	if (!BN_mod(rsa->dmp1,d,r1,ctx)) goto err;
+
+	/* calculate d mod (q-1) */
+	if (!BN_mod(rsa->dmq1,d,r2,ctx)) goto err;
+
+	/* calculate inverse of q mod p */
+	if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME))
+		{
+		p = &local_p;
+		BN_with_flags(p, rsa->p, BN_FLG_CONSTTIME);
+		}
+	else
+		p = rsa->p;
+	if (!BN_mod_inverse(rsa->iqmp,rsa->q,p,ctx)) goto err;
+
+	if (fips_rsa_pairwise_fail)
+		BN_add_word(rsa->n, 1);
+
+	if(!fips_check_rsa(rsa))
+	    goto err;
+
+	ok=1;
+err:
+	if (ok == -1)
+		{
+		RSAerr(RSA_F_RSA_BUILTIN_KEYGEN,ERR_LIB_BN);
+		ok = 0;
+		}
+	if (ctx != NULL)
+		{
+		BN_CTX_end(ctx);
+		BN_CTX_free(ctx);
+		}
+
+	return ok;
+	}
+#endif
+
 static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 	{
 	BIGNUM *r0=NULL,*r1=NULL,*r2=NULL,*r3=NULL,*tmp;
@@ -176,17 +407,12 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 #ifdef OPENSSL_FIPS
 	if (FIPS_module_mode())
 		{
-		if(FIPS_selftest_failed())
-	    	{
-		    FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN,FIPS_R_FIPS_SELFTEST_FAILED);
-	    	return 0;
-	    	}
-
 		if (bits < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)
 		    {
 		    FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN,FIPS_R_KEY_TOO_SHORT);
 		    return 0;
 		    }
+		return FIPS_rsa_builtin_keygen(rsa, bits, e_value, cb);
 		}
 #endif
 
@@ -300,17 +526,6 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 	else
 		p = rsa->p;
 	if (!BN_mod_inverse(rsa->iqmp,rsa->q,p,ctx)) goto err;
-
-#ifdef OPENSSL_FIPS
-	if (FIPS_module_mode())
-		{
-		if (fips_rsa_pairwise_fail)
-			BN_add_word(rsa->n, 1);
-
-		if(!fips_check_rsa(rsa))
-		    goto err;
-		}
-#endif
 
 	ok=1;
 err:
