@@ -644,18 +644,18 @@ bad:
 		if (inrand)
 			app_RAND_load_files(inrand);
 
+		if (newkey <= 0)
+			{
+			if (!NCONF_get_number(req_conf,SECTION,BITS, &newkey))
+				newkey=DEFAULT_KEY_LENGTH;
+			}
+
 		if (keyalg)
 			{
 			genctx = set_keygen_ctx(bio_err, keyalg, &pkey_type, &newkey,
 							&keyalgstr, gen_eng);
 			if (!genctx)
 				goto end;
-			}
-	
-		if (newkey <= 0)
-			{
-			if (!NCONF_get_number(req_conf,SECTION,BITS, &newkey))
-				newkey=DEFAULT_KEY_LENGTH;
 			}
 
 		if (newkey < MIN_KEY_LENGTH && (pkey_type == EVP_PKEY_RSA || pkey_type == EVP_PKEY_DSA))
@@ -1649,6 +1649,8 @@ static EVP_PKEY_CTX *set_keygen_ctx(BIO *err, const char *gstr, int *pkey_type,
 				keylen = atol(p + 1);
 				*pkeylen = keylen;
 				}
+			else
+				keylen = *pkeylen;
 			}
 		else if (p)
 			paramfile = p + 1;
