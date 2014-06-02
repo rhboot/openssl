@@ -510,6 +510,7 @@ int ssl3_connect(SSL *s)
 				s->method->ssl3_enc->client_finished_label,
 				s->method->ssl3_enc->client_finished_label_len);
 			if (ret <= 0) goto end;
+			s->s3->flags |= SSL3_FLAGS_CCS_OK;
 			s->state=SSL3_ST_CW_FLUSH;
 
 			/* clear flags */
@@ -559,6 +560,7 @@ int ssl3_connect(SSL *s)
 		case SSL3_ST_CR_FINISHED_A:
 		case SSL3_ST_CR_FINISHED_B:
 
+			s->s3->flags |= SSL3_FLAGS_CCS_OK;
 			ret=ssl3_get_finished(s,SSL3_ST_CR_FINISHED_A,
 				SSL3_ST_CR_FINISHED_B);
 			if (ret <= 0) goto end;
@@ -901,6 +903,7 @@ int ssl3_get_server_hello(SSL *s)
 			{
 			s->session->cipher = pref_cipher ?
 				pref_cipher : ssl_get_cipher_by_char(s, p+j);
+			s->s3->flags |= SSL3_FLAGS_CCS_OK;
 			}
 		}
 #endif /* OPENSSL_NO_TLSEXT */
@@ -916,6 +919,7 @@ int ssl3_get_server_hello(SSL *s)
 		SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT);
 		goto f_err;
 		}
+	    s->s3->flags |= SSL3_FLAGS_CCS_OK;
 	    s->hit=1;
 	    }
 	else	/* a miss or crap from the other end */
