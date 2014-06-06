@@ -156,6 +156,7 @@ int MS_CALLBACK verify_callback(int ok, X509_STORE_CTX *ctx);
 int set_cert_stuff(SSL_CTX *ctx, char *cert_file, char *key_file);
 int set_cert_key_stuff(SSL_CTX *ctx, X509 *cert, EVP_PKEY *key);
 #endif
+int ssl_print_tmp_key(BIO *out, SSL *s);
 int init_client(int *sock, char *server, char *port, int type);
 int should_retry(int i);
 int extract_host_port(char *str,char **host_ptr,char **port_ptr);
