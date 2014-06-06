@@ -338,6 +338,38 @@ void MS_CALLBACK apps_ssl_info_callback(const SSL *s, int where, int ret)
 		}
 	}
 
+int ssl_print_tmp_key(BIO *out, SSL *s)
+	{
+	EVP_PKEY *key;
+	if (!SSL_get_server_tmp_key(s, &key))
+		return 1;
+	BIO_puts(out, "Server Temp Key: ");
+	switch (EVP_PKEY_id(key))
+		{
+	case EVP_PKEY_RSA:
+		BIO_printf(out, "RSA, %d bits\n", EVP_PKEY_bits(key));
+		break;
+
+	case EVP_PKEY_DH:
+		BIO_printf(out, "DH, %d bits\n", EVP_PKEY_bits(key));
+		break;
+
+	case EVP_PKEY_EC:
+			{
+			EC_KEY *ec = EVP_PKEY_get1_EC_KEY(key);
+			int nid;
+			const char *cname;
+			nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(ec));
+			EC_KEY_free(ec);
+			cname = OBJ_nid2sn(nid);
+			BIO_printf(out, "ECDH, %s, %d bits\n",
+						cname, EVP_PKEY_bits(key));
+			}
+		}
+	EVP_PKEY_free(key);
+	return 1;
+	}
+		
 
 void MS_CALLBACK msg_cb(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg)
 	{
