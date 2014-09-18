@@ -202,6 +202,13 @@ static int nid_list[] =
 		NID_secp521r1  /* secp521r1 (25) */	
 	};
 
+static const unsigned char eccurves_default[] =
+	{
+		0,23, /* secp256r1 (23) */ 
+		0,24, /* secp384r1 (24) */
+		0,25, /* secp521r1 (25) */	
+	};
+
 static int pref_list[] =
 	{
 		NID_secp521r1, /* secp521r1 (25) */	
@@ -277,6 +284,69 @@ int tls1_ec_nid2curve_id(int nid)
 		return 0;
 		}
 	}
+/* Get curves list, if "sess" is set return client curves otherwise
+ * preferred list
+ */
+static void tls1_get_curvelist(SSL *s, int sess,
+					const unsigned char **pcurves,
+					size_t *pcurveslen)
+	{
+	if (sess)
+		{
+		*pcurves = s->session->tlsext_ellipticcurvelist;
+		*pcurveslen = s->session->tlsext_ellipticcurvelist_length;
+		}
+	else
+		{
+		*pcurves = s->tlsext_ellipticcurvelist;
+		*pcurveslen = s->tlsext_ellipticcurvelist_length;
+		}
+	if (!*pcurves)
+		{
+		*pcurves = eccurves_default;
+		*pcurveslen = sizeof(eccurves_default);
+		}
+	}
+/* Return nth shared curve. If nmatch == -1 return number of
+ * matches.
+ */
+
+int tls1_shared_curve(SSL *s, int nmatch)
+	{
+	const unsigned char *pref, *supp;
+	size_t preflen, supplen, i, j;
+	int k;
+	/* Can't do anything on client side */
+	if (s->server == 0)
+		return -1;
+	tls1_get_curvelist(s, !!(s->options & SSL_OP_CIPHER_SERVER_PREFERENCE),
+				&supp, &supplen);
+	tls1_get_curvelist(s, !(s->options & SSL_OP_CIPHER_SERVER_PREFERENCE),
+				&pref, &preflen);
+	preflen /= 2;
+	supplen /= 2;
+	k = 0;
+	for (i = 0; i < preflen; i++, pref+=2)
+		{
+		const unsigned char *tsupp = supp;
+		for (j = 0; j < supplen; j++, tsupp+=2)
+			{
+			if (pref[0] == tsupp[0] && pref[1] == tsupp[1])
+				{
+				if (nmatch == k)
+					{
+					int id = (pref[0] << 8) | pref[1];
+					return tls1_ec_curve_id2nid(id);
+					}
+				k++;
+				}
+			}
+		}
+	if (nmatch == -1)
+		return k;
+	return 0;
+	}
+
 #endif /* OPENSSL_NO_EC */
 
 #ifndef OPENSSL_NO_TLSEXT

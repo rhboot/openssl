@@ -511,6 +511,8 @@ typedef struct cert_st
 	EC_KEY *ecdh_tmp;
 	/* Callback for generating ephemeral ECDH keys */
 	EC_KEY *(*ecdh_tmp_cb)(SSL *ssl,int is_export,int keysize);
+	/* Select ECDH parameters automatically */
+	int ecdh_tmp_auto;
 #endif
 
 	CERT_PKEY pkeys[SSL_PKEY_NUM];
@@ -1091,6 +1093,7 @@ SSL_COMP *ssl3_comp_find(STACK_OF(SSL_COMP) *sk, int n);
 #ifndef OPENSSL_NO_EC
 int tls1_ec_curve_id2nid(int curve_id);
 int tls1_ec_nid2curve_id(int nid);
+int tls1_shared_curve(SSL *s, int nmatch);
 #endif /* OPENSSL_NO_EC */
 
 #ifndef OPENSSL_NO_TLSEXT

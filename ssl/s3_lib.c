@@ -3350,6 +3350,12 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 #endif
 
 #endif /* !OPENSSL_NO_TLSEXT */
+
+#ifndef OPENSSL_NO_EC
+	case SSL_CTRL_SET_ECDH_AUTO:
+		s->cert->ecdh_tmp_auto = larg;
+		return 1;
+#endif
 	case SSL_CTRL_GET_SERVER_TMP_KEY:
 		if (s->server || !s->session || !s->session->sess_cert)
 			return 0;
@@ -3650,6 +3656,12 @@ long ssl3_ctx_ctrl(SSL_CTX *ctx, int cmd, long larg, void *parg)
 	case SSL_CTRL_SET_TLS_EXT_SRP_STRENGTH:
 		ctx->srp_ctx.strength=larg;
 		break;
+#endif
+
+#ifndef OPENSSL_NO_EC
+	case SSL_CTRL_SET_ECDH_AUTO:
+		ctx->cert->ecdh_tmp_auto = larg;
+		return 1;
 #endif
 #endif /* !OPENSSL_NO_TLSEXT */
 
@@ -4001,6 +4013,14 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 			ok = ok && ec_ok;
 			}
 		if (
+			/* if we are considering an ECC cipher suite that uses an ephemeral EC key */
+			(alg_k & SSL_kEECDH)
+			&& (s->cert->ecdh_tmp_auto)
+		)
+			{
+			ok = ok && tls1_shared_curve(s, 0);
+			}
+		else if (
 			/* if we are considering an ECC cipher suite that uses an ephemeral EC key */
 			(alg_k & SSL_kEECDH)
 			/* and we have an ephemeral EC key */
