@@ -1563,6 +1563,7 @@ DECLARE_PEM_rw(SSL_SESSION, SSL_SESSION)
 #define SSL_CTRL_GET_EXTRA_CHAIN_CERTS		82
 #define SSL_CTRL_CLEAR_EXTRA_CHAIN_CERTS	83
 
+#define SSL_CTRL_SET_ECDH_AUTO			94
 #define SSL_CTRL_GET_SERVER_TMP_KEY		109
 
 #define DTLSv1_get_timeout(ssl, arg) \
@@ -1605,6 +1606,11 @@ DECLARE_PEM_rw(SSL_SESSION, SSL_SESSION)
 	SSL_CTX_ctrl(ctx,SSL_CTRL_GET_EXTRA_CHAIN_CERTS,0,px509)
 #define SSL_CTX_clear_extra_chain_certs(ctx) \
 	SSL_CTX_ctrl(ctx,SSL_CTRL_CLEAR_EXTRA_CHAIN_CERTS,0,NULL)
+
+#define SSL_CTX_set_ecdh_auto(ctx, onoff) \
+	SSL_CTX_ctrl(ctx,SSL_CTRL_SET_ECDH_AUTO,onoff,NULL)
+#define SSL_set_ecdh_auto(s, onoff) \
+	SSL_ctrl(s,SSL_CTRL_SET_ECDH_AUTO,onoff,NULL)
 
 #define SSL_get_server_tmp_key(s, pk) \
 	SSL_ctrl(s,SSL_CTRL_GET_SERVER_TMP_KEY,0,pk)
