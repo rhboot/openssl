@@ -141,7 +141,7 @@ static void test1(const EVP_CIPHER *c,const unsigned char *key,int kn,
     {
     EVP_CIPHER_CTX ctx;
     unsigned char out[4096];
-    int outl,outl2;
+    int outl,outl2,mode;
 
     printf("Testing cipher %s%s\n",EVP_CIPHER_name(c),
 	   (encdec == 1 ? "(encrypt)" : (encdec == 0 ? "(decrypt)" : "(encrypt/decrypt)")));
@@ -151,6 +151,7 @@ static void test1(const EVP_CIPHER *c,const unsigned char *key,int kn,
     hexdump(stdout,"Plaintext",plaintext,pn);
     hexdump(stdout,"Ciphertext",ciphertext,cn);
     
+    mode = EVP_CIPHER_mode(c); 
     if(kn != c->key_len)
 	{
 	fprintf(stderr,"Key length doesn't match, got %d expected %lu\n",kn,
@@ -158,9 +159,19 @@ static void test1(const EVP_CIPHER *c,const unsigned char *key,int kn,
 	test1_exit(5);
 	}
     EVP_CIPHER_CTX_init(&ctx);
+    EVP_CIPHER_CTX_set_flags(&ctx,EVP_CIPHER_CTX_FLAG_WRAP_ALLOW);
     if (encdec != 0)
         {
-	if(!EVP_EncryptInit_ex(&ctx,c,NULL,key,iv))
+	if (mode == EVP_CIPH_WRAP_MODE)
+	    {
+	    if(!EVP_EncryptInit_ex(&ctx,c,NULL,key,in ? iv : NULL))
+	        {
+		fprintf(stderr,"EncryptInit failed\n");
+		ERR_print_errors_fp(stderr);
+		test1_exit(10);
+		}
+	    }
+	else if(!EVP_EncryptInit_ex(&ctx,c,NULL,key,iv))
 	    {
 	    fprintf(stderr,"EncryptInit failed\n");
 	    ERR_print_errors_fp(stderr);
@@ -199,7 +210,16 @@ static void test1(const EVP_CIPHER *c,const unsigned char *key,int kn,
 
     if (encdec <= 0)
         {
-	if(!EVP_DecryptInit_ex(&ctx,c,NULL,key,iv))
+	if (mode == EVP_CIPH_WRAP_MODE)
+	    {
+	    if(!EVP_DecryptInit_ex(&ctx,c,NULL,key,in ? iv : NULL))
+	        {
+		fprintf(stderr,"EncryptInit failed\n");
+		ERR_print_errors_fp(stderr);
+		test1_exit(10);
+		}
+	    }
+	else if(!EVP_DecryptInit_ex(&ctx,c,NULL,key,iv))
 	    {
 	    fprintf(stderr,"DecryptInit failed\n");
 	    ERR_print_errors_fp(stderr);
@@ -339,7 +359,7 @@ int main(int argc,char **argv)
 	perror(szTestFile);
 	EXIT(2);
 	}
-
+    ERR_load_crypto_strings();
     /* Load up the software EVP_CIPHER and EVP_MD definitions */
     OpenSSL_add_all_ciphers();
     OpenSSL_add_all_digests();
