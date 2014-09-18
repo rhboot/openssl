@@ -198,10 +198,15 @@ static int enc_read(BIO *b, char *out, int outl)
 			}
 		else
 			{
-			EVP_CipherUpdate(&(ctx->cipher),
+			if (!EVP_CipherUpdate(&(ctx->cipher),
 				(unsigned char *)ctx->buf,&ctx->buf_len,
-				(unsigned char *)&(ctx->buf[BUF_OFFSET]),i);
-			ctx->cont=1;
+				(unsigned char *)&(ctx->buf[BUF_OFFSET]),i))
+				{
+				ctx->ok = 0;
+				ctx->cont = 0;
+				}
+			else
+				ctx->cont=1;
 			/* Note: it is possible for EVP_CipherUpdate to
 			 * decrypt zero bytes because this is or looks like
 			 * the final block: if this happens we should retry
@@ -257,9 +262,14 @@ static int enc_write(BIO *b, const char *in, int inl)
 	while (inl > 0)
 		{
 		n=(inl > ENC_BLOCK_SIZE)?ENC_BLOCK_SIZE:inl;
-		EVP_CipherUpdate(&(ctx->cipher),
+		if (!EVP_CipherUpdate(&(ctx->cipher),
 			(unsigned char *)ctx->buf,&ctx->buf_len,
-			(unsigned char *)in,n);
+			(unsigned char *)in,n))
+			{
+			BIO_copy_next_retry(b);
+			ctx->ok = 0;
+			return ret - inl;
+			}
 		inl-=n;
 		in+=n;
 
