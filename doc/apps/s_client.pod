@@ -41,6 +41,7 @@ B<openssl> B<s_client>
 [B<-no_tls1>]
 [B<-no_tls1_1>]
 [B<-no_tls1_2>]
+[B<-fallback_scsv>]
 [B<-bugs>]
 [B<-cipher cipherlist>]
 [B<-starttls protocol>]
@@ -199,6 +200,10 @@ Unfortunately there are a lot of ancient and broken servers in use which
 cannot handle this technique and will fail to connect. Some servers only
 work if TLS is turned off with the B<-no_tls> option others will only
 support SSL v2 and may need the B<-ssl2> option.
+
+=item B<-fallback_scsv>
+
+Send TLS_FALLBACK_SCSV in the ClientHello.
 
 =item B<-bugs>
 
