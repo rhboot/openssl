@@ -217,6 +217,7 @@ static void sc_usage(void)
 	BIO_printf(bio_err," -ssl3         - just use SSLv3\n");
 	BIO_printf(bio_err," -tls1         - just use TLSv1\n");
 	BIO_printf(bio_err," -dtls1        - just use DTLSv1\n");    
+	BIO_printf(bio_err," -fallback_scsv - send TLS_FALLBACK_SCSV\n");
 	BIO_printf(bio_err," -mtu          - set the MTU\n");
 	BIO_printf(bio_err," -no_tls1/-no_ssl3/-no_ssl2 - turn off that protocol\n");
 	BIO_printf(bio_err," -bugs         - Switch on all SSL implementation bug workarounds\n");
@@ -289,6 +290,7 @@ int MAIN(int argc, char **argv)
 
 	struct sockaddr peer;
 	int peerlen = sizeof(peer);
+	int fallback_scsv = 0;
 	int enable_timeouts = 0 ;
 	long mtu = 0;
 
@@ -422,6 +424,10 @@ int MAIN(int argc, char **argv)
 			mtu = atol(*(++argv));
 			}
 #endif
+		else if (strcmp(*argv,"-fallback_scsv") == 0)
+			{
+			fallback_scsv = 1;
+			}
 		else if (strcmp(*argv,"-bugs") == 0)
 			bugs=1;
 		else if	(strcmp(*argv,"-keyform") == 0)
@@ -632,6 +638,9 @@ bad:
 	X509_STORE_set_flags(store, vflags);
 
 	con=SSL_new(ctx);
+	if (fallback_scsv)
+		SSL_set_mode(con, SSL_MODE_SEND_FALLBACK_SCSV);
+
 #ifndef OPENSSL_NO_KRB5
 	if (con  &&  (con->kssl_ctx = kssl_ctx_new()) != NULL)
                 {

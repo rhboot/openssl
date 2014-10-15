@@ -684,7 +684,7 @@ SSL_METHOD *func_name(void)  \
 		dtls1_read_bytes, \
 		dtls1_write_app_data_bytes, \
 		dtls1_dispatch_alert, \
-		ssl3_ctrl, \
+		dtls1_ctrl, \
 		ssl3_ctx_ctrl, \
 		ssl3_get_cipher_by_char, \
 		ssl3_put_cipher_by_char, \

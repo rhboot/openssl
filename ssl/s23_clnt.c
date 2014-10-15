@@ -553,6 +553,9 @@ static int ssl23_get_server_hello(SSL *s)
 			SSLerr(SSL_F_SSL23_GET_SERVER_HELLO,SSL_R_UNSUPPORTED_PROTOCOL);
 			goto err;
 			}
+
+		/* ensure that TLS_MAX_VERSION is up-to-date */
+		OPENSSL_assert(s->version <= TLS_MAX_VERSION);
 			
 		s->handshake_func=s->method->ssl_connect;
 		}
