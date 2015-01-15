@@ -438,6 +438,10 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 	if(!rsa->dmq1 && ((rsa->dmq1=BN_new()) == NULL)) goto err;
 	if(!rsa->iqmp && ((rsa->iqmp=BN_new()) == NULL)) goto err;
 
+	/* prepare minimum p and q difference */
+	if (!BN_one(r3)) goto err;
+	if (bitsp > 100 && !BN_lshift(r3, r3, bitsp - 100)) goto err;
+
 	BN_copy(rsa->e, e_value);
 
 	/* generate p and q */
@@ -463,7 +467,9 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 			{
 			if(!BN_generate_prime_ex(rsa->q, bitsq, 0, NULL, NULL, cb))
 				goto err;
-			} while((BN_cmp(rsa->p, rsa->q) == 0) && (++degenerate < 3));
+	       		if (!BN_sub(r2, rsa->q, rsa->p))
+				goto err;
+			} while((BN_ucmp(r2, r3) <= 0) && (++degenerate < 3));
 		if(degenerate == 3)
 			{
 			ok = 0; /* we set our own err */
