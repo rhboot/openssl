@@ -18,6 +18,8 @@ B<openssl> B<s_client>
 [B<-CApath directory>]
 [B<-CAfile filename>]
 [B<-trusted_first>]
+[B<-krb5svc service>]
+[B<-keytab filename>]
 [B<-reconnect>]
 [B<-pause>]
 [B<-showcerts>]
@@ -114,6 +116,17 @@ and to use when attempting to build the client certificate chain.
 
 Set various certificate chain valiadition option. See the
 L<B<verify>|verify(1)> manual page for details.
+
+=item B<-krb5svc service>
+
+the Kerberos service name to use (default "host"). This means s_server
+will expect a ticket for the principal I<service>/hostname@REALM, and will
+need keys for that principal in its keytab.
+
+=item B<-keytab filename>
+
+the Kerberos "keytab" (key table) file, containing keys for the s_server
+service principal (Kerberos identity; see -krb5svc).
 
 =item B<-reconnect>
 
