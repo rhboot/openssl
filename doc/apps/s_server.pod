@@ -34,6 +34,8 @@ B<openssl> B<s_server>
 [B<-CApath directory>]
 [B<-CAfile filename>]
 [B<-trusted_first>]
+[B<-krb5svc service>]
+[B<-keytab filename>]
 [B<-nocert>]
 [B<-cipher cipherlist>]
 [B<-quiet>]
@@ -180,6 +182,17 @@ a certificate is requested.
 Use certificates in CA file or CA directory before other certificates 
 when building the trust chain to verify client certificates.
 This is mainly useful in environments with Bridge CA or Cross-Certified CAs.
+
+=item B<-krb5svc service>
+
+the Kerberos service name to use (default "host"). This means s_server
+will expect a ticket for the principal I<service>/hostname@REALM, and will
+need keys for that principal in its keytab.
+
+=item B<-keytab filename>
+
+the Kerberos "keytab" (key table) file, containing keys for the s_server
+service principal (Kerberos identity; see -krb5svc).
 
 =item B<-state>
 
