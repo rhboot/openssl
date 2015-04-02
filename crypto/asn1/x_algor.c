@@ -71,3 +71,14 @@ IMPLEMENT_ASN1_DUP_FUNCTION(X509_ALGOR)
 
 IMPLEMENT_STACK_OF(X509_ALGOR)
 IMPLEMENT_ASN1_SET_OF(X509_ALGOR)
+
+int X509_ALGOR_cmp(const X509_ALGOR *a, const X509_ALGOR *b)
+	{
+	int rv;
+	rv = OBJ_cmp(a->algorithm, b->algorithm);
+	if (rv)
+		return rv;
+	if (!a->parameter && !b->parameter)
+		return 0;
+	return ASN1_TYPE_cmp(a->parameter, b->parameter);
+	}
