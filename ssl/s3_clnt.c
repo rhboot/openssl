@@ -2065,24 +2065,13 @@ int ssl3_get_new_session_ticket(SSL *s)
 	n=s->method->ssl_get_message(s,
 		SSL3_ST_CR_SESSION_TICKET_A,
 		SSL3_ST_CR_SESSION_TICKET_B,
-		-1,
+		SSL3_MT_NEWSESSION_TICKET,
 		16384,
 		&ok);
 
 	if (!ok)
 		return((int)n);
 
-	if (s->s3->tmp.message_type == SSL3_MT_FINISHED)
-		{
-		s->s3->tmp.reuse_message=1;
-		return(1);
-		}
-	if (s->s3->tmp.message_type != SSL3_MT_NEWSESSION_TICKET)
-		{
-		al=SSL_AD_UNEXPECTED_MESSAGE;
-		SSLerr(SSL_F_SSL3_GET_NEW_SESSION_TICKET,SSL_R_BAD_MESSAGE_TYPE);
-		goto f_err;
-		}
 	if (n < 6)
 		{
 		/* need at least ticket_lifetime_hint + ticket length */
@@ -2092,6 +2081,44 @@ int ssl3_get_new_session_ticket(SSL *s)
 		}
 
 	p=d=(unsigned char *)s->init_msg;
+
+	if (s->session->session_id_length > 0)
+		{
+		int i = s->session_ctx->session_cache_mode;
+		SSL_SESSION *new_sess;
+		/*
+		 * We reused an existing session, so we need to replace it with a new
+		 * one
+		 */
+		if (i & SSL_SESS_CACHE_CLIENT)
+			{
+			/*
+			 * Remove the old session from the cache
+			 */
+			if (i & SSL_SESS_CACHE_NO_INTERNAL_STORE)
+				{
+				if (s->session_ctx->remove_session_cb != NULL)
+					s->session_ctx->remove_session_cb(s->session_ctx,
+						s->session);
+				}
+			else
+				{
+				/* We carry on if this fails */
+				SSL_CTX_remove_session(s->session_ctx, s->session);
+				}
+			}
+
+		if ((new_sess = ssl_session_dup(s->session, 0)) == 0)
+			{
+			al = SSL_AD_INTERNAL_ERROR;
+			SSLerr(SSL_F_SSL3_GET_NEW_SESSION_TICKET, ERR_R_MALLOC_FAILURE);
+			goto f_err;
+			}
+
+		SSL_SESSION_free(s->session);
+		s->session = new_sess;
+		}
+
 	n2l(p, s->session->tlsext_tick_lifetime_hint);
 	n2s(p, ticklen);
 	/* ticket_lifetime_hint + ticket_length + ticket */
