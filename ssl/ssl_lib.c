@@ -1548,6 +1548,12 @@ SSL_CTX *SSL_CTX_new(SSL_METHOD *meth)
 	 */
 	ret->options |= SSL_OP_LEGACY_SERVER_CONNECT;
 
+	if (__secure_getenv("OPENSSL_ENABLE_SSL2") == NULL)
+		{
+		/* Disable SSLv2 by default (affects the SSLv23_method() only) */
+		ret->options |= SSL_OP_NO_SSLv2;
+		}
+
 	return(ret);
 err:
 	SSLerr(SSL_F_SSL_CTX_NEW,ERR_R_MALLOC_FAILURE);
