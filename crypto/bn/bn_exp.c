@@ -111,6 +111,7 @@
 
 
 #include "cryptlib.h"
+#include "constant_time_locl.h"
 #include "bn_lcl.h"
 
 #include <stdlib.h>
@@ -534,30 +535,74 @@ err:
  * as cache lines are concerned.  The following functions are used to transfer a BIGNUM
  * from/to that table. */
 
-static int MOD_EXP_CTIME_COPY_TO_PREBUF(const BIGNUM *b, int top, unsigned char *buf, int idx, int width)
+static int MOD_EXP_CTIME_COPY_TO_PREBUF(const BIGNUM *b, int top, unsigned char *buf, int idx, int window)
 	{
-	size_t i, j;
+	int i, j;
+	int width = 1 << window;
+	BN_ULONG *table = (BN_ULONG *)buf;
 
 	if (top > b->top)
 		top = b->top; /* this works because 'buf' is explicitly zeroed */
-	for (i = 0, j=idx; i < top * sizeof b->d[0]; i++, j+=width)
+	for (i = 0, j=idx; i < top; i++, j+=width)
 		{
-		buf[j] = ((unsigned char*)b->d)[i];
+		table[j] = b->d[i];
 		}
 
 	return 1;
 	}
 
-static int MOD_EXP_CTIME_COPY_FROM_PREBUF(BIGNUM *b, int top, unsigned char *buf, int idx, int width)
+static int MOD_EXP_CTIME_COPY_FROM_PREBUF(BIGNUM *b, int top, unsigned char *buf, int idx, int window)
 	{
-	size_t i, j;
+	int i, j;
+	int width = 1 << window;
+	volatile BN_ULONG *table = (volatile BN_ULONG *)buf;
 
 	if (bn_wexpand(b, top) == NULL)
 		return 0;
 
-	for (i=0, j=idx; i < top * sizeof b->d[0]; i++, j+=width)
+	if (window <= 3)
 		{
-		((unsigned char*)b->d)[i] = buf[j];
+		for (i = 0; i < top; i++, table += width)
+			{
+			BN_ULONG acc = 0;
+
+			for (j = 0; j < width; j++)
+				{
+				acc |= table[j] &
+					((BN_ULONG)0 - (constant_time_eq_int(j,idx)&1));
+				}
+
+			b->d[i] = acc;
+			}
+		}
+	else
+		{
+		int xstride = 1 << (window - 2);
+		BN_ULONG y0, y1, y2, y3;
+
+		i = idx >> (window - 2);        /* equivalent of idx / xstride */
+		idx &= xstride - 1;             /* equivalent of idx % xstride */
+
+		y0 = (BN_ULONG)0 - (constant_time_eq_int(i,0)&1);
+		y1 = (BN_ULONG)0 - (constant_time_eq_int(i,1)&1);
+		y2 = (BN_ULONG)0 - (constant_time_eq_int(i,2)&1);
+		y3 = (BN_ULONG)0 - (constant_time_eq_int(i,3)&1);
+
+		for (i = 0; i < top; i++, table += width)
+			{
+			BN_ULONG acc = 0;
+
+			for (j = 0; j < xstride; j++)
+				{
+				acc |= ( (table[j + 0 * xstride] & y0) |
+					(table[j + 1 * xstride] & y1) |
+					(table[j + 2 * xstride] & y2) |
+					(table[j + 3 * xstride] & y3) )
+					& ((BN_ULONG)0 - (constant_time_eq_int(j,idx)&1));
+				}
+
+			b->d[i] = acc;
+			}
 		}
 
 	b->top = top;
@@ -592,17 +637,27 @@ int BN_mod_exp_mont_consttime(BIGNUM *rr, const BIGNUM *a, const BIGNUM *p,
 	bn_check_top(p);
 	bn_check_top(m);
 
-	top = m->top;
-
-	if (!(m->d[0] & 1))
+	if (!BN_is_odd(m))
 		{
 		BNerr(BN_F_BN_MOD_EXP_MONT_CONSTTIME,BN_R_CALLED_WITH_EVEN_MODULUS);
 		return(0);
 		}
+
+	top = m->top;
+
 	bits=BN_num_bits(p);
 	if (bits == 0)
 		{
-		ret = BN_one(rr);
+		/* x**0 mod 1 is still zero. */
+		if (BN_is_one(m))
+			{
+			ret = 1;
+			BN_zero(rr);
+			}
+		else
+			{
+			ret = BN_one(rr);
+        		}
 		return ret;
 		}
 
@@ -680,7 +735,7 @@ int BN_mod_exp_mont_consttime(BIGNUM *rr, const BIGNUM *a, const BIGNUM *p,
 
     /* Dedicated window==4 case improves 512-bit RSA sign by ~15%, but as
      * 512-bit RSA is hardly relevant, we omit it to spare size... */ 
-    if (window==5)
+    if (window==5 && top>1)
 	{
 	void bn_mul_mont_gather5(BN_ULONG *rp,const BN_ULONG *ap,
 			const void *table,const BN_ULONG *np,
@@ -767,8 +822,8 @@ int BN_mod_exp_mont_consttime(BIGNUM *rr, const BIGNUM *a, const BIGNUM *p,
     else
 #endif
 	{
-	if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&tmp, top, powerbuf, 0, numPowers)) goto err;
-	if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&am,  top, powerbuf, 1, numPowers)) goto err;
+	if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&tmp, top, powerbuf, 0, window)) goto err;
+	if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&am,  top, powerbuf, 1, window)) goto err;
 
 	/* If the window size is greater than 1, then calculate
 	 * val[i=2..2^winsize-1]. Powers are computed as a*a^(i-1)
@@ -778,20 +833,20 @@ int BN_mod_exp_mont_consttime(BIGNUM *rr, const BIGNUM *a, const BIGNUM *p,
 	if (window > 1)
 		{
 		if (!BN_mod_mul_montgomery(&tmp,&am,&am,mont,ctx))	goto err;
-		if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&tmp, top, powerbuf, 2, numPowers)) goto err;
+		if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&tmp, top, powerbuf, 2, window)) goto err;
 		for (i=3; i<numPowers; i++)
 			{
 			/* Calculate a^i = a^(i-1) * a */
 			if (!BN_mod_mul_montgomery(&tmp,&am,&tmp,mont,ctx))
 				goto err;
-			if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&tmp, top, powerbuf, i, numPowers)) goto err;
+			if (!MOD_EXP_CTIME_COPY_TO_PREBUF(&tmp, top, powerbuf, i, window)) goto err;
 			}
 		}
 
 	bits--;
 	for (wvalue=0, i=bits%window; i>=0; i--,bits--)
 		wvalue = (wvalue<<1)+BN_is_bit_set(p,bits);
-	if (!MOD_EXP_CTIME_COPY_FROM_PREBUF(&tmp,top,powerbuf,wvalue,numPowers)) goto err;
+	if (!MOD_EXP_CTIME_COPY_FROM_PREBUF(&tmp,top,powerbuf,wvalue,window)) goto err;
  
 	/* Scan the exponent one window at a time starting from the most
 	 * significant bits.
@@ -808,7 +863,7 @@ int BN_mod_exp_mont_consttime(BIGNUM *rr, const BIGNUM *a, const BIGNUM *p,
   			}
  		
 		/* Fetch the appropriate pre-computed value from the pre-buf */
-		if (!MOD_EXP_CTIME_COPY_FROM_PREBUF(&am, top, powerbuf, wvalue, numPowers)) goto err;
+		if (!MOD_EXP_CTIME_COPY_FROM_PREBUF(&am, top, powerbuf, wvalue, window)) goto err;
 
  		/* Multiply the result into the intermediate result */
  		if (!BN_mod_mul_montgomery(&tmp,&tmp,&am,mont,ctx)) goto err;
@@ -874,7 +929,16 @@ int BN_mod_exp_mont_word(BIGNUM *rr, BN_ULONG a, const BIGNUM *p,
 	bits = BN_num_bits(p);
 	if (bits == 0)
 		{
-		ret = BN_one(rr);
+		/* x**0 mod 1 is still zero. */
+		if (BN_is_one(m))
+			{
+			ret = 1;
+			BN_zero(rr);
+		        }
+		else
+			{
+			ret = BN_one(rr);
+			}
 		return ret;
 		}
 	if (a == 0)
@@ -997,10 +1061,18 @@ int BN_mod_exp_simple(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
 		}
 
 	bits=BN_num_bits(p);
-
 	if (bits == 0)
 		{
-		ret = BN_one(r);
+		/* x**0 mod 1 is still zero. */
+		if (BN_is_one(m))
+			{
+			ret = 1;
+			BN_zero(r);
+			}
+		else
+			{
+			ret = BN_one(r);
+			}
 		return ret;
 		}
 
