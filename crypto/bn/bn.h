@@ -129,6 +129,7 @@
 #ifndef OPENSSL_NO_FP_API
 #include <stdio.h> /* FILE */
 #endif
+#include <limits.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/crypto.h>
 
@@ -640,7 +641,8 @@ const BIGNUM *BN_get0_nist_prime_521(void);
 
 /* library internal functions */
 
-#define bn_expand(a,bits) ((((((bits+BN_BITS2-1))/BN_BITS2)) <= (a)->dmax)?\
+#define bn_expand(a,bits) (bits > (INT_MAX - BN_BITS2 + 1)?\
+	NULL:(((((bits+BN_BITS2-1))/BN_BITS2)) <= (a)->dmax)?\
 	(a):bn_expand2((a),(bits+BN_BITS2-1)/BN_BITS2))
 #define bn_wexpand(a,words) (((words) <= (a)->dmax)?(a):bn_expand2((a),(words)))
 BIGNUM *bn_expand2(BIGNUM *a, int words);
