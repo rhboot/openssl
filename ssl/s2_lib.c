@@ -437,7 +437,7 @@ int ssl2_generate_key_material(SSL *s)
 	EVP_MD_CTX_init(&ctx);
 	km=s->s2->key_material;
 
- 	if (s->session->master_key_length < 0 || s->session->master_key_length > sizeof s->session->master_key)
+ 	if (s->session->master_key_length < 0 || s->session->master_key_length > (int)sizeof s->session->master_key)
  		{
  		SSLerr(SSL_F_SSL2_GENERATE_KEY_MATERIAL, ERR_R_INTERNAL_ERROR);
  		return 0;
@@ -456,7 +456,7 @@ int ssl2_generate_key_material(SSL *s)
 
 		OPENSSL_assert(s->session->master_key_length >= 0
 		    && s->session->master_key_length
-		    < sizeof s->session->master_key);
+		    <= (int)sizeof s->session->master_key);
 		EVP_DigestUpdate(&ctx,s->session->master_key,s->session->master_key_length);
 		EVP_DigestUpdate(&ctx,&c,1);
 		c++;
