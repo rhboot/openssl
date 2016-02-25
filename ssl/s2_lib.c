@@ -86,6 +86,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_STRENGTHS,
 	},
 #endif
+#if 0
 /* RC4_128_EXPORT40_WITH_MD5 */
 	{
 	1,
@@ -99,6 +100,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_CIPHERS,
 	SSL_ALL_STRENGTHS,
 	},
+#endif
 /* RC4_128_WITH_MD5 */
 	{
 	1,
@@ -112,6 +114,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_CIPHERS,
 	SSL_ALL_STRENGTHS,
 	},
+#if 0
 /* RC2_128_CBC_EXPORT40_WITH_MD5 */
 	{
 	1,
@@ -125,6 +128,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_CIPHERS,
 	SSL_ALL_STRENGTHS,
 	},
+#endif
 /* RC2_128_CBC_WITH_MD5 */
 	{
 	1,
@@ -151,6 +155,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_CIPHERS,
 	SSL_ALL_STRENGTHS,
 	},
+#if 0
 /* DES_64_CBC_WITH_MD5 */
 	{
 	1,
@@ -164,6 +169,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_CIPHERS,
 	SSL_ALL_STRENGTHS,
 	},
+#endif
 /* DES_192_EDE3_CBC_WITH_MD5 */
 	{
 	1,
@@ -178,7 +184,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl2_ciphers[]={
 	SSL_ALL_STRENGTHS,
 	},
 /* RC4_64_WITH_MD5 */
-#if 1
+#if 0
 	{
 	1,
 	SSL2_TXT_RC4_64_WITH_MD5,
