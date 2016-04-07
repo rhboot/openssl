@@ -338,9 +338,13 @@ int dtls1_connect(SSL *s)
 					snprintf((char*) labelbuffer, sizeof(DTLS1_SCTP_AUTH_LABEL),
 					         DTLS1_SCTP_AUTH_LABEL);
 
-					SSL_export_keying_material(s, sctpauthkey,
+					if (SSL_export_keying_material(s, sctpauthkey,
 					                           sizeof(sctpauthkey), labelbuffer,
-					                           sizeof(labelbuffer), NULL, 0, 0);
+					                           sizeof(labelbuffer), NULL, 0, 0) <= 0)
+						{
+						ret = -1;
+						goto end;
+						}
 
 					BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
 							 sizeof(sctpauthkey), sctpauthkey);
@@ -479,9 +483,13 @@ int dtls1_connect(SSL *s)
 			snprintf((char*) labelbuffer, sizeof(DTLS1_SCTP_AUTH_LABEL),
 			         DTLS1_SCTP_AUTH_LABEL);
 
-			SSL_export_keying_material(s, sctpauthkey,
+			if (SSL_export_keying_material(s, sctpauthkey,
 			                           sizeof(sctpauthkey), labelbuffer,
-			                           sizeof(labelbuffer), NULL, 0, 0);
+			                           sizeof(labelbuffer), NULL, 0, 0) <= 0)
+				{
+				ret = -1;
+				goto end;
+				}
 
 			BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
 					 sizeof(sctpauthkey), sctpauthkey);
@@ -538,13 +546,6 @@ int dtls1_connect(SSL *s)
 				SSL3_ST_CW_CHANGE_A,SSL3_ST_CW_CHANGE_B);
 			if (ret <= 0) goto end;
 
-#ifndef OPENSSL_NO_SCTP
-			/* Change to new shared key of SCTP-Auth,
-			 * will be ignored if no SCTP used.
-			 */
-			BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_NEXT_AUTH_KEY, 0, NULL);
-#endif
-
 			s->state=SSL3_ST_CW_FINISHED_A;
 			s->init_num=0;
 
@@ -571,6 +572,16 @@ int dtls1_connect(SSL *s)
 				goto end;
 				}
 			
+#ifndef OPENSSL_NO_SCTP
+				if (s->hit)
+					{
+					/* Change to new shared key of SCTP-Auth,
+					 * will be ignored if no SCTP used.
+					 */
+					BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_NEXT_AUTH_KEY, 0, NULL);
+					}
+#endif
+
 			dtls1_reset_seq_numbers(s, SSL3_CC_WRITE);
 			break;
 
@@ -613,6 +624,13 @@ int dtls1_connect(SSL *s)
 				}
 			else
 				{
+#ifndef OPENSSL_NO_SCTP
+				/* Change to new shared key of SCTP-Auth,
+				 * will be ignored if no SCTP used.
+				 */
+				BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_NEXT_AUTH_KEY, 0, NULL);
+#endif
+
 #ifndef OPENSSL_NO_TLSEXT
 				/* Allow NewSessionTicket if ticket expected */
 				if (s->tlsext_ticket_expected)

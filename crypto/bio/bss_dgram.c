@@ -454,6 +454,36 @@ static int dgram_write(BIO *b, const char *in, int inl)
 	return(ret);
 	}
 
+static long dgram_get_mtu_overhead(bio_dgram_data *data)
+	{
+	long ret;
+
+	switch (data->peer.sa.sa_family)
+		{
+		case AF_INET:
+			/* Assume this is UDP - 20 bytes for IP, 8 bytes for UDP */
+			ret = 28;
+			break;
+#if OPENSSL_USE_IPV6
+		case AF_INET6:
+#ifdef IN6_IS_ADDR_V4MAPPED
+			if (IN6_IS_ADDR_V4MAPPED(&data->peer.sa_in6.sin6_addr))
+				/* Assume this is UDP - 20 bytes for IP, 8 bytes for UDP */
+				ret = 28;
+			else
+#endif
+				/* Assume this is UDP - 40 bytes for IP, 8 bytes for UDP */
+				ret = 48;
+			break;
+#endif
+		default:
+			/* We don't know. Go with the historical default */
+			ret = 28;
+			break;
+		}
+	return ret;
+	}
+
 static long dgram_ctrl(BIO *b, int cmd, long num, void *ptr)
 	{
 	long ret=1;
@@ -630,23 +660,24 @@ static long dgram_ctrl(BIO *b, int cmd, long num, void *ptr)
 #endif
 		break;
 	case BIO_CTRL_DGRAM_GET_FALLBACK_MTU:
+		ret = -dgram_get_mtu_overhead(data);
 		switch (data->peer.sa.sa_family)
 			{
 			case AF_INET:
-				ret = 576 - 20 - 8;
+				ret += 576;
 				break;
 #if OPENSSL_USE_IPV6
 			case AF_INET6:
 #ifdef IN6_IS_ADDR_V4MAPPED
 				if (IN6_IS_ADDR_V4MAPPED(&data->peer.sa_in6.sin6_addr))
-					ret = 576 - 20 - 8;
+					ret += 576;
 				else
 #endif
-					ret = 1280 - 40 - 8;
+					ret += 1280;
 				break;
 #endif
 			default:
-				ret = 576 - 20 - 8;
+				ret += 576;
 				break;
 			}
 		break;
@@ -847,6 +878,9 @@ static long dgram_ctrl(BIO *b, int cmd, long num, void *ptr)
 			ret = 0;
 		break;
 #endif
+	case BIO_CTRL_DGRAM_GET_MTU_OVERHEAD:
+		ret = dgram_get_mtu_overhead(data);
+		break;
 	default:
 		ret=0;
 		break;
@@ -906,8 +940,8 @@ BIO *BIO_new_dgram_sctp(int fd, int close_flag)
 	memset(authchunks, 0, sizeof(sockopt_len));
 	ret = getsockopt(fd, IPPROTO_SCTP, SCTP_LOCAL_AUTH_CHUNKS, authchunks, &sockopt_len);
 	OPENSSL_assert(ret >= 0);
-	
-	for (p = (unsigned char*) authchunks + sizeof(sctp_assoc_t);
+
+	for (p = (unsigned char*) authchunks->gauth_chunks;
 	     p < (unsigned char*) authchunks + sockopt_len;
 	     p += sizeof(uint8_t))
 		{
@@ -1197,7 +1231,7 @@ static int dgram_sctp_read(BIO *b, char *out, int outl)
 			ii = getsockopt(b->num, IPPROTO_SCTP, SCTP_PEER_AUTH_CHUNKS, authchunks, &optlen);
 			OPENSSL_assert(ii >= 0);
 
-			for (p = (unsigned char*) authchunks + sizeof(sctp_assoc_t);
+			for (p = (unsigned char*) authchunks->gauth_chunks;
 				 p < (unsigned char*) authchunks + optlen;
 				 p += sizeof(uint8_t))
 				{
@@ -1367,6 +1401,10 @@ static long dgram_sctp_ctrl(BIO *b, int cmd, long num, void *ptr)
 		 * Returns always 1.
 		 */
 		break;
+	case BIO_CTRL_DGRAM_GET_MTU_OVERHEAD:
+		/* We allow transport protocol fragmentation so this is irrelevant */
+		ret = 0;
+		break;
 	case BIO_CTRL_DGRAM_SCTP_SET_IN_HANDSHAKE:
 		if (num > 0)
 			data->in_handshake = 1;
@@ -1399,6 +1437,7 @@ static long dgram_sctp_ctrl(BIO *b, int cmd, long num, void *ptr)
 		memcpy(&authkey->sca_key[0], ptr, 64 * sizeof(uint8_t));
 
 		ret = setsockopt(b->num, IPPROTO_SCTP, SCTP_AUTH_KEY, authkey, sockopt_len);
+		OPENSSL_free(authkey);
 		if (ret < 0) break;
 
 		/* Reset active key */
