@@ -923,19 +923,19 @@ int ssl_parse_clienthello_tlsext(SSL *s, unsigned char **p, unsigned char *d, in
 	                       SSL_TLSEXT_HB_DONT_SEND_REQUESTS);
 #endif
 
-	if (data >= (d+n-2))
+	if ((d + n) - data < 2)
 		goto ri_check;
 	n2s(data,len);
 
-	if (data > (d+n-len)) 
+	if ((d + n) - data < len) 
 		goto ri_check;
 
-	while (data <= (d+n-4))
+	while ((d + n) - data >= 4)
 		{
 		n2s(data,type);
 		n2s(data,size);
 
-		if (data+size > (d+n))
+		if ((d + n) - data < size)
 	   		goto ri_check;
 #if 0
 		fprintf(stderr,"Received extension type %d size %d\n",type,size);
@@ -1437,22 +1437,22 @@ int ssl_parse_serverhello_tlsext(SSL *s, unsigned char **p, unsigned char *d, in
 	                       SSL_TLSEXT_HB_DONT_SEND_REQUESTS);
 #endif
 
-	if (data >= (d+n-2))
+	if ((d + n) - data <= 2)
 		goto ri_check;
 
 	n2s(data,length);
-	if (data+length != d+n)
+	if ((d + n) - data != length)
 		{
 		*al = SSL_AD_DECODE_ERROR;
 		return 0;
 		}
 
-	while(data <= (d+n-4))
+	while ((d + n) - data >= 4)
 		{
 		n2s(data,type);
 		n2s(data,size);
 
-		if (data+size > (d+n))
+		if ((d + n) - data < size)
 	   		goto ri_check;
 
 		if (s->tlsext_debug_cb)
@@ -2139,30 +2139,30 @@ int tls1_process_ticket(SSL *s, unsigned char *session_id, int len,
 	if (s->version == DTLS1_VERSION || s->version == DTLS1_BAD_VER)
 		{
 		i = *(p++);
-		p+= i;
-		if (p >= limit)
+		if (limit - p <= i)
 			return -1;
+		p += i;
 		}
 	/* Skip past cipher list */
 	n2s(p, i);
-	p+= i;
-	if (p >= limit)
+	if (limit - p <= i)
 		return -1;
+	p += i;
 	/* Skip past compression algorithm list */
 	i = *(p++);
-	p += i;
-	if (p > limit)
+	if (limit - p  < i)
 		return -1;
+	p += i;
 	/* Now at start of extensions */
-	if ((p + 2) >= limit)
+	if (limit - p <= 2)
 		return 0;
 	n2s(p, i);
-	while ((p + 4) <= limit)
+	while (limit - p >= 4)
 		{
 		unsigned short type, size;
 		n2s(p, type);
 		n2s(p, size);
-		if (p + size > limit)
+		if (limit - p < size)
 			return 0;
 		if (type == TLSEXT_TYPE_session_ticket)
 			{
