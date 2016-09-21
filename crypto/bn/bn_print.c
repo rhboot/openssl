@@ -108,6 +108,7 @@ char *BN_bn2dec(const BIGNUM *a)
 	char *p;
 	BIGNUM *t=NULL;
 	BN_ULONG *bn_data=NULL,*lp;
+	int bn_data_num;
 
 	/* get an upper bound for the length of the decimal integer
 	 * num <= (BN_num_bits(a) + 1) * log(2)
@@ -116,7 +117,8 @@ char *BN_bn2dec(const BIGNUM *a)
 	 */
 	i=BN_num_bits(a)*3;
 	num=(i/10+i/1000+1)+1;
-	bn_data=(BN_ULONG *)OPENSSL_malloc((num/BN_DEC_NUM+1)*sizeof(BN_ULONG));
+	bn_data_num=num/BN_DEC_NUM + 1;
+	bn_data=(BN_ULONG *)OPENSSL_malloc(bn_data_num*sizeof(BN_ULONG));
 	buf=(char *)OPENSSL_malloc(num+3);
 	if ((buf == NULL) || (bn_data == NULL))
 		{
@@ -141,7 +143,11 @@ char *BN_bn2dec(const BIGNUM *a)
 		i=0;
 		while (!BN_is_zero(t))
 			{
+			if (lp - bn_data >= bn_data_num)
+				goto err;
 			*lp=BN_div_word(t,BN_DEC_CONV);
+			if (*lp == (BN_ULONG)-1)
+				goto err;
 			lp++;
 			}
 		lp--;
