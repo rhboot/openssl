@@ -506,8 +506,11 @@ static int dtls1_preprocess_fragment(SSL *s,struct hm_header_st *msg_hdr,int max
 	if ( s->d1->r_msg_hdr.frag_off == 0) /* first fragment */
 		{
 		/* msg_len is limited to 2^24, but is effectively checked
-		 * against max above */
-		if (!BUF_MEM_grow_clean(s->init_buf,msg_len+DTLS1_HM_HEADER_LENGTH))
+		 * against max above
+		 *
+		 * Make buffer slightly larger than message length as
+		 * a precaution against small OOB reads e.g. CVE-2016-6306 */
+		if (!BUF_MEM_grow_clean(s->init_buf,msg_len+DTLS1_HM_HEADER_LENGTH+16))
 			{
 			SSLerr(SSL_F_DTLS1_PREPROCESS_FRAGMENT,ERR_R_BUF_LIB);
 			return SSL_AD_INTERNAL_ERROR;
