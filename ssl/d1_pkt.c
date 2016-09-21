@@ -1900,6 +1900,12 @@ dtls1_reset_seq_numbers(SSL *s, int rw)
 		s->d1->r_epoch++;
 		memcpy(&(s->d1->bitmap), &(s->d1->next_bitmap), sizeof(DTLS1_BITMAP));
 		memset(&(s->d1->next_bitmap), 0x00, sizeof(DTLS1_BITMAP));
+
+		/*
+		 * We must not use any buffered messages received from the previous
+		 * epoch
+		 */
+		dtls1_clear_received_buffer(s);
 		}
 	else
 		{
