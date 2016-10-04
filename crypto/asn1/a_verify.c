@@ -56,6 +56,9 @@
  * [including the GNU Public Licence.]
  */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <time.h>
 
@@ -136,6 +139,32 @@ err:
 
 #endif
 
+static int legacy_mds[] = { NID_md5, NID_sha, NID_md4, NID_md2, 0 };
+extern int private_ossl_allowed_legacy_mds[];
+
+static int is_md_legacy_disallowed(int mdnid)
+	{
+	int i;
+
+	if (mdnid == NID_md5 && __secure_getenv("OPENSSL_ENABLE_MD5_VERIFY") != NULL)
+		return 0;
+
+	for (i = 0; legacy_mds[i] != 0; ++i)
+		{
+		if (mdnid == legacy_mds[i])
+			{
+			int j;
+
+			for (j = 0; private_ossl_allowed_legacy_mds[j] != 0; ++j)
+				{
+				if (mdnid == private_ossl_allowed_legacy_mds[j])
+					return 0;
+				}
+			return 1;
+			}
+		}
+	return 0;
+	}
 
 int ASN1_item_verify(const ASN1_ITEM *it, X509_ALGOR *a,
 		ASN1_BIT_STRING *signature, void *asn, EVP_PKEY *pkey)
@@ -182,6 +211,11 @@ int ASN1_item_verify(const ASN1_ITEM *it, X509_ALGOR *a,
 		if (ret != 2)
 			goto err;
 		ret = -1;
+		}
+	else if (is_md_legacy_disallowed(mdnid))
+		{
+		ASN1err(ASN1_F_ASN1_ITEM_VERIFY, ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM);
+		goto err;
 		}
 	else
 		{

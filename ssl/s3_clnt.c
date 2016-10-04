@@ -3238,6 +3238,8 @@ int ssl3_send_client_certificate(SSL *s)
 
 #define has_bits(i,m)	(((i)&(m)) == (m))
 
+extern int private_ossl_minimum_dh_bits;
+
 int ssl3_check_cert_and_algorithm(SSL *s)
 	{
 	int i,idx;
@@ -3338,8 +3340,7 @@ int ssl3_check_cert_and_algorithm(SSL *s)
 	if (alg_k & SSL_kEDH)
 		{
 		int dh_size = BN_num_bits(dh->p);
-		if ((!SSL_C_IS_EXPORT(s->s3->tmp.new_cipher) && dh_size < 768)
-		    || (SSL_C_IS_EXPORT(s->s3->tmp.new_cipher) && dh_size < 512))
+		if (dh_size < (private_ossl_minimum_dh_bits ? private_ossl_minimum_dh_bits : 1024))
 			{
 			SSLerr(SSL_F_SSL3_CHECK_CERT_AND_ALGORITHM, SSL_R_DH_KEY_TOO_SMALL);
 			goto f_err;
