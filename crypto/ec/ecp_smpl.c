@@ -66,10 +66,6 @@
 #include <openssl/err.h>
 #include <openssl/symhacks.h>
 
-#ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
-#endif
-
 #include "ec_lcl.h"
 
 const EC_METHOD *EC_GFp_simple_method(void)
@@ -113,11 +109,6 @@ const EC_METHOD *EC_GFp_simple_method(void)
         0 /* field_decode */ ,
         0                       /* field_set_to_one */
     };
-
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return fips_ec_gfp_simple_method();
-#endif
 
     return &ret;
 }
@@ -184,6 +175,11 @@ int ec_GFp_simple_group_set_curve(EC_GROUP *group,
     /* p must be a prime > 3 */
     if (BN_num_bits(p) <= 2 || !BN_is_odd(p)) {
         ECerr(EC_F_EC_GFP_SIMPLE_GROUP_SET_CURVE, EC_R_INVALID_FIELD);
+        return 0;
+    }
+
+    if (BN_num_bits(p) < 256) {
+        ECerr(EC_F_EC_GFP_SIMPLE_GROUP_SET_CURVE, EC_R_UNSUPPORTED_FIELD);
         return 0;
     }
 
