@@ -272,6 +272,7 @@ static const unsigned char eccurves_auto[] = {
     /* Other >= 256-bit prime curves. */
     0, 25,                      /* secp521r1 (25) */
     0, 24,                      /* secp384r1 (24) */
+    0, 22,                      /* secp256k1 (22) */
 # ifndef OPENSSL_NO_EC2M
     /* >= 256-bit binary curves. */
     0, 14,                      /* sect571r1 (14) */
@@ -289,6 +290,7 @@ static const unsigned char eccurves_all[] = {
     /* Other >= 256-bit prime curves. */
     0, 25,                      /* secp521r1 (25) */
     0, 24,                      /* secp384r1 (24) */
+    0, 22,                      /* secp256k1 (22) */
 # ifndef OPENSSL_NO_EC2M
     /* >= 256-bit binary curves. */
     0, 14,                      /* sect571r1 (14) */
@@ -336,6 +338,7 @@ static const unsigned char fips_curves_default[] = {
     0, 9,                       /* sect283k1 (9) */
     0, 10,                      /* sect283r1 (10) */
 #  endif
+    0, 22,                      /* secp256k1 (22) */
     0, 23,                      /* secp256r1 (23) */
 #  ifndef OPENSSL_NO_EC2M
     0, 8,                       /* sect239k1 (8) */
