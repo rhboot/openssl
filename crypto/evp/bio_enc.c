@@ -307,8 +307,9 @@ static long enc_ctrl(BIO *b, int cmd, long num, void *ptr)
     case BIO_CTRL_RESET:
         ctx->ok = 1;
         ctx->finished = 0;
-        EVP_CipherInit_ex(&(ctx->cipher), NULL, NULL, NULL, NULL,
-                          ctx->cipher.encrypt);
+        if (!EVP_CipherInit_ex(&(ctx->cipher), NULL, NULL, NULL, NULL,
+                               ctx->cipher.encrypt))
+             ctx->ok = 0;
         ret = BIO_ctrl(b->next_bio, cmd, num, ptr);
         break;
     case BIO_CTRL_EOF:         /* More to read */
@@ -430,7 +431,8 @@ void BIO_set_cipher(BIO *b, const EVP_CIPHER *c, const unsigned char *k,
 
     b->init = 1;
     ctx = (BIO_ENC_CTX *)b->ptr;
-    EVP_CipherInit_ex(&(ctx->cipher), c, NULL, k, i, e);
+    if (!EVP_CipherInit_ex(&(ctx->cipher), c, NULL, k, i, e))
+        ctx->ok = 0;
 
     if (b->callback != NULL)
         b->callback(b, BIO_CB_CTRL, (const char *)c, BIO_CTRL_SET, e, 1L);
