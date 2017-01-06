@@ -74,6 +74,9 @@ static void init_fips_mode(void)
     char buf[2] = "0";
     int fd;
 
+    /* Ensure the selftests always run */
+    FIPS_mode_set(1);
+
     if (secure_getenv("OPENSSL_FORCE_FIPS_MODE") != NULL) {
         buf[0] = '1';
     } else if ((fd = open(FIPS_MODE_SWITCH_FILE, O_RDONLY)) >= 0) {
@@ -85,8 +88,12 @@ static void init_fips_mode(void)
      * otherwise..
      */
 
-    if (buf[0] == '1') {
-        FIPS_mode_set(1);
+    if (buf[0] != '1') {
+        /* drop down to non-FIPS mode if it is not requested */
+        FIPS_mode_set(0);
+    } else {
+        /* abort if selftest failed */
+        FIPS_selftest_check();
     }
 }
 #endif
@@ -96,13 +103,16 @@ static void init_fips_mode(void)
  * sets FIPS callbacks
  */
 
-void OPENSSL_init_library(void)
+void __attribute__ ((constructor)) OPENSSL_init_library(void)
 {
     static int done = 0;
     if (done)
         return;
     done = 1;
 #ifdef OPENSSL_FIPS
+    if (!FIPS_module_installed()) {
+        return;
+    }
     RAND_init_fips();
     init_fips_mode();
     if (!FIPS_mode()) {
