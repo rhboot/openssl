@@ -1,0 +1,13 @@
+OPENSSL_1.0.1 {
+    global:
+	    SSLeay;
+	    SSLeay_version;
+    local:
+	    _original*;
+	    _current*;
+};
+OPENSSL_1.0.2 {
+    global:
+	    SSLeay;
+	    SSLeay_version;
+} OPENSSL_1.0.1;
