@@ -68,6 +68,11 @@
 #  include <openssl/fips.h>
 #  include <openssl/evp.h>
 
+/* just a compatibility symbol - no-op */
+void FIPS_corrupt_dsa_keygen(void)
+{
+}
+
 static int fips_check_dsa(DSA *dsa)
 {
     EVP_PKEY *pk;
