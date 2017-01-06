@@ -271,11 +271,7 @@ static const unsigned char eccurves_auto[] = {
     0, 23,                      /* secp256r1 (23) */
     /* Other >= 256-bit prime curves. */
     0, 25,                      /* secp521r1 (25) */
-    0, 28,                      /* brainpool512r1 (28) */
-    0, 27,                      /* brainpoolP384r1 (27) */
     0, 24,                      /* secp384r1 (24) */
-    0, 26,                      /* brainpoolP256r1 (26) */
-    0, 22,                      /* secp256k1 (22) */
 # ifndef OPENSSL_NO_EC2M
     /* >= 256-bit binary curves. */
     0, 14,                      /* sect571r1 (14) */
@@ -292,11 +288,7 @@ static const unsigned char eccurves_all[] = {
     0, 23,                      /* secp256r1 (23) */
     /* Other >= 256-bit prime curves. */
     0, 25,                      /* secp521r1 (25) */
-    0, 28,                      /* brainpool512r1 (28) */
-    0, 27,                      /* brainpoolP384r1 (27) */
     0, 24,                      /* secp384r1 (24) */
-    0, 26,                      /* brainpoolP256r1 (26) */
-    0, 22,                      /* secp256k1 (22) */
 # ifndef OPENSSL_NO_EC2M
     /* >= 256-bit binary curves. */
     0, 14,                      /* sect571r1 (14) */
@@ -310,13 +302,6 @@ static const unsigned char eccurves_all[] = {
      * Remaining curves disabled by default but still permitted if set
      * via an explicit callback or parameters.
      */
-    0, 20,                      /* secp224k1 (20) */
-    0, 21,                      /* secp224r1 (21) */
-    0, 18,                      /* secp192k1 (18) */
-    0, 19,                      /* secp192r1 (19) */
-    0, 15,                      /* secp160k1 (15) */
-    0, 16,                      /* secp160r1 (16) */
-    0, 17,                      /* secp160r2 (17) */
 # ifndef OPENSSL_NO_EC2M
     0, 8,                       /* sect239k1 (8) */
     0, 6,                       /* sect233k1 (6) */
@@ -351,29 +336,21 @@ static const unsigned char fips_curves_default[] = {
     0, 9,                       /* sect283k1 (9) */
     0, 10,                      /* sect283r1 (10) */
 #  endif
-    0, 22,                      /* secp256k1 (22) */
     0, 23,                      /* secp256r1 (23) */
 #  ifndef OPENSSL_NO_EC2M
     0, 8,                       /* sect239k1 (8) */
     0, 6,                       /* sect233k1 (6) */
     0, 7,                       /* sect233r1 (7) */
 #  endif
-    0, 20,                      /* secp224k1 (20) */
-    0, 21,                      /* secp224r1 (21) */
 #  ifndef OPENSSL_NO_EC2M
     0, 4,                       /* sect193r1 (4) */
     0, 5,                       /* sect193r2 (5) */
 #  endif
-    0, 18,                      /* secp192k1 (18) */
-    0, 19,                      /* secp192r1 (19) */
 #  ifndef OPENSSL_NO_EC2M
     0, 1,                       /* sect163k1 (1) */
     0, 2,                       /* sect163r1 (2) */
     0, 3,                       /* sect163r2 (3) */
 #  endif
-    0, 15,                      /* secp160k1 (15) */
-    0, 16,                      /* secp160r1 (16) */
-    0, 17,                      /* secp160r2 (17) */
 };
 # endif
 
