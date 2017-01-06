@@ -95,7 +95,11 @@ int FIPS_selftest(void)
         rv = 0;
     if (!FIPS_selftest_rsa())
         rv = 0;
+    if (!FIPS_selftest_ecdsa())
+        rv = 0;
     if (!FIPS_selftest_dsa())
+        rv = 0;
+    if (!FIPS_selftest_ecdh())
         rv = 0;
     return rv;
 }

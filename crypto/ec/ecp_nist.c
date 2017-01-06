@@ -67,10 +67,6 @@
 #include <openssl/obj_mac.h>
 #include "ec_lcl.h"
 
-#ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
-#endif
-
 const EC_METHOD *EC_GFp_nist_method(void)
 {
     static const EC_METHOD ret = {
@@ -112,11 +108,6 @@ const EC_METHOD *EC_GFp_nist_method(void)
         0 /* field_decode */ ,
         0                       /* field_set_to_one */
     };
-
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return fips_ec_gfp_nist_method();
-#endif
 
     return &ret;
 }

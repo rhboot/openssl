@@ -78,6 +78,10 @@
 #include <openssl/obj_mac.h>
 #include <openssl/bn.h>
 
+#ifdef OPENSSL_FIPS
+# include <openssl/fips.h>
+#endif
+
 static int ecdh_compute_key(void *out, size_t len, const EC_POINT *pub_key,
                             EC_KEY *ecdh,
                             void *(*KDF) (const void *in, size_t inlen,
@@ -90,7 +94,7 @@ static ECDH_METHOD openssl_ecdh_meth = {
     NULL,                       /* init */
     NULL,                       /* finish */
 #endif
-    0,                          /* flags */
+    ECDH_FLAG_FIPS_METHOD,      /* flags */
     NULL                        /* app_data */
 };
 
@@ -118,6 +122,13 @@ static int ecdh_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
     int ret = -1;
     size_t buflen, len;
     unsigned char *buf = NULL;
+
+#ifdef OPENSSL_FIPS
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_ECDH_COMPUTE_KEY, FIPS_R_FIPS_SELFTEST_FAILED);
+        return -1;
+    }
+#endif
 
     if (outlen > INT_MAX) {
         ECDHerr(ECDH_F_ECDH_COMPUTE_KEY, ERR_R_MALLOC_FAILURE); /* sort of,

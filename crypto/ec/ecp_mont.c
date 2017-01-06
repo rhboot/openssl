@@ -63,10 +63,6 @@
 
 #include <openssl/err.h>
 
-#ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
-#endif
-
 #include "ec_lcl.h"
 
 const EC_METHOD *EC_GFp_mont_method(void)
@@ -110,11 +106,6 @@ const EC_METHOD *EC_GFp_mont_method(void)
         ec_GFp_mont_field_decode,
         ec_GFp_mont_field_set_to_one
     };
-
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return fips_ec_gfp_mont_method();
-#endif
 
     return &ret;
 }

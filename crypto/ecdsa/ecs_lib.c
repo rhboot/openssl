@@ -80,14 +80,7 @@ void ECDSA_set_default_method(const ECDSA_METHOD *meth)
 const ECDSA_METHOD *ECDSA_get_default_method(void)
 {
     if (!default_ECDSA_method) {
-#ifdef OPENSSL_FIPS
-        if (FIPS_mode())
-            return FIPS_ecdsa_openssl();
-        else
-            return ECDSA_OpenSSL();
-#else
         default_ECDSA_method = ECDSA_OpenSSL();
-#endif
     }
     return default_ECDSA_method;
 }

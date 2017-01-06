@@ -501,11 +501,13 @@ int main(int argc, char *argv[])
         goto err;
 
     /* NIST PRIME CURVES TESTS */
+# if 0
     if (!test_ecdh_curve
         (NID_X9_62_prime192v1, "NIST Prime-Curve P-192", ctx, out))
         goto err;
     if (!test_ecdh_curve(NID_secp224r1, "NIST Prime-Curve P-224", ctx, out))
         goto err;
+# endif
     if (!test_ecdh_curve
         (NID_X9_62_prime256v1, "NIST Prime-Curve P-256", ctx, out))
         goto err;
@@ -536,13 +538,14 @@ int main(int argc, char *argv[])
     if (!test_ecdh_curve(NID_sect571r1, "NIST Binary-Curve B-571", ctx, out))
         goto err;
 # endif
+# if 0
     if (!test_ecdh_kat(out, "Brainpool Prime-Curve brainpoolP256r1", 256))
         goto err;
     if (!test_ecdh_kat(out, "Brainpool Prime-Curve brainpoolP384r1", 384))
         goto err;
     if (!test_ecdh_kat(out, "Brainpool Prime-Curve brainpoolP512r1", 512))
         goto err;
-
+# endif
     ret = 0;
 
  err:
