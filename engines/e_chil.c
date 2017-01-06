@@ -1274,6 +1274,11 @@ static int hwcrhk_insert_card(const char *prompt_info,
     UI *ui;
     void *callback_data = NULL;
     UI_METHOD *ui_method = NULL;
+    /* Despite what the documentation says prompt_info can be
+     * an empty string.
+     */
+    if (prompt_info && !*prompt_info)
+        prompt_info = NULL;
 
     if (cactx) {
         if (cactx->ui_method)
