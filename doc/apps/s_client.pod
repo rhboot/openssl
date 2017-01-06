@@ -43,6 +43,7 @@ B<openssl> B<s_client>
 [B<-fallback_scsv>]
 [B<-bugs>]
 [B<-cipher cipherlist>]
+[B<-krb5svc service>]
 [B<-serverpref>]
 [B<-starttls protocol>]
 [B<-engine id>]
@@ -227,6 +228,12 @@ command for more information.
 =item B<-serverpref>
 
 use the server's cipher preferences; only used for SSLV2.
+
+=item B<-krb5svc service>
+
+the Kerberos service name to use (default "host"). This means s_server
+will expect a ticket for the principal I<service>/hostname@REALM, and will
+need keys for that principal in its keytab.
 
 =item B<-starttls protocol>
 

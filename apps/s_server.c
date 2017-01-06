@@ -206,6 +206,11 @@ typedef unsigned int u_int;
 # include <fcntl.h>
 #endif
 
+#ifndef OPENSSL_NO_KRB5
+static char *krb5svc = NULL;
+static char *keytab = NULL;
+#endif
+
 #ifndef OPENSSL_NO_RSA
 static RSA MS_CALLBACK *tmp_rsa_cb(SSL *s, int is_export, int keylength);
 #endif
@@ -575,6 +580,10 @@ static void sv_usage(void)
     BIO_printf(bio_err, " -serverpref   - Use server's cipher preferences\n");
     BIO_printf(bio_err, " -quiet        - No server output\n");
     BIO_printf(bio_err, " -no_tmp_rsa   - Do not generate a tmp RSA key\n");
+#ifndef OPENSSL_NO_KRB5
+    BIO_printf(bio_err, " -krb5svc arg  - Kerberos service name\n");
+    BIO_printf(bio_err, " -keytab arg   - Kerberos keytab filename\n");
+#endif
 #ifndef OPENSSL_NO_PSK
     BIO_printf(bio_err, " -psk_hint arg - PSK identity hint to use\n");
     BIO_printf(bio_err, " -psk arg      - PSK in hex (without 0x)\n");
@@ -1322,6 +1331,17 @@ int MAIN(int argc, char *argv[])
                 goto bad;
             vfyCAfile = *(++argv);
         }
+#ifndef OPENSSL_NO_KRB5
+        else if (strcmp(*argv, "-krb5svc") == 0) {
+            if (--argc < 1)
+                goto bad;
+            krb5svc = *(++argv);
+        } else if (strcmp(*argv, "-keytab") == 0) {
+            if (--argc < 1)
+                goto bad;
+            keytab = *(++argv);
+        }
+#endif
 #ifdef FIONBIO
         else if (strcmp(*argv, "-nbio") == 0) {
             s_nbio = 1;
@@ -2221,8 +2241,10 @@ static int sv_body(char *hostname, int s, int stype, unsigned char *context)
 #ifndef OPENSSL_NO_KRB5
         if ((kctx = kssl_ctx_new()) != NULL) {
             SSL_set0_kssl_ctx(con, kctx);
-            kssl_ctx_setstring(kctx, KSSL_SERVICE, KRB5SVC);
-            kssl_ctx_setstring(kctx, KSSL_KEYTAB, KRB5KEYTAB);
+            kssl_ctx_setstring(kctx, KSSL_SERVICE,
+                krb5svc == NULL ? KRB5SVC : krb5svc);
+            if (keytab != NULL)
+                kssl_ctx_setstring(kctx, KSSL_KEYTAB, keytab);
         }
 #endif                          /* OPENSSL_NO_KRB5 */
         if (context)
@@ -2831,8 +2853,11 @@ static int www_body(char *hostname, int s, int stype, unsigned char *context)
 #endif
 #ifndef OPENSSL_NO_KRB5
     if ((kctx = kssl_ctx_new()) != NULL) {
-        kssl_ctx_setstring(kctx, KSSL_SERVICE, KRB5SVC);
-        kssl_ctx_setstring(kctx, KSSL_KEYTAB, KRB5KEYTAB);
+        SSL_set0_kssl_ctx(con, kctx);
+        kssl_ctx_setstring(kctx, KSSL_SERVICE,
+            krb5svc == NULL ? KRB5SVC : krb5svc);
+        if (keytab != NULL)
+            kssl_ctx_setstring(kctx, KSSL_KEYTAB, keytab);
     }
 #endif                          /* OPENSSL_NO_KRB5 */
     if (context)
