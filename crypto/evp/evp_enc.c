@@ -69,16 +69,73 @@
 #endif
 #include "evp_locl.h"
 
-#ifdef OPENSSL_FIPS
-# define M_do_cipher(ctx, out, in, inl) FIPS_cipher(ctx, out, in, inl)
-#else
-# define M_do_cipher(ctx, out, in, inl) ctx->cipher->do_cipher(ctx, out, in, inl)
-#endif
+#define M_do_cipher(ctx, out, in, inl) ctx->cipher->do_cipher(ctx, out, in, inl)
 
 const char EVP_version[] = "EVP" OPENSSL_VERSION_PTEXT;
 
+#ifdef OPENSSL_FIPS
+
+/* The purpose of these is to trap programs that attempt to use non FIPS
+ * algorithms in FIPS mode and ignore the errors.
+ */
+
+static int bad_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+                    const unsigned char *iv, int enc)
+{
+    FIPS_ERROR_IGNORED("Cipher init");
+    return 0;
+}
+
+static int bad_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+                         const unsigned char *in, unsigned int inl)
+{
+    FIPS_ERROR_IGNORED("Cipher update");
+    return 0;
+}
+
+/* NB: no cleanup because it is allowed after failed init */
+
+static int bad_set_asn1(EVP_CIPHER_CTX *ctx, ASN1_TYPE *typ)
+{
+    FIPS_ERROR_IGNORED("Cipher set_asn1");
+    return 0;
+}
+
+static int bad_get_asn1(EVP_CIPHER_CTX *ctx, ASN1_TYPE *typ)
+{
+    FIPS_ERROR_IGNORED("Cipher get_asn1");
+    return 0;
+}
+
+static int bad_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
+{
+    FIPS_ERROR_IGNORED("Cipher ctrl");
+    return 0;
+}
+
+static const EVP_CIPHER bad_cipher = {
+    0,
+    0,
+    0,
+    0,
+    0,
+    bad_init,
+    bad_do_cipher,
+    NULL,
+    0,
+    bad_set_asn1,
+    bad_get_asn1,
+    bad_ctrl,
+    NULL
+};
+
+#endif
+
 void EVP_CIPHER_CTX_init(EVP_CIPHER_CTX *ctx)
 {
+#ifdef OPENSSL_FIPS
+    FIPS_selftest_check();
+#endif
     memset(ctx, 0, sizeof(EVP_CIPHER_CTX));
     /* ctx->cipher=NULL; */
 }
@@ -110,6 +167,13 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
             enc = 1;
         ctx->encrypt = enc;
     }
+#ifdef OPENSSL_FIPS
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_EVP_CIPHERINIT_EX, FIPS_R_FIPS_SELFTEST_FAILED);
+        ctx->cipher = &bad_cipher;
+        return 0;
+    }
+#endif
 #ifndef OPENSSL_NO_ENGINE
     /*
      * Whether it's nice or not, "Inits" can be used on "Final"'d contexts so
@@ -168,16 +232,6 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
             ctx->engine = NULL;
 #endif
 
-#ifdef OPENSSL_FIPS
-        if (FIPS_mode()) {
-            const EVP_CIPHER *fcipher = NULL;
-            if (cipher)
-                fcipher = evp_get_fips_cipher(cipher);
-            if (fcipher)
-                cipher = fcipher;
-            return FIPS_cipherinit(ctx, cipher, key, iv, enc);
-        }
-#endif
         ctx->cipher = cipher;
         if (ctx->cipher->ctx_size) {
             ctx->cipher_data = OPENSSL_malloc(ctx->cipher->ctx_size);
@@ -203,10 +257,6 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
     }
 #ifndef OPENSSL_NO_ENGINE
  skip_to_init:
-#endif
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_cipherinit(ctx, cipher, key, iv, enc);
 #endif
     /* we assume block size is a power of 2 in *cryptUpdate */
     OPENSSL_assert(ctx->cipher->block_size == 1
@@ -253,6 +303,19 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
             break;
         }
     }
+#ifdef OPENSSL_FIPS
+    /* After 'key' is set no further parameters changes are permissible.
+     * So only check for non FIPS enabling at this point.
+     */
+    if (key && FIPS_mode()) {
+        if (!(ctx->cipher->flags & EVP_CIPH_FLAG_FIPS)
+            & !(ctx->flags & EVP_CIPH_FLAG_NON_FIPS_ALLOW)) {
+            EVPerr(EVP_F_EVP_CIPHERINIT_EX, EVP_R_DISABLED_FOR_FIPS);
+            ctx->cipher = &bad_cipher;
+            return 0;
+        }
+    }
+#endif
 
     if (key || (ctx->cipher->flags & EVP_CIPH_ALWAYS_CALL_INIT)) {
         if (!ctx->cipher->init(ctx, key, iv, enc))
@@ -554,7 +617,6 @@ void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx)
 
 int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CTX *c)
 {
-#ifndef OPENSSL_FIPS
     if (c->cipher != NULL) {
         if (c->cipher->cleanup && !c->cipher->cleanup(c))
             return 0;
@@ -564,7 +626,6 @@ int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CTX *c)
     }
     if (c->cipher_data)
         OPENSSL_free(c->cipher_data);
-#endif
 #ifndef OPENSSL_NO_ENGINE
     if (c->engine)
         /*
@@ -572,9 +633,6 @@ int EVP_CIPHER_CTX_cleanup(EVP_CIPHER_CTX *c)
          * functional reference we held for this reason.
          */
         ENGINE_finish(c->engine);
-#endif
-#ifdef OPENSSL_FIPS
-    FIPS_cipher_ctx_cleanup(c);
 #endif
     memset(c, 0, sizeof(EVP_CIPHER_CTX));
     return 1;

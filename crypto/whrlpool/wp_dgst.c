@@ -56,7 +56,7 @@
 #include <openssl/crypto.h>
 #include <string.h>
 
-fips_md_init(WHIRLPOOL)
+nonfips_md_init(WHIRLPOOL)
 {
     memset(c, 0, sizeof(*c));
     return (1);

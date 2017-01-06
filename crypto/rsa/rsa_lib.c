@@ -84,23 +84,22 @@ RSA *RSA_new(void)
 
 void RSA_set_default_method(const RSA_METHOD *meth)
 {
+#ifdef OPENSSL_FIPS
+    if (FIPS_mode() && !(meth->flags & RSA_FLAG_FIPS_METHOD)) {
+        RSAerr(RSA_F_RSA_SET_DEFAULT_METHOD, RSA_R_NON_FIPS_METHOD);
+        return;
+    }
+#endif
     default_RSA_meth = meth;
 }
 
 const RSA_METHOD *RSA_get_default_method(void)
 {
     if (default_RSA_meth == NULL) {
-#ifdef OPENSSL_FIPS
-        if (FIPS_mode())
-            return FIPS_rsa_pkcs1_ssleay();
-        else
-            return RSA_PKCS1_SSLeay();
-#else
-# ifdef RSA_NULL
+#ifdef RSA_NULL
         default_RSA_meth = RSA_null_method();
-# else
+#else
         default_RSA_meth = RSA_PKCS1_SSLeay();
-# endif
 #endif
     }
 
@@ -119,6 +118,12 @@ int RSA_set_method(RSA *rsa, const RSA_METHOD *meth)
      * to deal with which ENGINE it comes from.
      */
     const RSA_METHOD *mtmp;
+#ifdef OPENSSL_FIPS
+    if (FIPS_mode() && !(meth->flags & RSA_FLAG_FIPS_METHOD)) {
+        RSAerr(RSA_F_RSA_SET_METHOD, RSA_R_NON_FIPS_METHOD);
+        return 0;
+    }
+#endif
     mtmp = rsa->meth;
     if (mtmp->finish)
         mtmp->finish(rsa);
@@ -166,6 +171,17 @@ RSA *RSA_new_method(ENGINE *engine)
         }
     }
 #endif
+#ifdef OPENSSL_FIPS
+    if (FIPS_mode() && !(ret->meth->flags & RSA_FLAG_FIPS_METHOD)) {
+        RSAerr(RSA_F_RSA_NEW_METHOD, RSA_R_NON_FIPS_METHOD);
+# ifndef OPENSSL_NO_ENGINE
+        if (ret->engine)
+            ENGINE_finish(ret->engine);
+# endif
+        OPENSSL_free(ret);
+        return NULL;
+    }
+#endif
 
     ret->pad = 0;
     ret->version = 0;
@@ -184,7 +200,7 @@ RSA *RSA_new_method(ENGINE *engine)
     ret->blinding = NULL;
     ret->mt_blinding = NULL;
     ret->bignum_data = NULL;
-    ret->flags = ret->meth->flags & ~RSA_FLAG_NON_FIPS_ALLOW;
+    ret->flags = ret->meth->flags;
     if (!CRYPTO_new_ex_data(CRYPTO_EX_INDEX_RSA, ret, &ret->ex_data)) {
 #ifndef OPENSSL_NO_ENGINE
         if (ret->engine)

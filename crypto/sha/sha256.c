@@ -12,12 +12,19 @@
 
 # include <openssl/crypto.h>
 # include <openssl/sha.h>
+# ifdef OPENSSL_FIPS
+#  include <openssl/fips.h>
+# endif
+
 # include <openssl/opensslv.h>
 
 const char SHA256_version[] = "SHA-256" OPENSSL_VERSION_PTEXT;
 
 fips_md_init_ctx(SHA224, SHA256)
 {
+# ifdef OPENSSL_FIPS
+    FIPS_selftest_check();
+# endif
     memset(c, 0, sizeof(*c));
     c->h[0] = 0xc1059ed8UL;
     c->h[1] = 0x367cd507UL;
@@ -33,6 +40,9 @@ fips_md_init_ctx(SHA224, SHA256)
 
 fips_md_init(SHA256)
 {
+# ifdef OPENSSL_FIPS
+    FIPS_selftest_check();
+# endif
     memset(c, 0, sizeof(*c));
     c->h[0] = 0x6a09e667UL;
     c->h[1] = 0xbb67ae85UL;

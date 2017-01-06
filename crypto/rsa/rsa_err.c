@@ -136,6 +136,8 @@ static ERR_STRING_DATA RSA_str_functs[] = {
     {ERR_FUNC(RSA_F_RSA_PUBLIC_ENCRYPT), "RSA_public_encrypt"},
     {ERR_FUNC(RSA_F_RSA_PUB_DECODE), "RSA_PUB_DECODE"},
     {ERR_FUNC(RSA_F_RSA_SETUP_BLINDING), "RSA_setup_blinding"},
+    {ERR_FUNC(RSA_F_RSA_SET_DEFAULT_METHOD), "RSA_set_default_method"},
+    {ERR_FUNC(RSA_F_RSA_SET_METHOD), "RSA_set_method"},
     {ERR_FUNC(RSA_F_RSA_SIGN), "RSA_sign"},
     {ERR_FUNC(RSA_F_RSA_SIGN_ASN1_OCTET_STRING),
      "RSA_sign_ASN1_OCTET_STRING"},

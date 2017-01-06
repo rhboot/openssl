@@ -85,10 +85,6 @@ int DH_generate_parameters_ex(DH *ret, int prime_len, int generator,
 #endif
     if (ret->meth->generate_params)
         return ret->meth->generate_params(ret, prime_len, generator, cb);
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_dh_generate_parameters_ex(ret, prime_len, generator, cb);
-#endif
     return dh_builtin_genparams(ret, prime_len, generator, cb);
 }
 
@@ -125,6 +121,18 @@ static int dh_builtin_genparams(DH *ret, int prime_len, int generator,
     BIGNUM *t1, *t2;
     int g, ok = -1;
     BN_CTX *ctx = NULL;
+
+#ifdef OPENSSL_FIPS
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_DH_BUILTIN_GENPARAMS, FIPS_R_FIPS_SELFTEST_FAILED);
+        return 0;
+    }
+
+    if (FIPS_mode() && (prime_len < OPENSSL_DH_FIPS_MIN_MODULUS_BITS)) {
+        DHerr(DH_F_DH_BUILTIN_GENPARAMS, DH_R_KEY_SIZE_TOO_SMALL);
+        goto err;
+    }
+#endif
 
     ctx = BN_CTX_new();
     if (ctx == NULL)

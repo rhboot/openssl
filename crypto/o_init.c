@@ -56,8 +56,37 @@
 #include <e_os.h>
 #include <openssl/err.h>
 #ifdef OPENSSL_FIPS
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+# include <unistd.h>
+# include <errno.h>
+# include <stdlib.h>
 # include <openssl/fips.h>
 # include <openssl/rand.h>
+
+# define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
+
+static void init_fips_mode(void)
+{
+    char buf[2] = "0";
+    int fd;
+
+    if (getenv("OPENSSL_FORCE_FIPS_MODE") != NULL) {
+        buf[0] = '1';
+    } else if ((fd = open(FIPS_MODE_SWITCH_FILE, O_RDONLY)) >= 0) {
+        while (read(fd, buf, sizeof(buf)) < 0 && errno == EINTR) ;
+        close(fd);
+    }
+    /* Failure reading the fips mode switch file means just not
+     * switching into FIPS mode. We would break too many things
+     * otherwise..
+     */
+
+    if (buf[0] == '1') {
+        FIPS_mode_set(1);
+    }
+}
 #endif
 
 /*
@@ -65,22 +94,26 @@
  * sets FIPS callbacks
  */
 
-void OPENSSL_init(void)
+void OPENSSL_init_library(void)
 {
     static int done = 0;
     if (done)
         return;
     done = 1;
 #ifdef OPENSSL_FIPS
-    FIPS_set_locking_callbacks(CRYPTO_lock, CRYPTO_add_lock);
-# ifndef OPENSSL_NO_DEPRECATED
-    FIPS_crypto_set_id_callback(CRYPTO_thread_id);
-# endif
-    FIPS_set_error_callbacks(ERR_put_error, ERR_add_error_vdata);
-    FIPS_set_malloc_callbacks(CRYPTO_malloc, CRYPTO_free);
     RAND_init_fips();
+    init_fips_mode();
+    if (!FIPS_mode()) {
+        /* Clean up prematurely set default rand method */
+        RAND_set_rand_method(NULL);
+    }
 #endif
 #if 0
     fprintf(stderr, "Called OPENSSL_init\n");
 #endif
+}
+
+void OPENSSL_init(void)
+{
+    OPENSSL_init_library();
 }

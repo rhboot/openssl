@@ -1069,11 +1069,6 @@ if (defined($disabled{"md5"}) || defined($disabled{"rsa"}))
 	$disabled{"ssl2"} = "forced";
 	}
 
-if ($fips && $fipslibdir eq "")
-	{
-	$fipslibdir = $fipsdir . "/lib/";
-	}
-
 # RSAX ENGINE sets default non-FIPS RSA method.
 if ($fips)
 	{
@@ -1558,7 +1553,6 @@ $cflags.=" -DOPENSSL_BN_ASM_GF2m" if ($bn_obj =~ /-gf2m/);
 if ($fips)
 	{
 	$openssl_other_defines.="#define OPENSSL_FIPS\n";
-	$cflags .= " -I\$(FIPSDIR)/include";
 	}
 
 $cpuid_obj="mem_clr.o"	unless ($cpuid_obj =~ /\.o$/);
@@ -1771,9 +1765,12 @@ while (<IN>)
 
 	s/^FIPSDIR=.*/FIPSDIR=$fipsdir/;
 	s/^FIPSLIBDIR=.*/FIPSLIBDIR=$fipslibdir/;
-	s/^FIPSCANLIB=.*/FIPSCANLIB=libcrypto/ if $fips;
 	s/^BASEADDR=.*/BASEADDR=$baseaddr/;
 
+	if ($fips)
+		{
+		s/^FIPS=.*/FIPS=yes/;
+		}
 	s/^SHLIB_TARGET=.*/SHLIB_TARGET=$shared_target/;
 	s/^SHLIB_MARK=.*/SHLIB_MARK=$shared_mark/;
 	s/^SHARED_LIBS=.*/SHARED_LIBS=\$(SHARED_CRYPTO) \$(SHARED_SSL)/ if (!$no_shared);

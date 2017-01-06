@@ -143,18 +143,55 @@ int EVP_DigestInit(EVP_MD_CTX *ctx, const EVP_MD *type)
     return EVP_DigestInit_ex(ctx, type, NULL);
 }
 
+#ifdef OPENSSL_FIPS
+
+/* The purpose of these is to trap programs that attempt to use non FIPS
+ * algorithms in FIPS mode and ignore the errors.
+ */
+
+static int bad_init(EVP_MD_CTX *ctx)
+{
+    FIPS_ERROR_IGNORED("Digest init");
+    return 0;
+}
+
+static int bad_update(EVP_MD_CTX *ctx, const void *data, size_t count)
+{
+    FIPS_ERROR_IGNORED("Digest update");
+    return 0;
+}
+
+static int bad_final(EVP_MD_CTX *ctx, unsigned char *md)
+{
+    FIPS_ERROR_IGNORED("Digest Final");
+    return 0;
+}
+
+static const EVP_MD bad_md = {
+    0,
+    0,
+    0,
+    0,
+    bad_init,
+    bad_update,
+    bad_final,
+    NULL,
+    NULL,
+    NULL,
+    0,
+    {0, 0, 0, 0},
+};
+
+#endif
+
 int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 {
     EVP_MD_CTX_clear_flags(ctx, EVP_MD_CTX_FLAG_CLEANED);
 #ifdef OPENSSL_FIPS
-    /* If FIPS mode switch to approved implementation if possible */
-    if (FIPS_mode()) {
-        const EVP_MD *fipsmd;
-        if (type) {
-            fipsmd = evp_get_fips_md(type);
-            if (fipsmd)
-                type = fipsmd;
-        }
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_EVP_DIGESTINIT_EX, FIPS_R_FIPS_SELFTEST_FAILED);
+        ctx->digest = &bad_md;
+        return 0;
     }
 #endif
 #ifndef OPENSSL_NO_ENGINE
@@ -212,6 +249,16 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
     }
 #endif
     if (ctx->digest != type) {
+#ifdef OPENSSL_FIPS
+        if (FIPS_mode()) {
+            if (!(type->flags & EVP_MD_FLAG_FIPS)
+                && !(ctx->flags & EVP_MD_CTX_FLAG_NON_FIPS_ALLOW)) {
+                EVPerr(EVP_F_EVP_DIGESTINIT_EX, EVP_R_DISABLED_FOR_FIPS);
+                ctx->digest = &bad_md;
+                return 0;
+            }
+        }
+#endif
         if (ctx->digest && ctx->digest->ctx_size) {
             OPENSSL_free(ctx->md_data);
             ctx->md_data = NULL;
@@ -238,23 +285,13 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
     }
     if (ctx->flags & EVP_MD_CTX_FLAG_NO_INIT)
         return 1;
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode()) {
-        if (FIPS_digestinit(ctx, type))
-            return 1;
-        OPENSSL_free(ctx->md_data);
-        ctx->md_data = NULL;
-        return 0;
-    }
-#endif
     return ctx->digest->init(ctx);
 }
 
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 {
 #ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_digestupdate(ctx, data, count);
+    FIPS_selftest_check();
 #endif
     return ctx->update(ctx, data, count);
 }
@@ -272,11 +309,10 @@ int EVP_DigestFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
 int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
 {
     int ret;
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_digestfinal(ctx, md, size);
-#endif
 
+#ifdef OPENSSL_FIPS
+    FIPS_selftest_check();
+#endif
     OPENSSL_assert(ctx->digest->md_size <= EVP_MAX_MD_SIZE);
     ret = ctx->digest->final(ctx, md);
     if (size != NULL)
@@ -375,7 +411,6 @@ void EVP_MD_CTX_destroy(EVP_MD_CTX *ctx)
 /* This call frees resources associated with the context */
 int EVP_MD_CTX_cleanup(EVP_MD_CTX *ctx)
 {
-#ifndef OPENSSL_FIPS
     /*
      * Don't assume ctx->md_data was cleaned in EVP_Digest_Final, because
      * sometimes only copies of the context are ever finalised.
@@ -388,7 +423,6 @@ int EVP_MD_CTX_cleanup(EVP_MD_CTX *ctx)
         OPENSSL_cleanse(ctx->md_data, ctx->digest->ctx_size);
         OPENSSL_free(ctx->md_data);
     }
-#endif
     if (ctx->pctx)
         EVP_PKEY_CTX_free(ctx->pctx);
 #ifndef OPENSSL_NO_ENGINE
@@ -398,9 +432,6 @@ int EVP_MD_CTX_cleanup(EVP_MD_CTX *ctx)
          * reference we held for this reason.
          */
         ENGINE_finish(ctx->engine);
-#endif
-#ifdef OPENSSL_FIPS
-    FIPS_md_ctx_cleanup(ctx);
 #endif
     memset(ctx, '\0', sizeof *ctx);
 

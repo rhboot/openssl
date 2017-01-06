@@ -114,6 +114,10 @@
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/rand.h>
+#include <openssl/err.h>
+#ifdef OPENSSL_FIPS
+# include <openssl/fips.h>
+#endif
 
 #ifndef RSA_NULL
 
@@ -140,7 +144,7 @@ static RSA_METHOD rsa_pkcs1_eay_meth = {
                                  * if e == 3 */
     RSA_eay_init,
     RSA_eay_finish,
-    0,                          /* flags */
+    RSA_FLAG_FIPS_METHOD,       /* flags */
     NULL,
     0,                          /* rsa_sign */
     0,                          /* rsa_verify */
@@ -159,6 +163,22 @@ static int RSA_eay_public_encrypt(int flen, const unsigned char *from,
     int i, j, k, num = 0, r = -1;
     unsigned char *buf = NULL;
     BN_CTX *ctx = NULL;
+
+# ifdef OPENSSL_FIPS
+    if (FIPS_mode()) {
+        if (FIPS_selftest_failed()) {
+            FIPSerr(FIPS_F_RSA_EAY_PUBLIC_ENCRYPT,
+                    FIPS_R_FIPS_SELFTEST_FAILED);
+            goto err;
+        }
+
+        if (!(rsa->flags & RSA_FLAG_NON_FIPS_ALLOW)
+            && (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)) {
+            RSAerr(RSA_F_RSA_EAY_PUBLIC_ENCRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+            return -1;
+        }
+    }
+# endif
 
     if (BN_num_bits(rsa->n) > OPENSSL_RSA_MAX_MODULUS_BITS) {
         RSAerr(RSA_F_RSA_EAY_PUBLIC_ENCRYPT, RSA_R_MODULUS_TOO_LARGE);
@@ -361,6 +381,22 @@ static int RSA_eay_private_encrypt(int flen, const unsigned char *from,
     BIGNUM *unblind = NULL;
     BN_BLINDING *blinding = NULL;
 
+# ifdef OPENSSL_FIPS
+    if (FIPS_mode()) {
+        if (FIPS_selftest_failed()) {
+            FIPSerr(FIPS_F_RSA_EAY_PRIVATE_ENCRYPT,
+                    FIPS_R_FIPS_SELFTEST_FAILED);
+            return -1;
+        }
+
+        if (!(rsa->flags & RSA_FLAG_NON_FIPS_ALLOW)
+            && (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)) {
+            RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+            return -1;
+        }
+    }
+# endif
+
     if ((ctx = BN_CTX_new()) == NULL)
         goto err;
     BN_CTX_start(ctx);
@@ -497,6 +533,22 @@ static int RSA_eay_private_decrypt(int flen, const unsigned char *from,
     BIGNUM *unblind = NULL;
     BN_BLINDING *blinding = NULL;
 
+# ifdef OPENSSL_FIPS
+    if (FIPS_mode()) {
+        if (FIPS_selftest_failed()) {
+            FIPSerr(FIPS_F_RSA_EAY_PRIVATE_DECRYPT,
+                    FIPS_R_FIPS_SELFTEST_FAILED);
+            return -1;
+        }
+
+        if (!(rsa->flags & RSA_FLAG_NON_FIPS_ALLOW)
+            && (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)) {
+            RSAerr(RSA_F_RSA_EAY_PRIVATE_DECRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+            return -1;
+        }
+    }
+# endif
+
     if ((ctx = BN_CTX_new()) == NULL)
         goto err;
     BN_CTX_start(ctx);
@@ -622,6 +674,22 @@ static int RSA_eay_public_decrypt(int flen, const unsigned char *from,
     unsigned char *p;
     unsigned char *buf = NULL;
     BN_CTX *ctx = NULL;
+
+# ifdef OPENSSL_FIPS
+    if (FIPS_mode()) {
+        if (FIPS_selftest_failed()) {
+            FIPSerr(FIPS_F_RSA_EAY_PUBLIC_DECRYPT,
+                    FIPS_R_FIPS_SELFTEST_FAILED);
+            goto err;
+        }
+
+        if (!(rsa->flags & RSA_FLAG_NON_FIPS_ALLOW)
+            && (BN_num_bits(rsa->n) < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS)) {
+            RSAerr(RSA_F_RSA_EAY_PUBLIC_DECRYPT, RSA_R_KEY_SIZE_TOO_SMALL);
+            return -1;
+        }
+    }
+# endif
 
     if (BN_num_bits(rsa->n) > OPENSSL_RSA_MAX_MODULUS_BITS) {
         RSAerr(RSA_F_RSA_EAY_PUBLIC_DECRYPT, RSA_R_MODULUS_TOO_LARGE);
@@ -886,6 +954,9 @@ static int RSA_eay_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa, BN_CTX *ctx)
 
 static int RSA_eay_init(RSA *rsa)
 {
+# ifdef OPENSSL_FIPS
+    FIPS_selftest_check();
+# endif
     rsa->flags |= RSA_FLAG_CACHE_PUBLIC | RSA_FLAG_CACHE_PRIVATE;
     return (1);
 }
