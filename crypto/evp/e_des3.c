@@ -65,10 +65,6 @@
 # include <openssl/des.h>
 # include <openssl/rand.h>
 
-/* Block use of implementations in FIPS mode */
-# undef EVP_CIPH_FLAG_FIPS
-# define EVP_CIPH_FLAG_FIPS      0
-
 typedef struct {
     union {
         double align;

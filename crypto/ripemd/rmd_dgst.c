@@ -70,7 +70,7 @@ void ripemd160_block_x86(RIPEMD160_CTX *c, unsigned long *p, size_t num);
 void ripemd160_block(RIPEMD160_CTX *c, unsigned long *p, size_t num);
 #endif
 
-fips_md_init(RIPEMD160)
+nonfips_md_init(RIPEMD160)
 {
     memset(c, 0, sizeof(*c));
     c->A = RIPEMD160_A;

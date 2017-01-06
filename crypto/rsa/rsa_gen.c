@@ -69,8 +69,80 @@
 #include <openssl/rsa.h>
 #ifdef OPENSSL_FIPS
 # include <openssl/fips.h>
-extern int FIPS_rsa_x931_generate_key_ex(RSA *rsa, int bits, BIGNUM *e,
-                                         BN_GENCB *cb);
+# include <openssl/err.h>
+# include <openssl/evp.h>
+
+static int fips_rsa_pairwise_fail = 0;
+
+void FIPS_corrupt_rsa_keygen(void)
+{
+    fips_rsa_pairwise_fail = 1;
+}
+
+int fips_check_rsa(RSA *rsa)
+{
+    const unsigned char tbs[] = "RSA Pairwise Check Data";
+    unsigned char *ctbuf = NULL, *ptbuf = NULL;
+    int len, ret = 0;
+    EVP_PKEY *pk;
+
+    if ((pk = EVP_PKEY_new()) == NULL)
+        goto err;
+
+    EVP_PKEY_set1_RSA(pk, rsa);
+
+    /* Perform pairwise consistency signature test */
+    if (!fips_pkey_signature_test(pk, tbs, -1,
+                                  NULL, 0, EVP_sha1(),
+                                  EVP_MD_CTX_FLAG_PAD_PKCS1, NULL)
+        || !fips_pkey_signature_test(pk, tbs, -1, NULL, 0, EVP_sha1(),
+                                     EVP_MD_CTX_FLAG_PAD_X931, NULL)
+        || !fips_pkey_signature_test(pk, tbs, -1, NULL, 0, EVP_sha1(),
+                                     EVP_MD_CTX_FLAG_PAD_PSS, NULL))
+        goto err;
+    /* Now perform pairwise consistency encrypt/decrypt test */
+    ctbuf = OPENSSL_malloc(RSA_size(rsa));
+    if (!ctbuf)
+        goto err;
+
+    len =
+        RSA_public_encrypt(sizeof(tbs) - 1, tbs, ctbuf, rsa,
+                           RSA_PKCS1_PADDING);
+    if (len <= 0)
+        goto err;
+    /* Check ciphertext doesn't match plaintext */
+    if ((len == (sizeof(tbs) - 1)) && !memcmp(tbs, ctbuf, len))
+        goto err;
+    ptbuf = OPENSSL_malloc(RSA_size(rsa));
+
+    if (!ptbuf)
+        goto err;
+    len = RSA_private_decrypt(len, ctbuf, ptbuf, rsa, RSA_PKCS1_PADDING);
+    if (len != (sizeof(tbs) - 1))
+        goto err;
+    if (memcmp(ptbuf, tbs, len))
+        goto err;
+
+    ret = 1;
+
+    if (!ptbuf)
+        goto err;
+
+ err:
+    if (ret == 0) {
+        fips_set_selftest_fail();
+        FIPSerr(FIPS_F_FIPS_CHECK_RSA, FIPS_R_PAIRWISE_TEST_FAILED);
+    }
+
+    if (ctbuf)
+        OPENSSL_free(ctbuf);
+    if (ptbuf)
+        OPENSSL_free(ptbuf);
+    if (pk)
+        EVP_PKEY_free(pk);
+
+    return ret;
+}
 #endif
 
 static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
@@ -86,7 +158,7 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
 int RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 {
 #ifdef OPENSSL_FIPS
-    if (FIPS_mode() && !(rsa->meth->flags & RSA_FLAG_FIPS_METHOD)
+    if (FIPS_module_mode() && !(rsa->meth->flags & RSA_FLAG_FIPS_METHOD)
         && !(rsa->flags & RSA_FLAG_NON_FIPS_ALLOW)) {
         RSAerr(RSA_F_RSA_GENERATE_KEY_EX, RSA_R_NON_FIPS_RSA_METHOD);
         return 0;
@@ -94,10 +166,6 @@ int RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e_value, BN_GENCB *cb)
 #endif
     if (rsa->meth->rsa_keygen)
         return rsa->meth->rsa_keygen(rsa, bits, e_value, cb);
-#ifdef OPENSSL_FIPS
-    if (FIPS_mode())
-        return FIPS_rsa_x931_generate_key_ex(rsa, bits, e_value, cb);
-#endif
     return rsa_builtin_keygen(rsa, bits, e_value, cb);
 }
 
@@ -109,6 +177,20 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
     BIGNUM *pr0, *d, *p;
     int bitsp, bitsq, ok = -1, n = 0;
     BN_CTX *ctx = NULL;
+
+#ifdef OPENSSL_FIPS
+    if (FIPS_module_mode()) {
+        if (FIPS_selftest_failed()) {
+            FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN, FIPS_R_FIPS_SELFTEST_FAILED);
+            return 0;
+        }
+
+        if (bits < OPENSSL_RSA_FIPS_MIN_MODULUS_BITS) {
+            FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN, FIPS_R_KEY_TOO_SHORT);
+            return 0;
+        }
+    }
+#endif
 
     ctx = BN_CTX_new();
     if (ctx == NULL)
@@ -235,6 +317,16 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
         p = rsa->p;
     if (!BN_mod_inverse(rsa->iqmp, rsa->q, p, ctx))
         goto err;
+
+#ifdef OPENSSL_FIPS
+    if (FIPS_module_mode()) {
+        if (fips_rsa_pairwise_fail)
+            BN_add_word(rsa->n, 1);
+
+        if (!fips_check_rsa(rsa))
+            goto err;
+    }
+#endif
 
     ok = 1;
  err:

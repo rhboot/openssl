@@ -86,14 +86,7 @@ void DSA_set_default_method(const DSA_METHOD *meth)
 const DSA_METHOD *DSA_get_default_method(void)
 {
     if (!default_DSA_method) {
-#ifdef OPENSSL_FIPS
-        if (FIPS_mode())
-            return FIPS_dsa_openssl();
-        else
-            return DSA_OpenSSL();
-#else
         default_DSA_method = DSA_OpenSSL();
-#endif
     }
     return default_DSA_method;
 }

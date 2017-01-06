@@ -123,11 +123,14 @@ void sha1_block_data_order(SHA_CTX *c, const void *p, size_t num);
 #define INIT_DATA_h4 0xc3d2e1f0UL
 
 #ifdef SHA_0
-fips_md_init(SHA)
+nonfips_md_init(SHA)
 #else
 fips_md_init_ctx(SHA1, SHA)
 #endif
 {
+#if defined(SHA_1) && defined(OPENSSL_FIPS)
+    FIPS_selftest_check();
+#endif
     memset(c, 0, sizeof(*c));
     c->h0 = INIT_DATA_h0;
     c->h1 = INIT_DATA_h1;

@@ -61,6 +61,7 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
+#include <openssl/rsa.h>
 
 int EVP_VerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sigbuf,
                     unsigned int siglen, EVP_PKEY *pkey)
@@ -87,6 +88,22 @@ int EVP_VerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sigbuf,
             goto err;
         if (EVP_PKEY_CTX_set_signature_md(pkctx, ctx->digest) <= 0)
             goto err;
+        if (ctx->flags & EVP_MD_CTX_FLAG_PAD_X931)
+            if (EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_X931_PADDING) <= 0)
+                goto err;
+        if (ctx->flags & EVP_MD_CTX_FLAG_PAD_PSS) {
+            int saltlen;
+            if (EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_PKCS1_PSS_PADDING) <=
+                0)
+                goto err;
+            saltlen = M_EVP_MD_CTX_FLAG_PSS_SALT(ctx);
+            if (saltlen == EVP_MD_CTX_FLAG_PSS_MDLEN)
+                saltlen = -1;
+            else if (saltlen == EVP_MD_CTX_FLAG_PSS_MREC)
+                saltlen = -2;
+            if (EVP_PKEY_CTX_set_rsa_pss_saltlen(pkctx, saltlen) <= 0)
+                goto err;
+        }
         i = EVP_PKEY_verify(pkctx, sigbuf, siglen, m, m_len);
  err:
         EVP_PKEY_CTX_free(pkctx);

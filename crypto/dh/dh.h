@@ -77,6 +77,8 @@
 #  define OPENSSL_DH_MAX_MODULUS_BITS    10000
 # endif
 
+# define OPENSSL_DH_FIPS_MIN_MODULUS_BITS 1024
+
 # define DH_FLAG_CACHE_MONT_P     0x01
 
 /*
