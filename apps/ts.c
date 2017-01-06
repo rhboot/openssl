@@ -337,7 +337,7 @@ int MAIN(int argc, char **argv)
     BIO_printf(bio_err, "usage:\n"
                "ts -query [-rand file%cfile%c...] [-config configfile] "
                "[-data file_to_hash] [-digest digest_bytes]"
-               "[-md2|-md4|-md5|-sha|-sha1|-mdc2|-ripemd160] "
+               "[-<hashalg>] "
                "[-policy object_id] [-no_nonce] [-cert] "
                "[-in request.tsq] [-out request.tsq] [-text]\n",
                LIST_SEPARATOR_CHAR, LIST_SEPARATOR_CHAR);

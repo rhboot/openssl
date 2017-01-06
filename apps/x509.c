@@ -141,7 +141,7 @@ static const char *x509_usage[] = {
     " -set_serial     - serial number to use\n",
     " -text           - print the certificate in text form\n",
     " -C              - print out C code forms\n",
-    " -md2/-md5/-sha1/-mdc2 - digest to use\n",
+    " -<dgst>         - digest to use, see openssl dgst -h output for list\n",
     " -extfile        - configuration file with X509V3 extensions to add\n",
     " -extensions     - section from config file with X509V3 extensions to add\n",
     " -clrext         - delete extensions before signing and input certificate\n",
