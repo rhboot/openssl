@@ -107,6 +107,7 @@ the digest to use. This affects any signing or display option that uses a messag
 digest, such as the B<-fingerprint>, B<-signkey> and B<-CA> options. If not
 specified then SHA1 is used. If the key being used to sign with is a DSA key
 then this option has no effect: SHA1 is always used with DSA keys.
+For full list of digests see openssl dgst -h output.
 
 =item B<-engine id>
 

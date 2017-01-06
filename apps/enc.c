@@ -293,7 +293,7 @@ int MAIN(int argc, char **argv)
                        "%-14s the next argument is the md to use to create a key\n",
                        "-md");
             BIO_printf(bio_err,
-                       "%-14s   from a passphrase.  One of md2, md5, sha or sha1\n",
+                       "%-14s   from a passphrase. See openssl dgst -h for list.\n",
                        "");
             BIO_printf(bio_err, "%-14s salt in hex is the next argument\n",
                        "-S");
