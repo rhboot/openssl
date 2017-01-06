@@ -6,6 +6,8 @@
  *        Implementation of control commands for GOST engine          *
  *            OpenSSL 0.9.9 libraries required                        *
  **********************************************************************/
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/crypto.h>
@@ -64,7 +66,7 @@ const char *get_gost_engine_param(int param)
     if (gost_params[param] != NULL) {
         return gost_params[param];
     }
-    tmp = getenv(gost_envnames[param]);
+    tmp = secure_getenv(gost_envnames[param]);
     if (tmp) {
         if (gost_params[param])
             OPENSSL_free(gost_params[param]);
@@ -79,7 +81,7 @@ int gost_set_default_param(int param, const char *value)
     const char *tmp;
     if (param < 0 || param > GOST_PARAM_MAX)
         return 0;
-    tmp = getenv(gost_envnames[param]);
+    tmp = secure_getenv(gost_envnames[param]);
     /*
      * if there is value in the environment, use it, else -passed string *
      */

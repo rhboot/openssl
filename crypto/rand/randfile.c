@@ -55,6 +55,8 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.]
  */
+/* for secure_getenv */
+#define _GNU_SOURCE
 
 #include <errno.h>
 #include <stdio.h>
@@ -327,14 +329,12 @@ const char *RAND_file_name(char *buf, size_t size)
     struct stat sb;
 #endif
 
-    if (OPENSSL_issetugid() == 0)
-        s = getenv("RANDFILE");
+    s = secure_getenv("RANDFILE");
     if (s != NULL && *s && strlen(s) + 1 < size) {
         if (BUF_strlcpy(buf, s, size) >= size)
             return NULL;
     } else {
-        if (OPENSSL_issetugid() == 0)
-            s = getenv("HOME");
+        s = secure_getenv("HOME");
 #ifdef DEFAULT_HOME
         if (s == NULL) {
             s = DEFAULT_HOME;
