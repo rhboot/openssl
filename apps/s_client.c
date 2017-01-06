@@ -171,6 +171,10 @@ typedef unsigned int u_int;
 #include "s_apps.h"
 #include "timeouts.h"
 
+#ifndef OPENSSL_NO_KRB5
+static char *krb5svc = NULL;
+#endif
+
 #if (defined(OPENSSL_SYS_VMS) && __VMS_VER < 70000000)
 /* FIONBIO used as a switch to enable ioctl, and that isn't in VMS < 7.0 */
 # undef FIONBIO
@@ -400,6 +404,9 @@ static void sc_usage(void)
     BIO_printf(bio_err,
                "                 only \"smtp\", \"pop3\", \"imap\", \"ftp\" and \"xmpp\"\n");
     BIO_printf(bio_err, "                 are supported.\n");
+#ifndef OPENSSL_NO_KRB5
+    BIO_printf(bio_err, " -krb5svc arg  - Kerberos service name\n");
+#endif
 #ifndef OPENSSL_NO_ENGINE
     BIO_printf(bio_err,
                " -engine id    - Initialise and use the specified engine\n");
@@ -1069,6 +1076,13 @@ int MAIN(int argc, char **argv)
             c_nbio = 1;
         }
 #endif
+#ifndef OPENSSL_NO_KRB5
+	else if	(strcmp(*argv, "-krb5svc") == 0) {
+            if (--argc < 1)
+                goto bad;
+            krb5svc= *(++argv);
+        }
+#endif
         else if (strcmp(*argv, "-starttls") == 0) {
             if (--argc < 1)
                 goto bad;
@@ -1435,6 +1449,8 @@ int MAIN(int argc, char **argv)
     if (con && (kctx = kssl_ctx_new()) != NULL) {
         SSL_set0_kssl_ctx(con, kctx);
         kssl_ctx_setstring(kctx, KSSL_SERVER, host);
+        if (krb5svc != NULL)
+            kssl_ctx_setstring(kctx, KSSL_SERVICE, krb5svc);
     }
 #endif                          /* OPENSSL_NO_KRB5 */
 /*      SSL_set_cipher_list(con,"RC4-MD5"); */
