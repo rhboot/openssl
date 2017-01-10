@@ -64,10 +64,20 @@
 # include <unistd.h>
 # include <errno.h>
 # include <stdlib.h>
+# include <stdio.h>
+# include <string.h>
+# include <strings.h>
+# include <ctype.h>
 # include <openssl/fips.h>
 # include <openssl/rand.h>
+# include <openssl/dh.h>
+# include <openssl/objects.h>
 
 # define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
+
+# define LEGACY_SETTINGS_FILE "/etc/pki/tls/legacy-settings"
+
+# define NUM_MAX_LEGACY_MDS 8
 
 static void init_fips_mode(void)
 {
@@ -98,6 +108,115 @@ static void init_fips_mode(void)
 }
 #endif
 
+int private_ossl_allowed_legacy_mds[NUM_MAX_LEGACY_MDS + 1]; /* zero terminated */
+
+int private_ossl_minimum_dh_bits;
+
+static void parse_legacy_mds(char *p)
+{
+    int idx = 0;
+    char *e = p;
+
+    while (p[0] != '\0') {
+        while (e[0] != '\0' && !isspace(e[0]) && e[0] != ',') {
+            ++e;
+        }
+        if (e[0] != '\0') {
+            e[0] = '\0';
+            ++e;
+        }
+
+        if (strcasecmp(p, "md5") == 0) {
+            private_ossl_allowed_legacy_mds[idx++] = NID_md5;
+        } else if (strcasecmp(p, "md4") == 0) {
+            private_ossl_allowed_legacy_mds[idx++] = NID_md4;
+        } else if (strcasecmp(p, "sha") == 0) {
+            private_ossl_allowed_legacy_mds[idx++] = NID_sha;
+        } else if (strcasecmp(p, "md2") == 0) {
+            private_ossl_allowed_legacy_mds[idx++] = NID_md2;
+        }
+
+        if (idx >=
+            sizeof(private_ossl_allowed_legacy_mds) /
+            sizeof(private_ossl_allowed_legacy_mds[0])) {
+            break;
+        }
+
+        while (e[0] == ',' || isspace(e[0])) {
+            ++e;
+        }
+
+        p = e;
+    }
+}
+
+static void parse_minimum_dh_bits(char *p)
+{
+    private_ossl_minimum_dh_bits = strtol(p, NULL, 10);
+    if (private_ossl_minimum_dh_bits < 512
+        || private_ossl_minimum_dh_bits > OPENSSL_DH_MAX_MODULUS_BITS) {
+        /* use default */
+        private_ossl_minimum_dh_bits = 0;
+    }
+}
+
+static void load_legacy_settings(void)
+{
+    FILE *f;
+    char *line = NULL;
+    size_t len = 0;
+
+    if ((f = fopen(LEGACY_SETTINGS_FILE, "r")) == NULL) {
+        return;
+    }
+
+    while (getline(&line, &len, f) > 0) {
+        char *p = line, *e, *val;
+
+        /* skip initial whitespace */
+        while (isspace(p[0])) {
+            ++p;
+        }
+
+        e = p;
+
+        while (e[0] != '\0' && !isspace(e[0])) {
+            ++e;
+        }
+
+        /* terminate name, skip whitespace between name and value */
+        if (e[0] != '\0') {
+            e[0] = '\0';
+            ++e;
+            while (isspace(e[0])) {
+                ++e;
+            }
+        }
+
+        val = e;
+
+        e = e + strlen(val);
+
+        /* trim terminating whitespace */
+        while (e > val) {
+            --e;
+            if (isspace(e[0])) {
+                e[0] = '\0';
+            } else {
+                break;
+            }
+        }
+
+        if (strcasecmp(p, "LegacySigningMDs") == 0) {
+            parse_legacy_mds(val);
+        } else if (strcasecmp(line, "MinimumDHBits") == 0) {
+            parse_minimum_dh_bits(val);
+        }
+        /* simply skip other unrecognized lines */
+    }
+    (void)fclose(f);
+}
+
 /*
  * Perform any essential OpenSSL initialization operations. Currently only
  * sets FIPS callbacks
@@ -109,6 +228,7 @@ void __attribute__ ((constructor)) OPENSSL_init_library(void)
     if (done)
         return;
     done = 1;
+    load_legacy_settings();
 #ifdef OPENSSL_FIPS
     if (!FIPS_module_installed()) {
         return;
