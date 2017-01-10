@@ -236,12 +236,22 @@ static int drbg_rand_add(DRBG_CTX *ctx, const void *in, int inlen,
                          double entropy)
 {
     RAND_SSLeay()->add(in, inlen, entropy);
+    if (FIPS_rand_status()) {
+        CRYPTO_w_lock(CRYPTO_LOCK_RAND);
+        FIPS_drbg_reseed(ctx, NULL, 0);
+        CRYPTO_w_unlock(CRYPTO_LOCK_RAND);
+    }
     return 1;
 }
 
 static int drbg_rand_seed(DRBG_CTX *ctx, const void *in, int inlen)
 {
     RAND_SSLeay()->seed(in, inlen);
+    if (FIPS_rand_status()) {
+        CRYPTO_w_lock(CRYPTO_LOCK_RAND);
+        FIPS_drbg_reseed(ctx, NULL, 0);
+        CRYPTO_w_unlock(CRYPTO_LOCK_RAND);
+    }
     return 1;
 }
 

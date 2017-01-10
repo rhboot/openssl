@@ -292,6 +292,23 @@ static int tls1_PRF(long digest_mask,
     return ret;
 }
 
+int private_tls1_PRF(long digest_mask,
+                     const void *seed1, int seed1_len,
+                     const void *seed2, int seed2_len,
+                     const void *seed3, int seed3_len,
+                     const void *seed4, int seed4_len,
+                     const void *seed5, int seed5_len,
+                     const unsigned char *sec, int slen,
+                     unsigned char *out1, unsigned char *out2, int olen)
+{
+    return tls1_PRF(digest_mask,
+                    seed1, seed1_len,
+                    seed2, seed2_len,
+                    seed3, seed3_len,
+                    seed4, seed4_len,
+                    seed5, seed5_len, sec, slen, out1, out2, olen);
+}
+
 static int tls1_generate_key_block(SSL *s, unsigned char *km,
                                    unsigned char *tmp, int num)
 {
