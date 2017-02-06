@@ -915,6 +915,13 @@ start:
 		goto start;
 		}
 
+	/*
+	 * Reset the count of consecutive warning alerts if we've got a non-empty
+	 * record that isn't an alert.
+	 */
+	if (rr->type != SSL3_RT_ALERT && rr->length != 0)
+		s->cert->alert_count = 0;
+
 	/* we now have a packet which can be read and processed */
 
 	if (s->s3->change_cipher_spec /* set when we receive ChangeCipherSpec,
@@ -1184,6 +1191,15 @@ start:
 		if (alert_level == 1) /* warning */
 			{
 			s->s3->warn_alert = alert_descr;
+
+			s->cert->alert_count++;
+			if (s->cert->alert_count == MAX_WARN_ALERT_COUNT)
+				{
+				al = SSL_AD_UNEXPECTED_MESSAGE;
+				SSLerr(SSL_F_DTLS1_READ_BYTES, SSL_R_TOO_MANY_WARN_ALERTS);
+				goto f_err;
+				}
+
 			if (alert_descr == SSL_AD_CLOSE_NOTIFY)
 				{
 #ifndef OPENSSL_NO_SCTP

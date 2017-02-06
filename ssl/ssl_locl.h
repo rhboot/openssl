@@ -485,6 +485,8 @@ typedef struct cert_pkey_st
 	const EVP_MD *digest;
 	} CERT_PKEY;
 
+# define MAX_WARN_ALERT_COUNT    5
+
 typedef struct cert_st
 	{
 	/* Current active set */
@@ -518,6 +520,7 @@ typedef struct cert_st
 	CERT_PKEY pkeys[SSL_PKEY_NUM];
 
 	int references; /* >1 only if SSL_copy_session_id is used */
+	unsigned int alert_count;
 	} CERT;
 
 
