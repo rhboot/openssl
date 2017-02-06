@@ -810,11 +810,17 @@ static int aes_gcm_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
 		gctx->tls_aad_len = arg;
 			{
 			unsigned int len=c->buf[arg-2]<<8|c->buf[arg-1];
+			if (len < EVP_GCM_TLS_EXPLICIT_IV_LEN)
+				return 0;
 			/* Correct length for explicit IV */
 			len -= EVP_GCM_TLS_EXPLICIT_IV_LEN;
 			/* If decrypting correct for tag too */
 			if (!c->encrypt)
+				{
+				if (len < EVP_GCM_TLS_TAG_LEN)
+					return 0;
 				len -= EVP_GCM_TLS_TAG_LEN;
+				}
                         c->buf[arg-2] = len>>8;
                         c->buf[arg-1] = len & 0xff;
 			}

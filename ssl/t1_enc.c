@@ -805,6 +805,8 @@ int tls1_enc(SSL *s, int send)
 			buf[11]=rec->length>>8;
 			buf[12]=rec->length&0xff;
 			pad=EVP_CIPHER_CTX_ctrl(ds,EVP_CTRL_AEAD_TLS1_AAD,13,buf);
+			if (pad <= 0)
+				return -1;
 			if (send)
 				{
 				l+=pad;
