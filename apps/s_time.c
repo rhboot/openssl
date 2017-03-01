@@ -190,7 +190,9 @@ static void s_time_usage(void)
            SSL_CONNECT_NAME);
 #ifdef FIONBIO
     printf("-nbio         - Run with non-blocking IO\n");
+#ifndef OPENSSL_NO_SSL2
     printf("-ssl2         - Just use SSLv2\n");
+#endif
     printf("-ssl3         - Just use SSLv3\n");
     printf("-bugs         - Turn on SSL bug compatibility\n");
     printf("-new          - Just time new connections\n");

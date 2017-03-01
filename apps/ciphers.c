@@ -73,7 +73,9 @@ static const char *ciphers_usage[] = {
     "usage: ciphers args\n",
     " -v          - verbose mode, a textual listing of the SSL/TLS ciphers in OpenSSL\n",
     " -V          - even more verbose\n",
+#ifndef OPENSSL_NO_SSL2
     " -ssl2       - SSL2 mode\n",
+#endif
     " -ssl3       - SSL3 mode\n",
     " -tls1       - TLS1 mode\n",
     NULL

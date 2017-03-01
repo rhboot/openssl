@@ -380,7 +380,9 @@ static void sc_usage(void)
                " -srp_strength int - minimal length in bits for N (default %d).\n",
                SRP_MINIMAL_N);
 #endif
+#ifndef OPENSSL_NO_SSL2
     BIO_printf(bio_err, " -ssl2         - just use SSLv2\n");
+#endif
 #ifndef OPENSSL_NO_SSL3_METHOD
     BIO_printf(bio_err, " -ssl3         - just use SSLv3\n");
 #endif
