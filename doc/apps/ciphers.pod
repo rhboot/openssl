@@ -9,7 +9,6 @@ ciphers - SSL cipher display and cipher list tool.
 B<openssl> B<ciphers>
 [B<-v>]
 [B<-V>]
-[B<-ssl2>]
 [B<-ssl3>]
 [B<-tls1>]
 [B<cipherlist>]
@@ -41,10 +40,6 @@ Like B<-v>, but include cipher suite codes in output (hex format).
 =item B<-ssl3>, B<-tls1>
 
 This lists ciphers compatible with any of SSLv3, TLSv1, TLSv1.1 or TLSv1.2.
-
-=item B<-ssl2>
-
-Only include SSLv2 ciphers.
 
 =item B<-h>, B<-?>
 

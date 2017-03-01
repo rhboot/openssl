@@ -596,7 +596,9 @@ static void sv_usage(void)
     BIO_printf(bio_err,
                " -srpuserseed string - A seed string for a default user salt.\n");
 #endif
+#ifndef OPENSSL_NO_SSL2
     BIO_printf(bio_err, " -ssl2         - Just talk SSLv2\n");
+#endif
 #ifndef OPENSSL_NO_SSL3_METHOD
     BIO_printf(bio_err, " -ssl3         - Just talk SSLv3\n");
 #endif
@@ -608,7 +610,7 @@ static void sv_usage(void)
     BIO_printf(bio_err, " -timeout      - Enable timeouts\n");
     BIO_printf(bio_err, " -mtu          - Set link layer MTU\n");
     BIO_printf(bio_err, " -chain        - Read a certificate chain\n");
-    BIO_printf(bio_err, " -no_ssl2      - Just disable SSLv2\n");
+    BIO_printf(bio_err, " -no_ssl2      - No-op, SSLv2 is always disabled\n");
     BIO_printf(bio_err, " -no_ssl3      - Just disable SSLv3\n");
     BIO_printf(bio_err, " -no_tls1      - Just disable TLSv1\n");
     BIO_printf(bio_err, " -no_tls1_1    - Just disable TLSv1.1\n");

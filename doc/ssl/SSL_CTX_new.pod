@@ -123,13 +123,8 @@ used.
 
 =item SSLv2_method(), SSLv2_server_method(), SSLv2_client_method()
 
-A TLS/SSL connection established with these methods will only understand the
-SSLv2 protocol.  A client will send out SSLv2 client hello messages and will
-also indicate that it only understand SSLv2.  A server will only understand
-SSLv2 client hello messages.  The SSLv2 protocol offers little to no security
-and should not be used.
-As of OpenSSL 1.0.2g, EXPORT ciphers and 56-bit DES are no longer available
-with SSLv2.
+These calls are provided only as stubs for keeping ABI compatibility. There
+is no support for SSLv2 built in the library.
 
 =item DTLS_method(), DTLS_server_method(), DTLS_client_method()
 
