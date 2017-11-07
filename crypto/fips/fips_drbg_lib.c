@@ -338,6 +338,12 @@ int FIPS_drbg_reseed(DRBG_CTX *dctx,
     return drbg_reseed(dctx, adin, adinlen, 1);
 }
 
+void FIPS_drbg_set_reseed(DRBG_CTX *dctx)
+{
+    if (dctx->status == DRBG_STATUS_READY)
+        dctx->reseed_counter = dctx->reseed_interval;
+}
+
 static int fips_drbg_check(DRBG_CTX *dctx)
 {
     if (dctx->xflags & DRBG_FLAG_TEST)

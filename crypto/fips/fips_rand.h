@@ -86,6 +86,7 @@ extern "C" {
                               const unsigned char *pers, size_t perslen);
     int FIPS_drbg_reseed(DRBG_CTX *dctx, const unsigned char *adin,
                          size_t adinlen);
+    void FIPS_drbg_set_reseed(DRBG_CTX *dctx);
     int FIPS_drbg_generate(DRBG_CTX *dctx, unsigned char *out, size_t outlen,
                            int prediction_resistance,
                            const unsigned char *adin, size_t adinlen);
