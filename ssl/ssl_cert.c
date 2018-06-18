@@ -855,9 +855,33 @@ int SSL_CTX_add_client_CA(SSL_CTX *ctx, X509 *x)
     return (add_client_CA(&(ctx->client_CA), x));
 }
 
-static int xname_cmp(const X509_NAME *const *a, const X509_NAME *const *b)
+static int xname_cmp(const X509_NAME *a, const X509_NAME *b)
 {
-    return (X509_NAME_cmp(*a, *b));
+    unsigned char *abuf = NULL, *bbuf = NULL;
+    int alen, blen, ret;
+
+    /* X509_NAME_cmp() itself casts away constness in this way, so
+     * assume it's safe:
+     */
+    alen = i2d_X509_NAME((X509_NAME *)a, &abuf);
+    blen = i2d_X509_NAME((X509_NAME *)b, &bbuf);
+
+    if (alen < 0 || blen < 0)
+        ret = -2;
+    else if (alen != blen)
+        ret = alen - blen;
+    else /* alen == blen */
+        ret = memcmp(abuf, bbuf, alen);
+
+    OPENSSL_free(abuf);
+    OPENSSL_free(bbuf);
+
+    return ret;
+}
+
+static int xname_sk_cmp(const X509_NAME *const *a, const X509_NAME *const *b)
+{
+    return xname_cmp(*a, *b);
 }
 
 #ifndef OPENSSL_NO_STDIO
@@ -876,7 +900,7 @@ STACK_OF(X509_NAME) *SSL_load_client_CA_file(const char *file)
     X509_NAME *xn = NULL;
     STACK_OF(X509_NAME) *ret = NULL, *sk;
 
-    sk = sk_X509_NAME_new(xname_cmp);
+    sk = sk_X509_NAME_new(xname_sk_cmp);
 
     in = BIO_new(BIO_s_file_internal());
 
@@ -948,7 +972,7 @@ int SSL_add_file_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
     int ret = 1;
     int (*oldcmp) (const X509_NAME *const *a, const X509_NAME *const *b);
 
-    oldcmp = sk_X509_NAME_set_cmp_func(stack, xname_cmp);
+    oldcmp = sk_X509_NAME_set_cmp_func(stack, xname_sk_cmp);
 
     in = BIO_new(BIO_s_file_internal());
 
