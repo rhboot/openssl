@@ -63,6 +63,7 @@
 #ifdef OPENSSL_FIPS
 # include <openssl/fips.h>
 #endif
+#include "bn_int.h"
 
 static ECDSA_SIG *ecdsa_do_sign(const unsigned char *dgst, int dlen,
                                 const BIGNUM *, const BIGNUM *,
@@ -98,6 +99,7 @@ static int ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in, BIGNUM **kinvp,
     EC_POINT *tmp_point = NULL;
     const EC_GROUP *group;
     int ret = 0;
+    int order_bits;
 
     if (eckey == NULL || (group = EC_KEY_get0_group(eckey)) == NULL) {
         ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_PASSED_NULL_PARAMETER);
@@ -129,6 +131,13 @@ static int ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in, BIGNUM **kinvp,
         goto err;
     }
 
+    /* Preallocate space */
+    order_bits = BN_num_bits(order);
+    if (!BN_set_bit(k, order_bits)
+        || !BN_set_bit(r, order_bits)
+        || !BN_set_bit(X, order_bits))
+        goto err;
+
     do {
         /* get random k */
         do
@@ -142,13 +151,19 @@ static int ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in, BIGNUM **kinvp,
         /*
          * We do not want timing information to leak the length of k, so we
          * compute G*k using an equivalent scalar of fixed bit-length.
+         *
+         * We unconditionally perform both of these additions to prevent a
+         * small timing information leakage.  We then choose the sum that is
+         * one bit longer than the order.  This guarantees the code
+         * path used in the constant time implementations elsewhere.
+         *
+         * TODO: revisit the BN_copy aiming for a memory access agnostic
+         * conditional copy.
          */
-
-        if (!BN_add(k, k, order))
+        if (!BN_add(r, k, order)
+            || !BN_add(X, r, order)
+            || !BN_copy(k, BN_num_bits(r) > order_bits ? r : X))
             goto err;
-        if (BN_num_bits(k) <= BN_num_bits(order))
-            if (!BN_add(k, k, order))
-                goto err;
 
         /* compute r the x-coordinate of generator * k */
         if (!EC_POINT_mul(group, tmp_point, k, NULL, NULL, ctx)) {
@@ -240,13 +255,14 @@ static ECDSA_SIG *ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
                                 EC_KEY *eckey)
 {
     int ok = 0, i;
-    BIGNUM *kinv = NULL, *s, *m = NULL, *tmp = NULL, *order = NULL;
+    BIGNUM *kinv = NULL, *s, *m = NULL, *order = NULL;
     const BIGNUM *ckinv;
     BN_CTX *ctx = NULL;
     const EC_GROUP *group;
     ECDSA_SIG *ret;
     ECDSA_DATA *ecdsa;
     const BIGNUM *priv_key;
+    BN_MONT_CTX *mont_data;
 
 #ifdef OPENSSL_FIPS
     if (FIPS_selftest_failed()) {
@@ -272,7 +288,7 @@ static ECDSA_SIG *ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
     s = ret->s;
 
     if ((ctx = BN_CTX_new()) == NULL || (order = BN_new()) == NULL ||
-        (tmp = BN_new()) == NULL || (m = BN_new()) == NULL) {
+        (m = BN_new()) == NULL) {
         ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_MALLOC_FAILURE);
         goto err;
     }
@@ -281,6 +297,8 @@ static ECDSA_SIG *ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
         ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_EC_LIB);
         goto err;
     }
+    mont_data = EC_GROUP_get_mont_data(group);
+
     i = BN_num_bits(order);
     /*
      * Need to truncate digest if it is too long: first truncate whole bytes.
@@ -311,21 +329,33 @@ static ECDSA_SIG *ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
             }
         }
 
-        if (!BN_mod_mul(tmp, priv_key, ret->r, order, ctx)) {
+        /*
+         * With only one multiplicant being in Montgomery domain
+         * multiplication yields real result without post-conversion.
+         * Also note that all operations but last are performed with
+         * zero-padded vectors. Last operation, BN_mod_mul_montgomery
+         * below, returns user-visible value with removed zero padding.
+         */
+        if (!bn_to_mont_fixed_top(s, ret->r, mont_data, ctx)
+            || !bn_mul_mont_fixed_top(s, s, priv_key, mont_data, ctx)) {
+            goto err;
+        }
+        if (!bn_mod_add_fixed_top(s, s, m, order)) {
             ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
             goto err;
         }
-        if (!BN_mod_add_quick(s, tmp, m, order)) {
-            ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
-            goto err;
-        }
-        if (!BN_mod_mul(s, s, ckinv, order, ctx)) {
+        /*
+         * |s| can still be larger than modulus, because |m| can be. In
+         * such case we count on Montgomery reduction to tie it up.
+         */
+        if (!bn_to_mont_fixed_top(s, s, mont_data, ctx)
+            || !BN_mod_mul_montgomery(s, s, ckinv, mont_data, ctx)) {
             ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
             goto err;
         }
         if (BN_is_zero(s)) {
             /*
-             * if kinv and r have been supplied by the caller don't to
+             * if kinv and r have been supplied by the caller don't
              * generate new kinv and r values
              */
             if (in_kinv != NULL && in_r != NULL) {
@@ -349,8 +379,6 @@ static ECDSA_SIG *ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
         BN_CTX_free(ctx);
     if (m)
         BN_clear_free(m);
-    if (tmp)
-        BN_clear_free(tmp);
     if (order)
         BN_free(order);
     if (kinv)
