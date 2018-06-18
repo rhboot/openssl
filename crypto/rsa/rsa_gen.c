@@ -1,6 +1,6 @@
 /* crypto/rsa/rsa_gen.c */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
- * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2013, 2018 Red Hat, Inc.
  * All rights reserved.
  *
  * This package is an SSL implementation written
@@ -175,14 +175,13 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
                                    BN_GENCB *cb)
 {
     BIGNUM *r0 = NULL, *r1 = NULL, *r2 = NULL, *r3 = NULL, *tmp;
-    BIGNUM local_r0, local_d, local_p;
-    BIGNUM *pr0, *d, *p;
     BN_CTX *ctx = NULL;
     int ok = -1;
     int i;
     int n = 0;
     int test = 0;
     int pbits = bits / 2;
+    unsigned long error = 0;
 
     if (FIPS_selftest_failed()) {
         FIPSerr(FIPS_F_RSA_BUILTIN_KEYGEN, FIPS_R_FIPS_SELFTEST_FAILED);
@@ -251,6 +250,12 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
     if (!BN_is_zero(rsa->p) && !BN_is_zero(rsa->q))
         test = 1;
 
+    BN_set_flags(r0, BN_FLG_CONSTTIME);
+    BN_set_flags(r1, BN_FLG_CONSTTIME);
+    BN_set_flags(r2, BN_FLG_CONSTTIME);
+    BN_set_flags(rsa->p, BN_FLG_CONSTTIME);
+    BN_set_flags(rsa->q, BN_FLG_CONSTTIME);
+
  retry:
     /* generate p and q */
     for (i = 0; i < 5 * pbits; i++) {
@@ -266,9 +271,9 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
 
         if (!BN_sub(r2, rsa->p, BN_value_one()))
             goto err;
-        if (!BN_gcd(r1, r2, rsa->e, ctx))
-            goto err;
-        if (BN_is_one(r1)) {
+        ERR_set_mark();
+        if (BN_mod_inverse(r1, r2, rsa->e, ctx) != NULL) {
+            /* GCD == 1 since inverse exists */
             int r;
             r = BN_is_prime_fasttest_ex(rsa->p, pbits > 1024 ? 4 : 5, ctx, 0,
                                         cb);
@@ -276,8 +281,16 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
                 goto err;
             if (r > 0)
                 break;
+        } else {
+            error = ERR_peek_last_error();
+            if (ERR_GET_LIB(error) == ERR_LIB_BN
+                && ERR_GET_REASON(error) == BN_R_NO_INVERSE) {
+                /* GCD != 1 */
+                ERR_pop_to_mark();
+            } else {
+                goto err;
+            }
         }
-
         if (!BN_GENCB_call(cb, 2, n++))
             goto err;
     }
@@ -309,9 +322,9 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
 
         if (!BN_sub(r2, rsa->q, BN_value_one()))
             goto err;
-        if (!BN_gcd(r1, r2, rsa->e, ctx))
-            goto err;
-        if (BN_is_one(r1)) {
+        ERR_set_mark();
+        if (BN_mod_inverse(r1, r2, rsa->e, ctx) != NULL) {
+            /* GCD == 1 since inverse exists */
             int r;
             r = BN_is_prime_fasttest_ex(rsa->q, pbits > 1024 ? 4 : 5, ctx, 0,
                                         cb);
@@ -319,8 +332,16 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
                 goto err;
             if (r > 0)
                 break;
+        } else {
+            error = ERR_peek_last_error();
+            if (ERR_GET_LIB(error) == ERR_LIB_BN
+                && ERR_GET_REASON(error) == BN_R_NO_INVERSE) {
+                /* GCD != 1 */
+                ERR_pop_to_mark();
+            } else {
+                goto err;
+            }
         }
-
         if (!BN_GENCB_call(cb, 2, n++))
             goto err;
     }
@@ -355,51 +376,44 @@ static int FIPS_rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
     if (!BN_sub(r2, rsa->q, BN_value_one()))
         goto err;               /* q-1 */
 
+    /* note that computing gcd is not safe to timing attacks */
     if (!BN_gcd(r0, r1, r2, ctx))
         goto err;
-    if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME)) {
-        pr0 = &local_r0;
-        BN_with_flags(pr0, r0, BN_FLG_CONSTTIME);
-    } else
-        pr0 = r0;
-    if (!BN_div(r0, NULL, r1, pr0, ctx))
-        goto err;
-    if (!BN_mul(r0, r0, r2, ctx))
-        goto err;               /* lcm(p-1, q-1) */
 
-    if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME)) {
-        pr0 = &local_r0;
-        BN_with_flags(pr0, r0, BN_FLG_CONSTTIME);
-    } else
-        pr0 = r0;
-    if (!BN_mod_inverse(rsa->d, rsa->e, pr0, ctx))
-        goto err;               /* d */
+    {
+        if (!BN_div(r0, NULL, r1, r0, ctx))
+            goto err;
+
+        if (!BN_mul(r0, r0, r2, ctx)) /* lcm(p-1, q-1) */
+            goto err;
+
+        if (!BN_mod_inverse(rsa->d, rsa->e, r0, ctx)) /* d */
+            goto err;
+    }
 
     if (BN_num_bits(rsa->d) < pbits)
         goto retry;             /* d is too small */
 
-    /* set up d for correct BN_FLG_CONSTTIME flag */
-    if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME)) {
-        d = &local_d;
+    {
+        BIGNUM *d = BN_new();
+
+        if (d == NULL)
+            goto err;
         BN_with_flags(d, rsa->d, BN_FLG_CONSTTIME);
-    } else
-        d = rsa->d;
 
-    /* calculate d mod (p-1) */
-    if (!BN_mod(rsa->dmp1, d, r1, ctx))
-        goto err;
-
-    /* calculate d mod (q-1) */
-    if (!BN_mod(rsa->dmq1, d, r2, ctx))
-        goto err;
+        if (/* calculate d mod (p-1) */
+            !BN_mod(rsa->dmp1, d, r1, ctx)
+            /* calculate d mod (q-1) */
+            || !BN_mod(rsa->dmq1, d, r2, ctx)) {
+            BN_free(d);
+            goto err;
+        }
+        /* We MUST free d before any further use of rsa->d */
+        BN_free(d);
+    }
 
     /* calculate inverse of q mod p */
-    if (!(rsa->flags & RSA_FLAG_NO_CONSTTIME)) {
-        p = &local_p;
-        BN_with_flags(p, rsa->p, BN_FLG_CONSTTIME);
-    } else
-        p = rsa->p;
-    if (!BN_mod_inverse(rsa->iqmp, rsa->q, p, ctx))
+    if (!BN_mod_inverse(rsa->iqmp, rsa->q, rsa->p, ctx))
         goto err;
 
     if (fips_rsa_pairwise_fail)
@@ -431,6 +445,17 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
     BIGNUM *pr0, *d, *p;
     int bitsp, bitsq, ok = -1, n = 0;
     BN_CTX *ctx = NULL;
+    unsigned long error = 0;
+
+    /*
+     * When generating ridiculously small keys, we can get stuck
+     * continually regenerating the same prime values.
+     */
+    if (bits < 16) {
+        ok = 0;             /* we set our own err */
+        RSAerr(RSA_F_RSA_BUILTIN_KEYGEN, RSA_R_KEY_SIZE_TOO_SMALL);
+        goto err;
+    }
 
 #ifdef OPENSSL_FIPS
     if (FIPS_module_mode()) {
@@ -483,45 +508,55 @@ static int rsa_builtin_keygen(RSA *rsa, int bits, BIGNUM *e_value,
     if (BN_copy(rsa->e, e_value) == NULL)
         goto err;
 
+    BN_set_flags(rsa->p, BN_FLG_CONSTTIME);
+    BN_set_flags(rsa->q, BN_FLG_CONSTTIME);
+    BN_set_flags(r2, BN_FLG_CONSTTIME);
     /* generate p and q */
     for (;;) {
         if (!BN_generate_prime_ex(rsa->p, bitsp, 0, NULL, NULL, cb))
             goto err;
         if (!BN_sub(r2, rsa->p, BN_value_one()))
             goto err;
-        if (!BN_gcd(r1, r2, rsa->e, ctx))
-            goto err;
-        if (BN_is_one(r1))
+        ERR_set_mark();
+        if (BN_mod_inverse(r1, r2, rsa->e, ctx) != NULL) {
+            /* GCD == 1 since inverse exists */
             break;
+        }
+        error = ERR_peek_last_error();
+        if (ERR_GET_LIB(error) == ERR_LIB_BN
+            && ERR_GET_REASON(error) == BN_R_NO_INVERSE) {
+            /* GCD != 1 */
+            ERR_pop_to_mark();
+        } else {
+            goto err;
+        }
         if (!BN_GENCB_call(cb, 2, n++))
             goto err;
     }
     if (!BN_GENCB_call(cb, 3, 0))
         goto err;
     for (;;) {
-        /*
-         * When generating ridiculously small keys, we can get stuck
-         * continually regenerating the same prime values. Check for this and
-         * bail if it happens 3 times.
-         */
-        unsigned int degenerate = 0;
         do {
             if (!BN_generate_prime_ex(rsa->q, bitsq, 0, NULL, NULL, cb))
                 goto err;
             if (!BN_sub(r2, rsa->q, rsa->p))
                 goto err;
-        } while ((BN_ucmp(r2, r3) <= 0) && (++degenerate < 3));
-        if (degenerate == 3) {
-            ok = 0;             /* we set our own err */
-            RSAerr(RSA_F_RSA_BUILTIN_KEYGEN, RSA_R_KEY_SIZE_TOO_SMALL);
-            goto err;
-        }
+        } while (BN_ucmp(r2, r3) <= 0);
         if (!BN_sub(r2, rsa->q, BN_value_one()))
             goto err;
-        if (!BN_gcd(r1, r2, rsa->e, ctx))
-            goto err;
-        if (BN_is_one(r1))
+        ERR_set_mark();
+        if (BN_mod_inverse(r1, r2, rsa->e, ctx) != NULL) {
+            /* GCD == 1 since inverse exists */
             break;
+        }
+        error = ERR_peek_last_error();
+        if (ERR_GET_LIB(error) == ERR_LIB_BN
+            && ERR_GET_REASON(error) == BN_R_NO_INVERSE) {
+            /* GCD != 1 */
+            ERR_pop_to_mark();
+        } else {
+            goto err;
+        }
         if (!BN_GENCB_call(cb, 2, n++))
             goto err;
     }
