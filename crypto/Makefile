@@ -77,6 +77,7 @@ alphacpuid.s:	alphacpuid.pl
 	(preproc=$$$$.$@.S; trap "rm $$preproc" INT; \
 	$(PERL) alphacpuid.pl > $$preproc && \
 	$(CC) -E -P $$preproc > $@ && rm $$preproc)
+s390xcpuid.S:	s390xcpuid.pl;	$(PERL) s390xcpuid.pl $(PERLASM_SCHEME) $@
 
 testapps:
 	[ -z "$(THIS)" ] || (	if echo $(SDIRS) | fgrep ' des '; \
