@@ -71,6 +71,8 @@ ghash-%.S:	asm/ghash-%.pl;	$(PERL) $< $(PERLASM_SCHEME) $@
 ghash-armv4.o:	ghash-armv4.S
 ghashv8-armx.o:	ghashv8-armx.S
 
+ghash-s390x.o:	ghash-s390x.S
+
 files:
 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
 

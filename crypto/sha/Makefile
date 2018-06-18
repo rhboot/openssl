@@ -100,6 +100,10 @@ sha1-armv8.o:		sha1-armv8.S
 sha256-armv8.o:		sha256-armv8.S
 sha512-armv8.o:		sha512-armv8.S
 
+sha1-s390x.o:		sha1-s390x.S
+sha256-s390x.o:		sha256-s390x.S
+sha512-s390x.o:		sha512-s390x.S
+
 files:
 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
 
