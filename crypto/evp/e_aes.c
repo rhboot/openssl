@@ -387,22 +387,33 @@ static int aesni_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
         return 1;
 
     if (key) {
+        /* The key is two half length keys in reality */
+        const int bytes = EVP_CIPHER_CTX_key_length(ctx) / 2;
+        const int bits = bytes * 8;
+
+        /*
+         * Verify that the two keys are different.
+         * 
+         * This addresses Rogaway's vulnerability.
+         * See comment in aes_xts_init_key() below.
+         */
+        if (memcmp(key, key + bytes, bytes) == 0) {
+            EVPerr(EVP_F_AESNI_XTS_INIT_KEY, EVP_R_XTS_DUPLICATED_KEYS);
+            return 0;
+        }
+
         /* key_len is two AES keys */
         if (enc) {
-            aesni_set_encrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                  &xctx->ks1.ks);
+            aesni_set_encrypt_key(key, bits, &xctx->ks1.ks);
             xctx->xts.block1 = (block128_f) aesni_encrypt;
             xctx->stream = aesni_xts_encrypt;
         } else {
-            aesni_set_decrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                  &xctx->ks1.ks);
+            aesni_set_decrypt_key(key, bits, &xctx->ks1.ks);
             xctx->xts.block1 = (block128_f) aesni_decrypt;
             xctx->stream = aesni_xts_decrypt;
         }
 
-        aesni_set_encrypt_key(key + EVP_CIPHER_CTX_key_length(ctx) / 2,
-                              EVP_CIPHER_CTX_key_length(ctx) * 4,
-                              &xctx->ks2.ks);
+        aesni_set_encrypt_key(key + bytes, bits, &xctx->ks2.ks);
         xctx->xts.block2 = (block128_f) aesni_encrypt;
 
         xctx->xts.key1 = &xctx->ks1;
@@ -791,7 +802,21 @@ static int aes_t4_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
         return 1;
 
     if (key) {
-        int bits = EVP_CIPHER_CTX_key_length(ctx) * 4;
+        /* The key is two half length keys in reality */
+        const int bytes = EVP_CIPHER_CTX_key_length(ctx) / 2;
+        const int bits = bytes * 8;
+
+        /*
+         * Verify that the two keys are different.
+         * 
+         * This addresses Rogaway's vulnerability.
+         * See comment in aes_xts_init_key() below.
+         */
+        if (memcmp(key, key + bytes, bytes) == 0) {
+            EVPerr(EVP_F_AES_T4_XTS_INIT_KEY, EVP_R_XTS_DUPLICATED_KEYS);
+            return 0;
+        }
+
         xctx->stream = NULL;
         /* key_len is two AES keys */
         if (enc) {
@@ -808,8 +833,7 @@ static int aes_t4_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                 return 0;
             }
         } else {
-            aes_t4_set_decrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                   &xctx->ks1.ks);
+            aes_t4_set_decrypt_key(key, bits, &xctx->ks1.ks);
             xctx->xts.block1 = (block128_f) aes_t4_decrypt;
             switch (bits) {
             case 128:
@@ -823,9 +847,7 @@ static int aes_t4_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
             }
         }
 
-        aes_t4_set_encrypt_key(key + EVP_CIPHER_CTX_key_length(ctx) / 2,
-                               EVP_CIPHER_CTX_key_length(ctx) * 4,
-                               &xctx->ks2.ks);
+        aes_t4_set_encrypt_key(key + bytes, bits, &xctx->ks2.ks);
         xctx->xts.block2 = (block128_f) aes_t4_encrypt;
 
         xctx->xts.key1 = &xctx->ks1;
@@ -2795,9 +2817,9 @@ static int aes_ctr_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     return 1;
 }
 
-BLOCK_CIPHER_generic_pack(NID_aes, 128, 0)
-    BLOCK_CIPHER_generic_pack(NID_aes, 192, 0)
-    BLOCK_CIPHER_generic_pack(NID_aes, 256, 0)
+BLOCK_CIPHER_generic_pack(NID_aes, 128, EVP_CIPH_FLAG_FIPS)
+    BLOCK_CIPHER_generic_pack(NID_aes, 192, EVP_CIPH_FLAG_FIPS)
+    BLOCK_CIPHER_generic_pack(NID_aes, 256, EVP_CIPH_FLAG_FIPS)
 
 static int aes_gcm_cleanup(EVP_CIPHER_CTX *c)
 {
@@ -2827,6 +2849,11 @@ static int aes_gcm_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
     case EVP_CTRL_AEAD_SET_IVLEN:
         if (arg <= 0)
             return 0;
+# ifdef OPENSSL_FIPS
+        if (FIPS_mode() && !(c->flags & EVP_CIPH_FLAG_NON_FIPS_ALLOW)
+            && arg < 12)
+            return 0;
+# endif
         /* Allocate memory for IV if needed */
         if ((arg > EVP_MAX_IV_LENGTH) && (arg > gctx->ivlen)) {
             if (gctx->iv != c->iv)
@@ -3276,11 +3303,14 @@ static int aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
                 | EVP_CIPH_CUSTOM_COPY)
 
 BLOCK_CIPHER_custom(NID_aes, 128, 1, 12, gcm, GCM,
-                    EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
+                    EVP_CIPH_FLAG_FIPS | EVP_CIPH_FLAG_AEAD_CIPHER |
+                    CUSTOM_FLAGS)
     BLOCK_CIPHER_custom(NID_aes, 192, 1, 12, gcm, GCM,
-                    EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
+                    EVP_CIPH_FLAG_FIPS | EVP_CIPH_FLAG_AEAD_CIPHER |
+                    CUSTOM_FLAGS)
     BLOCK_CIPHER_custom(NID_aes, 256, 1, 12, gcm, GCM,
-                    EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
+                    EVP_CIPH_FLAG_FIPS | EVP_CIPH_FLAG_AEAD_CIPHER |
+                    CUSTOM_FLAGS)
 
 static int aes_xts_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
 {
@@ -3314,8 +3344,33 @@ static int aes_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
     if (!iv && !key)
         return 1;
 
-    if (key)
+    if (key) {
         do {
+            /* The key is two half length keys in reality */
+            const int bytes = EVP_CIPHER_CTX_key_length(ctx) / 2;
+            const int bits = bytes * 8;
+
+            /*
+             * Verify that the two keys are different.
+             *
+             * This addresses the vulnerability described in Rogaway's
+             * September 2004 paper:
+             *
+             *      "Efficient Instantiations of Tweakable Blockciphers and
+             *       Refinements to Modes OCB and PMAC".
+             *      (http://web.cs.ucdavis.edu/~rogaway/papers/offsets.pdf)
+             *
+             * FIPS 140-2 IG A.9 XTS-AES Key Generation Requirements states
+             * that:
+             *      "The check for Key_1 != Key_2 shall be done at any place
+             *       BEFORE using the keys in the XTS-AES algorithm to process
+             *       data with them."
+             */
+            if (memcmp(key, key + bytes, bytes) == 0) {
+                EVPerr(EVP_F_AES_XTS_INIT_KEY, EVP_R_XTS_DUPLICATED_KEYS);
+                return 0;
+            }
+
 #ifdef AES_XTS_ASM
             xctx->stream = enc ? AES_xts_encrypt : AES_xts_decrypt;
 #else
@@ -3325,26 +3380,20 @@ static int aes_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 #ifdef HWAES_CAPABLE
             if (HWAES_CAPABLE) {
                 if (enc) {
-                    HWAES_set_encrypt_key(key,
-                                          EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                          &xctx->ks1.ks);
+                    HWAES_set_encrypt_key(key, bits, &xctx->ks1.ks);
                     xctx->xts.block1 = (block128_f) HWAES_encrypt;
 # ifdef HWAES_xts_encrypt
                     xctx->stream = HWAES_xts_encrypt;
 # endif
                 } else {
-                    HWAES_set_decrypt_key(key,
-                                          EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                          &xctx->ks1.ks);
+                    HWAES_set_decrypt_key(key, bits, &xctx->ks1.ks);
                     xctx->xts.block1 = (block128_f) HWAES_decrypt;
 # ifdef HWAES_xts_decrypt
                     xctx->stream = HWAES_xts_decrypt;
 #endif
                 }
 
-                HWAES_set_encrypt_key(key + EVP_CIPHER_CTX_key_length(ctx) / 2,
-                                      EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                      &xctx->ks2.ks);
+                HWAES_set_encrypt_key(key + bytes, bits, &xctx->ks2.ks);
                 xctx->xts.block2 = (block128_f) HWAES_encrypt;
 
                 xctx->xts.key1 = &xctx->ks1;
@@ -3359,20 +3408,14 @@ static int aes_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 #ifdef VPAES_CAPABLE
             if (VPAES_CAPABLE) {
                 if (enc) {
-                    vpaes_set_encrypt_key(key,
-                                          EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                          &xctx->ks1.ks);
+                    vpaes_set_encrypt_key(key, bits, &xctx->ks1.ks);
                     xctx->xts.block1 = (block128_f) vpaes_encrypt;
                 } else {
-                    vpaes_set_decrypt_key(key,
-                                          EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                          &xctx->ks1.ks);
+                    vpaes_set_decrypt_key(key, bits, &xctx->ks1.ks);
                     xctx->xts.block1 = (block128_f) vpaes_decrypt;
                 }
 
-                vpaes_set_encrypt_key(key + EVP_CIPHER_CTX_key_length(ctx) / 2,
-                                      EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                      &xctx->ks2.ks);
+                vpaes_set_encrypt_key(key + bytes, bits, &xctx->ks2.ks);
                 xctx->xts.block2 = (block128_f) vpaes_encrypt;
 
                 xctx->xts.key1 = &xctx->ks1;
@@ -3382,22 +3425,19 @@ static int aes_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                 (void)0;        /* terminate potentially open 'else' */
 
             if (enc) {
-                AES_set_encrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                    &xctx->ks1.ks);
+                AES_set_encrypt_key(key, bits, &xctx->ks1.ks);
                 xctx->xts.block1 = (block128_f) AES_encrypt;
             } else {
-                AES_set_decrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                    &xctx->ks1.ks);
+                AES_set_decrypt_key(key, bits, &xctx->ks1.ks);
                 xctx->xts.block1 = (block128_f) AES_decrypt;
             }
 
-            AES_set_encrypt_key(key + EVP_CIPHER_CTX_key_length(ctx) / 2,
-                                EVP_CIPHER_CTX_key_length(ctx) * 4,
-                                &xctx->ks2.ks);
+            AES_set_encrypt_key(key + bytes, bits, &xctx->ks2.ks);
             xctx->xts.block2 = (block128_f) AES_encrypt;
 
             xctx->xts.key1 = &xctx->ks1;
         } while (0);
+    }
 
     if (iv) {
         xctx->xts.key2 = &xctx->ks2;
@@ -3415,6 +3455,14 @@ static int aes_xts_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
         return 0;
     if (!out || !in || len < AES_BLOCK_SIZE)
         return 0;
+# ifdef OPENSSL_FIPS
+    /* Requirement of SP800-38E */
+    if (FIPS_mode() && !(ctx->flags & EVP_CIPH_FLAG_NON_FIPS_ALLOW) &&
+        (len > (1UL << 20) * 16)) {
+        EVPerr(EVP_F_AES_XTS_CIPHER, EVP_R_TOO_LARGE);
+        return 0;
+    }
+# endif
     if (xctx->stream)
         (*xctx->stream) (in, out, len,
                          xctx->xts.key1, xctx->xts.key2,
@@ -3432,8 +3480,10 @@ static int aes_xts_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
                          | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CTRL_INIT \
                          | EVP_CIPH_CUSTOM_COPY)
 
-BLOCK_CIPHER_custom(NID_aes, 128, 1, 16, xts, XTS, XTS_FLAGS)
-    BLOCK_CIPHER_custom(NID_aes, 256, 1, 16, xts, XTS, XTS_FLAGS)
+BLOCK_CIPHER_custom(NID_aes, 128, 1, 16, xts, XTS,
+                    EVP_CIPH_FLAG_FIPS | XTS_FLAGS)
+    BLOCK_CIPHER_custom(NID_aes, 256, 1, 16, xts, XTS,
+                    EVP_CIPH_FLAG_FIPS | XTS_FLAGS)
 
 static int aes_ccm_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
 {
@@ -3701,11 +3751,11 @@ static int aes_ccm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 #define aes_ccm_cleanup NULL
 
 BLOCK_CIPHER_custom(NID_aes, 128, 1, 12, ccm, CCM,
-                    EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
+                    EVP_CIPH_FLAG_FIPS | EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
     BLOCK_CIPHER_custom(NID_aes, 192, 1, 12, ccm, CCM,
-                        EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
+                        EVP_CIPH_FLAG_FIPS | EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
     BLOCK_CIPHER_custom(NID_aes, 256, 1, 12, ccm, CCM,
-                        EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
+                        EVP_CIPH_FLAG_FIPS | EVP_CIPH_FLAG_AEAD_CIPHER | CUSTOM_FLAGS)
 
 typedef struct {
     union {
@@ -3798,7 +3848,7 @@ static int aes_wrap_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     return rv ? (int)rv : -1;
 }
 
-#define WRAP_FLAGS      (EVP_CIPH_WRAP_MODE \
+#define WRAP_FLAGS      (EVP_CIPH_WRAP_MODE | EVP_CIPH_FLAG_FIPS \
                 | EVP_CIPH_CUSTOM_IV | EVP_CIPH_FLAG_CUSTOM_CIPHER \
                 | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_FLAG_DEFAULT_ASN1)
 
