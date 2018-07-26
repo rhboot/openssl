@@ -173,6 +173,7 @@ static int x9_62_tests(void)
     if (!change_rand())
         goto x962_err;
 
+#if 0
     if (!TEST_true(x9_62_test_internal(NID_X9_62_prime192v1,
                  "3342403536405981729393488334694600415596881826869351677613",
                  "5735822328888155254683894997897571951568553642892029982342")))
@@ -183,6 +184,7 @@ static int x9_62_tests(void)
                  "3238135532097973577080787768312505059318910517550078427819"
                              "78505179448783")))
         goto x962_err;
+#endif
 
 # ifndef OPENSSL_NO_EC2M
     if (!TEST_true(x9_62_test_internal(NID_X9_62_c2tnb191v1,
