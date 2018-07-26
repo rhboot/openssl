@@ -17,10 +17,19 @@
 #include <openssl/engine.h>
 #include "internal/evp_int.h"
 #include "evp_locl.h"
+#ifdef OPENSSL_FIPS
+# include <openssl/fips.h>
+#endif
 
 int EVP_CIPHER_CTX_reset(EVP_CIPHER_CTX *c)
 {
-    if (c == NULL)
+#ifdef OPENSSL_FIPS
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_EVP_CIPHER_CTX_RESET, FIPS_R_FIPS_SELFTEST_FAILED);
+        return 0;
+    }
+#endif
+   if (c == NULL)
         return 1;
     if (c->cipher != NULL) {
         if (c->cipher->cleanup && !c->cipher->cleanup(c))
@@ -39,6 +48,12 @@ int EVP_CIPHER_CTX_reset(EVP_CIPHER_CTX *c)
 
 EVP_CIPHER_CTX *EVP_CIPHER_CTX_new(void)
 {
+#ifdef OPENSSL_FIPS
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_EVP_CIPHER_CTX_NEW, FIPS_R_FIPS_SELFTEST_FAILED);
+        return NULL;
+    }
+#endif
     return OPENSSL_zalloc(sizeof(EVP_CIPHER_CTX));
 }
 
@@ -67,6 +82,12 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
             enc = 1;
         ctx->encrypt = enc;
     }
+#ifdef OPENSSL_FIPS
+    if (FIPS_selftest_failed()) {
+        FIPSerr(FIPS_F_EVP_CIPHERINIT_EX, FIPS_R_FIPS_SELFTEST_FAILED);
+        return 0;
+    }
+#endif
 #ifndef OPENSSL_NO_ENGINE
     /*
      * Whether it's nice or not, "Inits" can be used on "Final"'d contexts so
@@ -136,7 +157,7 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
         }
         ctx->key_len = cipher->key_len;
         /* Preserve wrap enable flag, zero everything else */
-        ctx->flags &= EVP_CIPHER_CTX_FLAG_WRAP_ALLOW;
+        ctx->flags &= EVP_CIPHER_CTX_FLAG_WRAP_ALLOW | EVP_CIPH_FLAG_NON_FIPS_ALLOW;
         if (ctx->cipher->flags & EVP_CIPH_CTRL_INIT) {
             if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_INIT, 0, NULL)) {
                 ctx->cipher = NULL;
@@ -195,6 +216,18 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
             return 0;
         }
     }
+#ifdef OPENSSL_FIPS
+    /* After 'key' is set no further parameters changes are permissible.
+     * So only check for non FIPS enabling at this point.
+     */
+    if (key && FIPS_mode()) {
+        if (!(ctx->cipher->flags & EVP_CIPH_FLAG_FIPS)
+            & !(ctx->flags & EVP_CIPH_FLAG_NON_FIPS_ALLOW)) {
+            EVPerr(EVP_F_EVP_CIPHERINIT_EX, EVP_R_DISABLED_FOR_FIPS);
+            return 0;
+        }
+    }
+#endif
 
     if (key || (ctx->cipher->flags & EVP_CIPH_ALWAYS_CALL_INIT)) {
         if (!ctx->cipher->init(ctx, key, iv, enc))
