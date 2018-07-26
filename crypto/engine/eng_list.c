@@ -8,6 +8,8 @@
  * https://www.openssl.org/source/license.html
  */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include "eng_int.h"
 
 /*
@@ -318,7 +320,7 @@ ENGINE *ENGINE_by_id(const char *id)
      */
     if (strcmp(id, "dynamic")) {
         if (OPENSSL_issetugid()
-                || (load_dir = getenv("OPENSSL_ENGINES")) == NULL)
+                || (load_dir = secure_getenv("OPENSSL_ENGINES")) == NULL)
             load_dir = ENGINESDIR;
         iterator = ENGINE_by_id("dynamic");
         if (!iterator || !ENGINE_ctrl_cmd_string(iterator, "ID", id, 0) ||

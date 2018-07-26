@@ -7,6 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include "e_os.h"
 #include "internal/cryptlib.h"
 #include "internal/cryptlib_int.h"
@@ -180,11 +182,11 @@ static int shouldfail(void)
 
 void ossl_malloc_setup_failures(void)
 {
-    const char *cp = getenv("OPENSSL_MALLOC_FAILURES");
+    const char *cp = secure_getenv("OPENSSL_MALLOC_FAILURES");
 
     if (cp != NULL && (md_failstring = strdup(cp)) != NULL)
         parseit();
-    if ((cp = getenv("OPENSSL_MALLOC_FD")) != NULL)
+    if ((cp = secure_getenv("OPENSSL_MALLOC_FD")) != NULL)
         md_tracefd = atoi(cp);
 }
 #endif

@@ -7,6 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include "internal/cryptlib.h"
 #include <stdio.h>
 #include <ctype.h>
@@ -481,7 +483,7 @@ char *CONF_get1_default_config_file(void)
     int len;
 
     if (!OPENSSL_issetugid()) {
-        file = getenv("OPENSSL_CONF");
+        file = secure_getenv("OPENSSL_CONF");
         if (file)
             return OPENSSL_strdup(file);
     }

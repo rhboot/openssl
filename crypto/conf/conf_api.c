@@ -9,6 +9,8 @@
 
 /* Part of the code in here was originally in conf.c, which is now removed */
 
+/* for secure_getenv */
+#define _GNU_SOURCE
 #include "e_os.h"
 #include <stdlib.h>
 #include <string.h>
@@ -82,7 +84,7 @@ char *_CONF_get_string(const CONF *conf, const char *section,
             if (v != NULL)
                 return v->value;
             if (strcmp(section, "ENV") == 0) {
-                p = getenv(name);
+                p = secure_getenv(name);
                 if (p != NULL)
                     return p;
             }
