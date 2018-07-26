@@ -25,6 +25,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_F_AES_OCB_CIPHER                             169
 # define EVP_F_AES_T4_INIT_KEY                            178
 # define EVP_F_AES_WRAP_CIPHER                            170
+# define EVP_F_AES_XTS_CIPHER                             300
 # define EVP_F_ALG_MODULE_INIT                            177
 # define EVP_F_ARIA_CCM_INIT_KEY                          175
 # define EVP_F_ARIA_GCM_CTRL                              197
@@ -132,6 +133,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_R_CTRL_OPERATION_NOT_IMPLEMENTED             133
 # define EVP_R_DATA_NOT_MULTIPLE_OF_BLOCK_LENGTH          138
 # define EVP_R_DECODE_ERROR                               114
+# define EVP_R_DISABLED_FOR_FIPS                          200
 # define EVP_R_DIFFERENT_KEY_TYPES                        101
 # define EVP_R_DIFFERENT_PARAMETERS                       153
 # define EVP_R_ERROR_LOADING_SECTION                      165
@@ -174,6 +176,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_R_PRIVATE_KEY_DECODE_ERROR                   145
 # define EVP_R_PRIVATE_KEY_ENCODE_ERROR                   146
 # define EVP_R_PUBLIC_KEY_NOT_RSA                         106
+# define EVP_R_TOO_LARGE                                  201
 # define EVP_R_UNKNOWN_CIPHER                             160
 # define EVP_R_UNKNOWN_DIGEST                             161
 # define EVP_R_UNKNOWN_OPTION                             169
