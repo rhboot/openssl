@@ -1661,7 +1661,7 @@ int ssl_set_version_bound(int method_version, int version, int *bound)
          * methods are not subject to controls that disable individual protocol
          * versions.
          */
-        return 0;
+        return 1;
 
     case TLS_ANY_VERSION:
         if (version < SSL3_VERSION || version > TLS_MAX_VERSION)
