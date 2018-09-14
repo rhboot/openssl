@@ -983,6 +983,9 @@ static int ssl_security_default_callback(const SSL *s, const SSL_CTX *ctx,
             return 0;
         break;
     default:
+        /* allow SHA1 in SECLEVEL 2 in non FIPS mode */
+        if (nid == NID_sha1 && minbits == 112 && !FIPS_mode())
+            break;
         if (bits < minbits)
             return 0;
     }
