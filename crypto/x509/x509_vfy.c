@@ -3219,6 +3219,7 @@ static int build_chain(X509_STORE_CTX *ctx)
 }
 
 static const int minbits_table[] = { 80, 112, 128, 192, 256 };
+static const int minbits_digest_table[] = { 80, 80, 128, 192, 256 };
 static const int NUM_AUTH_LEVELS = OSSL_NELEM(minbits_table);
 
 /*
@@ -3270,6 +3271,8 @@ static int check_sig_level(X509_STORE_CTX *ctx, X509 *cert)
 
     if (!X509_get_signature_info(cert, NULL, NULL, &secbits, NULL))
         return 0;
-
-    return secbits >= minbits_table[level - 1];
+    /* Allow SHA1 in SECLEVEL 2 in non-FIPS mode */
+    if (FIPS_mode())
+        return secbits >= minbits_table[level - 1];
+    return secbits >= minbits_digest_table[level - 1];
 }
