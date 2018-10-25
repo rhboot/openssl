@@ -413,6 +413,7 @@ int FIPS_module_installed(void)
     /* Installed == true */
     return !rv;
 }
+#endif
 
 int FIPS_module_mode_set(int onoff)
 {

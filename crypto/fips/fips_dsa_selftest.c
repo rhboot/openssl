@@ -57,7 +57,7 @@
 #include <openssl/bn.h>
 #include "fips_locl.h"
 
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) && !defined(OPENSSL_NO_DSA)
 
 static const unsigned char dsa_test_2048_p[] = {
     0xa8, 0x53, 0x78, 0xd8, 0xfd, 0x3f, 0x8d, 0x72, 0xec, 0x74, 0x18, 0x08,

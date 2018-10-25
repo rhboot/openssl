@@ -55,7 +55,8 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) && !defined(OPENSSL_NO_SHA)
+
 static const char test[][60] = {
     "",
     "abc",

@@ -64,7 +64,7 @@
 #include <openssl/evp.h>
 #include <openssl/bn.h>
 
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) && !defined(OPENSSL_NO_EC)
 
 static const char P_256_name[] = "ECDSA P-256";
 

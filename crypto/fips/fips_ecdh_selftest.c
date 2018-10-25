@@ -63,7 +63,7 @@
 #include <openssl/evp.h>
 #include <openssl/bn.h>
 
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) && !defined(OPENSSL_NO_DH) && !defined(OPENSSL_NO_EC)
 
 # include "fips_locl.h"
 
