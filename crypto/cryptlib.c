@@ -404,6 +404,30 @@ void OPENSSL_showfatal(const char *fmta, ...)
     va_start(ap, fmta);
     vfprintf(stderr, fmta, ap);
     va_end(ap);
+#elif defined(OPENSSL_SYS_UEFI_APP)
+    CHAR16 *fmt;
+    int i, nl = 0;
+
+    for (i = 0; fmta[i]; i++)
+        if (fmta[i] == '\n')
+            nl += 1;
+
+    fmt = malloc(strlen(fmta) * 2 + nl * 2 + 2);
+    if (!fmt)
+        return;
+
+    for (i = 0; fmt[i]; i++) {
+        fmt[i] = (uint16_t)(unsigned char)fmta[i];
+        if (fmt[i] == L'%' && fmta[i+1] == 's') {
+                fmt[i+1] = L'a';
+                i++;
+        }
+    }
+    va_list ap;
+    va_start(ap, fmta);
+    VPrint(fmt, ap);
+    va_end(ap);
+    free(fmt);
 #endif
 }
 
@@ -413,8 +437,31 @@ int OPENSSL_isservice(void)
 }
 #endif
 
+#if defined(OPENSSL_SYS_UEFI_APP)
+static int uefi_print_errors_cb(const char *str, size_t len, void *u)
+{
+    Print(L"%a", str);
+    return len;
+}
+
+static void uefi_show_errors(void)
+{
+    Print(L"\r");
+    ERR_print_errors_cb(uefi_print_errors_cb, NULL);
+    return;
+    unsigned long err = -1;
+    while (err != 0) {
+        err = ERR_get_error();
+        if (err)
+            Print(L"OpenSSL error: 0x%08x\n", err);
+    }
+}
+#endif
 void OPENSSL_die(const char *message, const char *file, int line)
 {
+#if defined(OPENSSL_SYS_UEFI_APP)
+    uefi_show_errors();
+#endif
     OPENSSL_showfatal("%s:%d: OpenSSL internal error: %s\n",
                       file, line, message);
 #if !defined(_WIN32)
