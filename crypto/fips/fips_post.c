@@ -81,10 +81,15 @@ int FIPS_selftest(void)
         rv = 0;
     if (!FIPS_selftest_sha3())
         rv = 0;
+#if !defined(OPENSSL_NO_HMAC)
     if (!FIPS_selftest_hmac())
         rv = 0;
+#endif
+#if !defined(OPENSSL_NO_CMAC)
     if (!FIPS_selftest_cmac())
         rv = 0;
+#endif
+#if !defined(OPENSSL_NO_AES)
     if (!FIPS_selftest_aes())
         rv = 0;
     if (!FIPS_selftest_aes_ccm())
@@ -93,18 +98,31 @@ int FIPS_selftest(void)
         rv = 0;
     if (!FIPS_selftest_aes_xts())
         rv = 0;
+#endif
+#if !defined(OPENSSL_NO_DES)
     if (!FIPS_selftest_des())
         rv = 0;
+#endif
+#if !defined(OPENSSL_NO_RSA)
     if (!FIPS_selftest_rsa())
         rv = 0;
+#endif
+#if !defined(OPENSSL_NO_EC)
     if (!FIPS_selftest_ecdsa())
         rv = 0;
-    if (!FIPS_selftest_dsa())
-        rv = 0;
-    if (!FIPS_selftest_dh())
-        rv = 0;
+#endif
+#if !defined(OPENSSL_NO_DH) && !defined(OPENSSL_NO_EC)
     if (!FIPS_selftest_ecdh())
         rv = 0;
+#endif
+#if !defined(OPENSSL_NO_DSA)
+    if (!FIPS_selftest_dsa())
+        rv = 0;
+#endif
+#if !defined(OPENSSL_NO_DH)
+    if (!FIPS_selftest_dh())
+        rv = 0;
+#endif
     return rv;
 }
 

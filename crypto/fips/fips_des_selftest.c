@@ -55,7 +55,7 @@
 #endif
 #include <openssl/opensslconf.h>
 
-#ifdef OPENSSL_FIPS
+#if defined(OPENSSL_FIPS) && !defined(OPENSSL_NO_DES)
 
 static const struct {
     const unsigned char key[16];
