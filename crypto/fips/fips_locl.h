@@ -59,11 +59,17 @@ extern "C" {
         if (!comp) \
                 goto err
 
-# define fips_post_started(id, subid, ex) 1
-# define fips_post_success(id, subid, ex) 1
-# define fips_post_failed(id, subid, ex) 1
-# define fips_post_corrupt(id, subid, ex) 1
-# define fips_post_status() 1
+static inline int
+fips_unused_function(void)
+{
+        return 1;
+}
+
+# define fips_post_started(id, subid, ex) fips_unused_function()
+# define fips_post_success(id, subid, ex) fips_unused_function()
+# define fips_post_failed(id, subid, ex) fips_unused_function()
+# define fips_post_corrupt(id, subid, ex) fips_unused_function()
+# define fips_post_status() fips_unused_function()
 
 # ifdef  __cplusplus
 }
