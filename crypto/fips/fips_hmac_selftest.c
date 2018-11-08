@@ -113,7 +113,7 @@ static const HMAC_KAT vector[] = {
 
 int FIPS_selftest_hmac()
 {
-    int n;
+    unsigned int n;
     unsigned int outlen;
     unsigned char out[EVP_MAX_MD_SIZE];
     const EVP_MD *md;
