@@ -134,7 +134,7 @@ int fips_pkey_signature_test(EVP_PKEY *pkey,
     mctx = EVP_MD_CTX_new();
 
     if ((EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
-        && (RSA_size(EVP_PKEY_get0_RSA(pkey)) > sizeof(sigtmp))) {
+        && (RSA_size(EVP_PKEY_get0_RSA(pkey)) > (ssize_t)sizeof(sigtmp))) {
         sig = OPENSSL_malloc(RSA_size(EVP_PKEY_get0_RSA(pkey)));
         siglen = RSA_size(EVP_PKEY_get0_RSA(pkey));
     }
