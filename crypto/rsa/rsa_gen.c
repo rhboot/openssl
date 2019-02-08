@@ -94,11 +94,11 @@ int fips_check_rsa(RSA *rsa)
 
     /* Perform pairwise consistency signature test */
     if (!fips_pkey_signature_test(pk, tbs, -1,
-                                  NULL, 0, EVP_sha1(),
+                                  NULL, 0, EVP_sha256(),
                                   EVP_MD_CTX_FLAG_PAD_PKCS1, NULL)
-        || !fips_pkey_signature_test(pk, tbs, -1, NULL, 0, EVP_sha1(),
+        || !fips_pkey_signature_test(pk, tbs, -1, NULL, 0, EVP_sha256(),
                                      EVP_MD_CTX_FLAG_PAD_X931, NULL)
-        || !fips_pkey_signature_test(pk, tbs, -1, NULL, 0, EVP_sha1(),
+        || !fips_pkey_signature_test(pk, tbs, -1, NULL, 0, EVP_sha256(),
                                      EVP_MD_CTX_FLAG_PAD_PSS, NULL))
         goto err;
     /* Now perform pairwise consistency encrypt/decrypt test */
