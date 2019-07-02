@@ -1276,7 +1276,8 @@ start:
 			BIO_snprintf(tmp,sizeof tmp,"%d",alert_descr);
 			ERR_add_error_data(2,"SSL alert number ",tmp);
 			s->shutdown|=SSL_RECEIVED_SHUTDOWN;
-			SSL_CTX_remove_session(s->ctx,s->session);
+			SSL_CTX_remove_session(s->session_ctx,s->session);
+			s->state = SSL_ST_ERR;
 			return(0);
 			}
 		else
@@ -1506,9 +1507,13 @@ int ssl3_send_alert(SSL *s, int level, int desc)
 	if (s->version == SSL3_VERSION && desc == SSL_AD_PROTOCOL_VERSION)
 		desc = SSL_AD_HANDSHAKE_FAILURE; /* SSL 3.0 does not have protocol_version alerts */
 	if (desc < 0) return -1;
-	/* If a fatal one, remove from cache */
-	if ((level == 2) && (s->session != NULL))
-		SSL_CTX_remove_session(s->ctx,s->session);
+	/* If a fatal one, remove from cache and go into the error state */
+	if (level == SSL3_AL_FATAL)
+		{
+		if (s->session != NULL)
+			SSL_CTX_remove_session(s->session_ctx,s->session);
+		s->state = SSL_ST_ERR;
+		}
 
 	s->s3->alert_dispatch=1;
 	s->s3->send_alert[0]=level;

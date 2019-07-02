@@ -229,11 +229,13 @@ int dtls1_accept(SSL *s)
 				if ((buf=BUF_MEM_new()) == NULL)
 					{
 					ret= -1;
+					s->state = SSL_ST_ERR;
 					goto end;
 					}
 				if (!BUF_MEM_grow(buf,SSL3_RT_MAX_PLAIN_LENGTH))
 					{
 					ret= -1;
+					s->state = SSL_ST_ERR;
 					goto end;
 					}
 				s->init_buf=buf;
@@ -242,6 +244,7 @@ int dtls1_accept(SSL *s)
 			if (!ssl3_setup_buffers(s))
 				{
 				ret= -1;
+				s->state = SSL_ST_ERR;
 				goto end;
 				}
 
@@ -256,7 +259,7 @@ int dtls1_accept(SSL *s)
 #ifndef OPENSSL_NO_SCTP
 				if (!BIO_dgram_is_sctp(SSL_get_wbio(s)))
 #endif
-					if (!ssl_init_wbio_buffer(s,1)) { ret= -1; goto end; }
+					if (!ssl_init_wbio_buffer(s,1)) { ret= -1; s->state = SSL_ST_ERR; goto end; }
 
 				ssl3_init_finished_mac(s);
 				s->state=SSL3_ST_SR_CLNT_HELLO_A;
@@ -395,9 +398,14 @@ int dtls1_accept(SSL *s)
 				snprintf((char*) labelbuffer, sizeof(DTLS1_SCTP_AUTH_LABEL),
 				         DTLS1_SCTP_AUTH_LABEL);
 
-				SSL_export_keying_material(s, sctpauthkey,
+				if (SSL_export_keying_material(s, sctpauthkey,
 				                           sizeof(sctpauthkey), labelbuffer,
-				                           sizeof(labelbuffer), NULL, 0, 0);
+				                           sizeof(labelbuffer), NULL, 0, 0) <= 0)
+					{
+					ret = -1;
+					s->state = SSL_ST_ERR;
+					goto end;
+					}
 				
 				BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
                          sizeof(sctpauthkey), sctpauthkey);
@@ -609,9 +617,14 @@ int dtls1_accept(SSL *s)
 			snprintf((char *) labelbuffer, sizeof(DTLS1_SCTP_AUTH_LABEL),
 			         DTLS1_SCTP_AUTH_LABEL);
 
-			SSL_export_keying_material(s, sctpauthkey,
+			if (SSL_export_keying_material(s, sctpauthkey,
 			                           sizeof(sctpauthkey), labelbuffer,
-			                           sizeof(labelbuffer), NULL, 0, 0);
+			                           sizeof(labelbuffer), NULL, 0, 0) <= 0)
+				{
+				ret = -1;
+				s->state = SSL_ST_ERR;
+				goto end;
+				}
 
 			BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
 			         sizeof(sctpauthkey), sctpauthkey);
@@ -705,7 +718,7 @@ int dtls1_accept(SSL *s)
 
 			s->session->cipher=s->s3->tmp.new_cipher;
 			if (!s->method->ssl3_enc->setup_key_block(s))
-				{ ret= -1; goto end; }
+				{ ret= -1; s->state = SSL_ST_ERR; goto end; }
 
 			ret=dtls1_send_change_cipher_spec(s,
 				SSL3_ST_SW_CHANGE_A,SSL3_ST_SW_CHANGE_B);
@@ -726,6 +739,7 @@ int dtls1_accept(SSL *s)
 				SSL3_CHANGE_CIPHER_SERVER_WRITE))
 				{
 				ret= -1;
+				s->state = SSL_ST_ERR;
 				goto end;
 				}
 
@@ -795,6 +809,7 @@ int dtls1_accept(SSL *s)
 			goto end;
 			/* break; */
 
+		case SSL_ST_ERR:
 		default:
 			SSLerr(SSL_F_DTLS1_ACCEPT,SSL_R_UNKNOWN_STATE);
 			ret= -1;
@@ -878,6 +893,7 @@ int dtls1_send_hello_verify_request(SSL *s)
 			 &(s->d1->cookie_len)) == 0)
 			{
 			SSLerr(SSL_F_DTLS1_SEND_HELLO_VERIFY_REQUEST,ERR_R_INTERNAL_ERROR);
+			s->state = SSL_ST_ERR;
 			return 0;
 			}
 

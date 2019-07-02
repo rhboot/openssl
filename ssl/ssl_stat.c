@@ -100,6 +100,7 @@ case SSL_ST_BEFORE|SSL_ST_CONNECT: str="before/connect initialization"; break;
 case SSL_ST_OK|SSL_ST_CONNECT: str="ok/connect SSL initialization"; break;
 case SSL_ST_BEFORE|SSL_ST_ACCEPT: str="before/accept initialization"; break;
 case SSL_ST_OK|SSL_ST_ACCEPT: str="ok/accept SSL initialization"; break;
+case SSL_ST_ERR: str="error"; break;
 #ifndef OPENSSL_NO_SSL2
 case SSL2_ST_CLIENT_START_ENCRYPTION: str="SSLv2 client start encryption"; break;
 case SSL2_ST_SERVER_START_ENCRYPTION: str="SSLv2 server start encryption"; break;
@@ -259,6 +260,7 @@ case SSL_ST_BEFORE:				str="PINIT "; break;
 case SSL_ST_ACCEPT:				str="AINIT "; break;
 case SSL_ST_CONNECT:				str="CINIT "; break;
 case SSL_ST_OK:			 		str="SSLOK "; break;
+case SSL_ST_ERR:				str="SSLERR"; break;
 #ifndef OPENSSL_NO_SSL2
 case SSL2_ST_CLIENT_START_ENCRYPTION:		str="2CSENC"; break;
 case SSL2_ST_SERVER_START_ENCRYPTION:		str="2SSENC"; break;

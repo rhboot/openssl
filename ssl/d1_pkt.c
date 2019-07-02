@@ -1257,6 +1257,7 @@ start:
 			ERR_add_error_data(2,"SSL alert number ",tmp);
 			s->shutdown|=SSL_RECEIVED_SHUTDOWN;
 			SSL_CTX_remove_session(s->ctx,s->session);
+			s->state = SSL_ST_ERR;
 			return(0);
 			}
 		else
