@@ -1463,6 +1463,8 @@ int ssl3_send_server_key_exchange(SSL *s)
 				j=0;
 				for (num=2; num > 0; num--)
 					{
+					EVP_MD_CTX_set_flags(&md_ctx,
+						EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
 					EVP_DigestInit_ex(&md_ctx,(num == 2)
 						?s->ctx->md5:s->ctx->sha1, NULL);
 					EVP_DigestUpdate(&md_ctx,&(s->s3->client_random[0]),SSL3_RANDOM_SIZE);
@@ -1997,7 +1999,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 				SSL_R_DATA_LENGTH_TOO_LONG);
 			goto err;
 			}
-		if (!((p[0] == (s->client_version>>8)) && (p[1] == (s->client_version & 0xff))))
+		if (!((pms[0] == (s->client_version>>8)) && (pms[1] == (s->client_version & 0xff))))
 		    {
 		    /* The premaster secret must contain the same version number as the
 		     * ClientHello to detect version rollback attacks (strangely, the
@@ -2007,8 +2009,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 		     * If SSL_OP_TLS_ROLLBACK_BUG is set, tolerate such clients. 
 		     * (Perhaps we should have a separate BUG value for the Kerberos cipher)
 		     */
-		    if (!((s->options & SSL_OP_TLS_ROLLBACK_BUG) &&
-			   (p[0] == (s->version>>8)) && (p[1] == (s->version & 0xff))))
+		    if (!(s->options & SSL_OP_TLS_ROLLBACK_BUG))
 		        {
 			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 			       SSL_AD_DECODE_ERROR);
