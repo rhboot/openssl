@@ -79,17 +79,8 @@
 #include <openssl/asn1.h>
 #include <openssl/safestack.h>
 
-#ifndef OPENSSL_NO_EC
-#include <openssl/ec.h>
-#endif
 
-#ifndef OPENSSL_NO_ECDSA
-#include <openssl/ecdsa.h>
-#endif
 
-#ifndef OPENSSL_NO_ECDH
-#include <openssl/ecdh.h>
-#endif
 
 #ifndef OPENSSL_NO_DEPRECATED
 #ifndef OPENSSL_NO_RSA
@@ -795,12 +786,6 @@ int i2d_DSA_PUBKEY_fp(FILE *fp, DSA *dsa);
 DSA *d2i_DSAPrivateKey_fp(FILE *fp, DSA **dsa);
 int i2d_DSAPrivateKey_fp(FILE *fp, DSA *dsa);
 #endif
-#ifndef OPENSSL_NO_EC
-EC_KEY *d2i_EC_PUBKEY_fp(FILE *fp, EC_KEY **eckey);
-int   i2d_EC_PUBKEY_fp(FILE *fp, EC_KEY *eckey);
-EC_KEY *d2i_ECPrivateKey_fp(FILE *fp, EC_KEY **eckey);
-int   i2d_ECPrivateKey_fp(FILE *fp, EC_KEY *eckey);
-#endif
 X509_SIG *d2i_PKCS8_fp(FILE *fp,X509_SIG **p8);
 int i2d_PKCS8_fp(FILE *fp,X509_SIG *p8);
 PKCS8_PRIV_KEY_INFO *d2i_PKCS8_PRIV_KEY_INFO_fp(FILE *fp,
@@ -833,12 +818,6 @@ DSA *d2i_DSA_PUBKEY_bio(BIO *bp, DSA **dsa);
 int i2d_DSA_PUBKEY_bio(BIO *bp, DSA *dsa);
 DSA *d2i_DSAPrivateKey_bio(BIO *bp, DSA **dsa);
 int i2d_DSAPrivateKey_bio(BIO *bp, DSA *dsa);
-#endif
-#ifndef OPENSSL_NO_EC
-EC_KEY *d2i_EC_PUBKEY_bio(BIO *bp, EC_KEY **eckey);
-int   i2d_EC_PUBKEY_bio(BIO *bp, EC_KEY *eckey);
-EC_KEY *d2i_ECPrivateKey_bio(BIO *bp, EC_KEY **eckey);
-int   i2d_ECPrivateKey_bio(BIO *bp, EC_KEY *eckey);
 #endif
 X509_SIG *d2i_PKCS8_bio(BIO *bp,X509_SIG **p8);
 int i2d_PKCS8_bio(BIO *bp,X509_SIG *p8);
@@ -898,11 +877,6 @@ RSA *		d2i_RSA_PUBKEY(RSA **a,const unsigned char **pp,
 #ifndef OPENSSL_NO_DSA
 int		i2d_DSA_PUBKEY(DSA *a,unsigned char **pp);
 DSA *		d2i_DSA_PUBKEY(DSA **a,const unsigned char **pp,
-			long length);
-#endif
-#ifndef OPENSSL_NO_EC
-int		i2d_EC_PUBKEY(EC_KEY *a, unsigned char **pp);
-EC_KEY 		*d2i_EC_PUBKEY(EC_KEY **a, const unsigned char **pp,
 			long length);
 #endif
 
