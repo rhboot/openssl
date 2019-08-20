@@ -444,14 +444,6 @@
 #define CERT_PRIVATE_KEY	2
 */
 
-#ifndef OPENSSL_NO_EC
-/* From ECC-TLS draft, used in encoding the curve type in 
- * ECParameters
- */
-#define EXPLICIT_PRIME_CURVE_TYPE  1   
-#define EXPLICIT_CHAR2_CURVE_TYPE  2
-#define NAMED_CURVE_TYPE           3
-#endif  /* OPENSSL_NO_EC */
 
 typedef struct cert_pkey_st
 	{
@@ -481,11 +473,6 @@ typedef struct cert_st
 	DH *dh_tmp;
 	DH *(*dh_tmp_cb)(SSL *ssl,int is_export,int keysize);
 #endif
-#ifndef OPENSSL_NO_ECDH
-	EC_KEY *ecdh_tmp;
-	/* Callback for generating ephemeral ECDH keys */
-	EC_KEY *(*ecdh_tmp_cb)(SSL *ssl,int is_export,int keysize);
-#endif
 
 	CERT_PKEY pkeys[SSL_PKEY_NUM];
 
@@ -510,9 +497,6 @@ typedef struct sess_cert_st
 #endif
 #ifndef OPENSSL_NO_DH
 	DH *peer_dh_tmp; /* not used for SSL 2 */
-#endif
-#ifndef OPENSSL_NO_ECDH
-	EC_KEY *peer_ecdh_tmp;
 #endif
 
 	int references; /* actually always 1 at the moment */
@@ -1036,16 +1020,9 @@ int tls1_alert_code(int code);
 int ssl3_alert_code(int code);
 int ssl_ok(SSL *s);
 
-#ifndef OPENSSL_NO_ECDH
-int ssl_check_srvr_ecc_cert_and_alg(X509 *x, const SSL_CIPHER *cs);
-#endif
 
 SSL_COMP *ssl3_comp_find(STACK_OF(SSL_COMP) *sk, int n);
 
-#ifndef OPENSSL_NO_EC
-int tls1_ec_curve_id2nid(int curve_id);
-int tls1_ec_nid2curve_id(int nid);
-#endif /* OPENSSL_NO_EC */
 
 #ifndef OPENSSL_NO_TLSEXT
 unsigned char *ssl_add_clienthello_tlsext(SSL *s, unsigned char *p, unsigned char *limit); 
