@@ -46,6 +46,7 @@ extern int engine_main(int argc,char *argv[]);
 extern int ocsp_main(int argc,char *argv[]);
 extern int prime_main(int argc,char *argv[]);
 extern int ts_main(int argc,char *argv[]);
+extern int srp_main(int argc,char *argv[]);
 
 #define FUNC_TYPE_GENERAL	1
 #define FUNC_TYPE_MD		2
@@ -238,9 +239,6 @@ FUNCTION functions[] = {
 #ifndef OPENSSL_NO_CAST
 	{FUNC_TYPE_CIPHER,"cast",enc_main},
 #endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5",enc_main},
-#endif
 #ifndef OPENSSL_NO_DES
 	{FUNC_TYPE_CIPHER,"des-ecb",enc_main},
 #endif
@@ -345,18 +343,6 @@ FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_CAST
 	{FUNC_TYPE_CIPHER,"cast-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-ecb",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-cfb",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-ofb",enc_main},
 #endif
 	{0,NULL,NULL}
 	};

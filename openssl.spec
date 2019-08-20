@@ -1,7 +1,7 @@
 %define _unpackaged_files_terminate_build 0
 %define libmaj 1
 %define libmin 0
-%define librel 0
+%define librel 1
 %define librev e
 Release: 1
 
