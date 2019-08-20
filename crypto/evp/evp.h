@@ -142,9 +142,6 @@ struct evp_pkey_st
 #ifndef OPENSSL_NO_DH
 		struct dh_st *dh;	/* DH */
 #endif
-#ifndef OPENSSL_NO_EC
-		struct ec_key_st *ec;	/* ECC */
-#endif
 		} pkey;
 	int save_parameters;
 	STACK_OF(X509_ATTRIBUTE) *attributes; /* [ 0 ] */
@@ -236,13 +233,6 @@ typedef int evp_verify_method(int type,const unsigned char *m,
 #define EVP_PKEY_DSA_method	EVP_PKEY_NULL_method
 #endif
 
-#ifndef OPENSSL_NO_ECDSA
-#define EVP_PKEY_ECDSA_method   (evp_sign_method *)ECDSA_sign, \
-				(evp_verify_method *)ECDSA_verify, \
-                                 {EVP_PKEY_EC,0,0,0}
-#else   
-#define EVP_PKEY_ECDSA_method   EVP_PKEY_NULL_method
-#endif
 
 #ifndef OPENSSL_NO_RSA
 #define EVP_PKEY_RSA_method	(evp_sign_method *)RSA_sign, \
@@ -419,10 +409,6 @@ typedef int (EVP_PBE_KEYGEN)(EVP_CIPHER_CTX *ctx, const char *pass, int passlen,
 					(char *)(dh))
 #endif
 
-#ifndef OPENSSL_NO_EC
-#define EVP_PKEY_assign_EC_KEY(pkey,eckey) EVP_PKEY_assign((pkey),EVP_PKEY_EC,\
-                                        (char *)(eckey))
-#endif
 
 /* Add some extra combinations */
 #define EVP_get_digestbynid(a) EVP_get_digestbyname(OBJ_nid2sn(a))
@@ -696,13 +682,6 @@ const EVP_MD *EVP_dev_crypto_md5(void);
 const EVP_CIPHER *EVP_rc4(void);
 const EVP_CIPHER *EVP_rc4_40(void);
 #endif
-#ifndef OPENSSL_NO_IDEA
-const EVP_CIPHER *EVP_idea_ecb(void);
-const EVP_CIPHER *EVP_idea_cfb64(void);
-# define EVP_idea_cfb EVP_idea_cfb64
-const EVP_CIPHER *EVP_idea_ofb(void);
-const EVP_CIPHER *EVP_idea_cbc(void);
-#endif
 #ifndef OPENSSL_NO_RC2
 const EVP_CIPHER *EVP_rc2_ecb(void);
 const EVP_CIPHER *EVP_rc2_cbc(void);
@@ -725,13 +704,6 @@ const EVP_CIPHER *EVP_cast5_cbc(void);
 const EVP_CIPHER *EVP_cast5_cfb64(void);
 # define EVP_cast5_cfb EVP_cast5_cfb64
 const EVP_CIPHER *EVP_cast5_ofb(void);
-#endif
-#ifndef OPENSSL_NO_RC5
-const EVP_CIPHER *EVP_rc5_32_12_16_cbc(void);
-const EVP_CIPHER *EVP_rc5_32_12_16_ecb(void);
-const EVP_CIPHER *EVP_rc5_32_12_16_cfb64(void);
-# define EVP_rc5_32_12_16_cfb EVP_rc5_32_12_16_cfb64
-const EVP_CIPHER *EVP_rc5_32_12_16_ofb(void);
 #endif
 #ifndef OPENSSL_NO_AES
 const EVP_CIPHER *EVP_aes_128_ecb(void);
@@ -861,11 +833,6 @@ struct dsa_st *EVP_PKEY_get1_DSA(EVP_PKEY *pkey);
 struct dh_st;
 int EVP_PKEY_set1_DH(EVP_PKEY *pkey,struct dh_st *key);
 struct dh_st *EVP_PKEY_get1_DH(EVP_PKEY *pkey);
-#endif
-#ifndef OPENSSL_NO_EC
-struct ec_key_st;
-int EVP_PKEY_set1_EC_KEY(EVP_PKEY *pkey,struct ec_key_st *key);
-struct ec_key_st *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey);
 #endif
 
 EVP_PKEY *	EVP_PKEY_new(void);
