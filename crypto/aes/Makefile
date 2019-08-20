@@ -41,7 +41,7 @@ top:
 all:	lib
 
 lib:	$(LIBOBJ)
-	$(AR) $(LIB) $(LIBOBJ)
+	$(ARX) $(LIB) $(LIBOBJ)
 	$(RANLIB) $(LIB) || echo Never mind.
 	@touch lib
 
@@ -56,6 +56,11 @@ ax86-cof.s: asm/aes-586.pl ../perlasm/x86asm.pl
 	(cd asm; $(PERL) aes-586.pl coff $(CFLAGS) $(PROCESSOR) > ../$@)
 ax86-out.s: asm/aes-586.pl ../perlasm/x86asm.pl
 	(cd asm; $(PERL) aes-586.pl a.out $(CFLAGS) $(PROCESSOR) > ../$@)
+
+aes-x86_64.s: asm/aes-x86_64.pl
+	$(PERL) asm/aes-x86_64.pl $@
+# GNU make "catch all"
+aes-%.s:	asm/aes-%.pl;	$(PERL) $< $(CFLAGS) > $@
 
 files:
 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO

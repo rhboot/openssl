@@ -251,6 +251,7 @@ extern "C" {
 #define SSL_TXT_LOW		"LOW"
 #define SSL_TXT_MEDIUM		"MEDIUM"
 #define SSL_TXT_HIGH		"HIGH"
+#define SSL_TXT_FIPS		"FIPS"
 #define SSL_TXT_kFZA		"kFZA"
 #define	SSL_TXT_aFZA		"aFZA"
 #define SSL_TXT_eFZA		"eFZA"
@@ -281,6 +282,7 @@ extern "C" {
 #define SSL_TXT_RC4		"RC4"
 #define SSL_TXT_RC2		"RC2"
 #define SSL_TXT_IDEA		"IDEA"
+#define SSL_TXT_SEED		"SEED"
 #define SSL_TXT_AES		"AES"
 #define SSL_TXT_CAMELLIA	"CAMELLIA"
 #define SSL_TXT_MD5		"MD5"
@@ -316,11 +318,7 @@ extern "C" {
 /* The following cipher list is used by default.
  * It also is substituted when an application-defined cipher list string
  * starts with 'DEFAULT'. */
-#ifdef OPENSSL_NO_CAMELLIA
-# define SSL_DEFAULT_CIPHER_LIST	"ALL:!ADH:+RC4:@STRENGTH" /* low priority for RC4 */
-#else
-# define SSL_DEFAULT_CIPHER_LIST	"AES:CAMELLIA:ALL:!ADH:+RC4:@STRENGTH" /* low priority for RC4 */
-#endif
+#define SSL_DEFAULT_CIPHER_LIST	"AES:ALL:!aNULL:!eNULL:+RC4:@STRENGTH" /* low priority for RC4 */
 
 /* Used in SSL_set_shutdown()/SSL_get_shutdown(); */
 #define SSL_SENT_SHUTDOWN	1
@@ -1513,14 +1511,6 @@ void SSL_CTX_set_tmp_dh_callback(SSL_CTX *ctx,
 					   int keylength));
 void SSL_set_tmp_dh_callback(SSL *ssl,
 				 DH *(*dh)(SSL *ssl,int is_export,
-					   int keylength));
-#endif
-#ifndef OPENSSL_NO_ECDH
-void SSL_CTX_set_tmp_ecdh_callback(SSL_CTX *ctx,
-				 EC_KEY *(*ecdh)(SSL *ssl,int is_export,
-					   int keylength));
-void SSL_set_tmp_ecdh_callback(SSL *ssl,
-				 EC_KEY *(*ecdh)(SSL *ssl,int is_export,
 					   int keylength));
 #endif
 
