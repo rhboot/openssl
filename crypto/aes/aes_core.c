@@ -37,6 +37,7 @@
 
 #include <stdlib.h>
 #include <openssl/aes.h>
+#include <openssl/fips.h>
 #include "aes_locl.h"
 
 /*
@@ -630,6 +631,10 @@ int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
 	u32 *rk;
    	int i = 0;
 	u32 temp;
+
+#ifdef OPENSSL_FIPS
+	FIPS_selftest_check();
+#endif
 
 	if (!userKey || !key)
 		return -1;
