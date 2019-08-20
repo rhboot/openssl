@@ -278,7 +278,7 @@
 #define SSL_FZA			(SSL_aFZA|SSL_kFZA|SSL_eFZA)
 #define SSL_KRB5                (SSL_kKRB5|SSL_aKRB5)
 
-#define SSL_ENC_MASK		0x0C3F8000L
+#define SSL_ENC_MASK		0x1C3F8000L
 #define SSL_DES			0x00008000L
 #define SSL_3DES		0x00010000L
 #define SSL_RC4			0x00020000L
@@ -288,6 +288,7 @@
 #define SSL_eNULL		0x00200000L
 #define SSL_AES			0x04000000L
 #define SSL_CAMELLIA		0x08000000L
+#define SSL_SEED          	0x10000000L
 
 #define SSL_MAC_MASK		0x00c00000L
 #define SSL_MD5			0x00400000L
@@ -299,7 +300,7 @@
 #define SSL_SSLV3		0x02000000L
 #define SSL_TLSV1		SSL_SSLV3	/* for now */
 
-/* we have used 0fffffff - 4 bits left to go. */
+/* we have used 1fffffff - 3 bits left to go. */
 
 /*
  * Export and cipher strength information. For each cipher we have to decide
@@ -329,6 +330,7 @@
 #define SSL_LOW			0x00000020L
 #define SSL_MEDIUM		0x00000040L
 #define SSL_HIGH		0x00000080L
+#define SSL_FIPS		0x00000100L
 
 /* we have used 000000ff - 24 bits left to go */
 
@@ -388,14 +390,6 @@
 #define CERT_PRIVATE_KEY	2
 */
 
-#ifndef OPENSSL_NO_EC
-/* From ECC-TLS draft, used in encoding the curve type in 
- * ECParameters
- */
-#define EXPLICIT_PRIME_CURVE_TYPE  1   
-#define EXPLICIT_CHAR2_CURVE_TYPE  2
-#define NAMED_CURVE_TYPE           3
-#endif  /* OPENSSL_NO_EC */
 
 typedef struct cert_pkey_st
 	{
@@ -423,11 +417,6 @@ typedef struct cert_st
 	DH *dh_tmp;
 	DH *(*dh_tmp_cb)(SSL *ssl,int is_export,int keysize);
 #endif
-#ifndef OPENSSL_NO_ECDH
-	EC_KEY *ecdh_tmp;
-	/* Callback for generating ephemeral ECDH keys */
-	EC_KEY *(*ecdh_tmp_cb)(SSL *ssl,int is_export,int keysize);
-#endif
 
 	CERT_PKEY pkeys[SSL_PKEY_NUM];
 
@@ -452,9 +441,6 @@ typedef struct sess_cert_st
 #endif
 #ifndef OPENSSL_NO_DH
 	DH *peer_dh_tmp; /* not used for SSL 2 */
-#endif
-#ifndef OPENSSL_NO_ECDH
-	EC_KEY *peer_ecdh_tmp;
 #endif
 
 	int references; /* actually always 1 at the moment */
