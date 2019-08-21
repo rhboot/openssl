@@ -148,9 +148,6 @@ FUNCTION functions[] = {
 #endif
 	{FUNC_TYPE_GENERAL,"prime",prime_main},
 	{FUNC_TYPE_GENERAL,"ts",ts_main},
-#ifndef OPENSSL_NO_SRP
-	{FUNC_TYPE_GENERAL,"srp",srp_main},
-#endif
 #ifndef OPENSSL_NO_MD2
 	{FUNC_TYPE_MD,"md2",dgst_main},
 #endif
@@ -241,9 +238,6 @@ FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_CAST
 	{FUNC_TYPE_CIPHER,"cast",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5",enc_main},
 #endif
 #ifndef OPENSSL_NO_DES
 	{FUNC_TYPE_CIPHER,"des-ecb",enc_main},
@@ -349,18 +343,6 @@ FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_CAST
 	{FUNC_TYPE_CIPHER,"cast-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-ecb",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-cfb",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-ofb",enc_main},
 #endif
 	{0,NULL,NULL}
 	};
