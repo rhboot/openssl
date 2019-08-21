@@ -148,9 +148,6 @@ FUNCTION functions[] = {
 #endif
     {FUNC_TYPE_GENERAL, "prime", prime_main},
     {FUNC_TYPE_GENERAL, "ts", ts_main},
-#ifndef OPENSSL_NO_SRP
-    {FUNC_TYPE_GENERAL, "srp", srp_main},
-#endif
 #ifndef OPENSSL_NO_MD2
     {FUNC_TYPE_MD, "md2", dgst_main},
 #endif
