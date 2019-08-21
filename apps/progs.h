@@ -134,9 +134,6 @@ FUNCTION functions[] = {
 #ifndef OPENSSL_NO_SHA1
 	{FUNC_TYPE_MD,"sha1",dgst_main},
 #endif
-#ifndef OPENSSL_NO_MDC2
-	{FUNC_TYPE_MD,"mdc2",dgst_main},
-#endif
 #ifndef OPENSSL_NO_RMD160
 	{FUNC_TYPE_MD,"rmd160",dgst_main},
 #endif
@@ -168,9 +165,6 @@ FUNCTION functions[] = {
 #ifndef OPENSSL_NO_DES
 	{FUNC_TYPE_CIPHER,"desx",enc_main},
 #endif
-#ifndef OPENSSL_NO_IDEA
-	{FUNC_TYPE_CIPHER,"idea",enc_main},
-#endif
 #ifndef OPENSSL_NO_RC4
 	{FUNC_TYPE_CIPHER,"rc4",enc_main},
 #endif
@@ -185,9 +179,6 @@ FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_CAST
 	{FUNC_TYPE_CIPHER,"cast",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5",enc_main},
 #endif
 #ifndef OPENSSL_NO_DES
 	{FUNC_TYPE_CIPHER,"des-ecb",enc_main},
@@ -224,18 +215,6 @@ FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_DES
 	{FUNC_TYPE_CIPHER,"des-ede3-ofb",enc_main},
-#endif
-#ifndef OPENSSL_NO_IDEA
-	{FUNC_TYPE_CIPHER,"idea-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_IDEA
-	{FUNC_TYPE_CIPHER,"idea-ecb",enc_main},
-#endif
-#ifndef OPENSSL_NO_IDEA
-	{FUNC_TYPE_CIPHER,"idea-cfb",enc_main},
-#endif
-#ifndef OPENSSL_NO_IDEA
-	{FUNC_TYPE_CIPHER,"idea-ofb",enc_main},
 #endif
 #ifndef OPENSSL_NO_RC2
 	{FUNC_TYPE_CIPHER,"rc2-cbc",enc_main},
@@ -281,18 +260,6 @@ FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_CAST
 	{FUNC_TYPE_CIPHER,"cast-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-cbc",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-ecb",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-cfb",enc_main},
-#endif
-#ifndef OPENSSL_NO_RC5
-	{FUNC_TYPE_CIPHER,"rc5-ofb",enc_main},
 #endif
 	{0,NULL,NULL}
 	};
