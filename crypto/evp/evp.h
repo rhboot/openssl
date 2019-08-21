@@ -98,20 +98,11 @@
 #ifndef OPENSSL_NO_RC2
 #include <openssl/rc2.h>
 #endif
-#ifndef OPENSSL_NO_RC5
-#include <openssl/rc5.h>
-#endif
 #ifndef OPENSSL_NO_BF
 #include <openssl/blowfish.h>
 #endif
 #ifndef OPENSSL_NO_CAST
 #include <openssl/cast.h>
-#endif
-#ifndef OPENSSL_NO_IDEA
-#include <openssl/idea.h>
-#endif
-#ifndef OPENSSL_NO_MDC2
-#include <openssl/mdc2.h>
 #endif
 #ifndef OPENSSL_NO_AES
 #include <openssl/aes.h>
@@ -625,9 +616,6 @@ const EVP_MD *EVP_sha1(void);
 const EVP_MD *EVP_dss(void);
 const EVP_MD *EVP_dss1(void);
 #endif
-#ifndef OPENSSL_NO_MDC2
-const EVP_MD *EVP_mdc2(void);
-#endif
 #ifndef OPENSSL_NO_RIPEMD
 const EVP_MD *EVP_ripemd160(void);
 #endif
@@ -662,12 +650,6 @@ const EVP_MD *EVP_dev_crypto_md5(void);
 const EVP_CIPHER *EVP_rc4(void);
 const EVP_CIPHER *EVP_rc4_40(void);
 #endif
-#ifndef OPENSSL_NO_IDEA
-const EVP_CIPHER *EVP_idea_ecb(void);
-const EVP_CIPHER *EVP_idea_cfb(void);
-const EVP_CIPHER *EVP_idea_ofb(void);
-const EVP_CIPHER *EVP_idea_cbc(void);
-#endif
 #ifndef OPENSSL_NO_RC2
 const EVP_CIPHER *EVP_rc2_ecb(void);
 const EVP_CIPHER *EVP_rc2_cbc(void);
@@ -687,12 +669,6 @@ const EVP_CIPHER *EVP_cast5_ecb(void);
 const EVP_CIPHER *EVP_cast5_cbc(void);
 const EVP_CIPHER *EVP_cast5_cfb(void);
 const EVP_CIPHER *EVP_cast5_ofb(void);
-#endif
-#ifndef OPENSSL_NO_RC5
-const EVP_CIPHER *EVP_rc5_32_12_16_cbc(void);
-const EVP_CIPHER *EVP_rc5_32_12_16_ecb(void);
-const EVP_CIPHER *EVP_rc5_32_12_16_cfb(void);
-const EVP_CIPHER *EVP_rc5_32_12_16_ofb(void);
 #endif
 #ifndef OPENSSL_NO_AES
 const EVP_CIPHER *EVP_aes_128_ecb(void);
