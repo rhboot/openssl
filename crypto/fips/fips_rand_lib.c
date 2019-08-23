@@ -181,7 +181,7 @@ void FIPS_get_timevec(unsigned char *buf, unsigned long *pctr)
     struct timeval tv;
 # endif
 
-# ifndef GETPID_IS_MEANINGLESS
+#if defined(OPENSSL_SYS_UNIX) || defined(__DJGPP__)
     unsigned long pid;
 # endif
 
@@ -223,7 +223,7 @@ void FIPS_get_timevec(unsigned char *buf, unsigned long *pctr)
 
     (*pctr)++;
 
-# ifndef GETPID_IS_MEANINGLESS
+#if defined(OPENSSL_SYS_UNIX) || defined(__DJGPP__)
     pid = (unsigned long)getpid();
     buf[12] = (unsigned char)(pid & 0xff);
     buf[13] = (unsigned char)((pid >> 8) & 0xff);
