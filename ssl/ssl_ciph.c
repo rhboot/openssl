@@ -9,8 +9,6 @@
  * https://www.openssl.org/source/license.html
  */
 
-/* for secure_getenv */
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <ctype.h>
 #include <openssl/objects.h>
@@ -1415,7 +1413,7 @@ static char *load_system_str(const char *suffix)
     const char *ciphers_path;
     unsigned len, slen;
 
-    if ((ciphers_path = secure_getenv("OPENSSL_SYSTEM_CIPHERS_OVERRIDE")) == NULL)
+    if ((ciphers_path = ossl_safe_getenv("OPENSSL_SYSTEM_CIPHERS_OVERRIDE")) == NULL)
         ciphers_path = SYSTEM_CIPHERS_FILE;
     fp = fopen(ciphers_path, "r");
     if (fp == NULL || fgets(buf, sizeof(buf), fp) == NULL) {
