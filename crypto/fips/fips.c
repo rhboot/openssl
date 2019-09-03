@@ -57,12 +57,15 @@
 #include <openssl/rsa.h>
 #include <string.h>
 #include <limits.h>
-#include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include "fips_locl.h"
+
+#if !defined(OPENSSL_SYS_UEFI) && !defined(OPENSSL_SYS_UEFI_APP)
+#include <dlfcn.h>
+#endif
 
 #ifdef OPENSSL_FIPS
 
@@ -165,6 +168,7 @@ int fips_in_post(void)
     return fips_post;
 }
 
+#if !defined(OPENSSL_SYS_UEFI) && !defined(OPENSSL_SYS_UEFI_APP)
 /* we implement what libfipscheck does ourselves */
 
 static int
@@ -413,6 +417,11 @@ int FIPS_module_installed(void)
     /* Installed == true */
     return !rv;
 }
+#else
+int FIPS_module_installed(void)
+{
+    return 0;
+}
 #endif
 
 int FIPS_module_mode_set(int onoff)
@@ -461,6 +470,7 @@ int FIPS_module_mode_set(int onoff)
             goto end;
         }
 
+# if !defined(OPENSSL_SYS_UEFI) && !defined(OPENSSL_SYS_UEFI_APP)
         if (!verify_checksums()) {
             FIPSerr(FIPS_F_FIPS_MODULE_MODE_SET,
                     FIPS_R_FINGERPRINT_DOES_NOT_MATCH);
@@ -468,6 +478,7 @@ int FIPS_module_mode_set(int onoff)
             ret = 0;
             goto end;
         }
+# endif
 
         fips_post = 0;
 
