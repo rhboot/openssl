@@ -154,7 +154,7 @@ int FIPS_selftest_failed(void)
 void FIPS_selftest_check(void)
 {
     if (fips_selftest_fail) {
-        OpenSSLDie(__FILE__, __LINE__, "FATAL FIPS SELFTEST FAILURE");
+        OPENSSL_die("FATAL FIPS SELFTEST FAILURE", __FILE__, __LINE__);
     }
 }
 
