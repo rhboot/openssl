@@ -12,10 +12,12 @@
 #ifdef OPENSSL_FIPS
 # include <sys/types.h>
 # include <sys/stat.h>
-# include <fcntl.h>
-# include <unistd.h>
-# include <errno.h>
-# include <stdlib.h>
+# ifndef OPENSSL_SYS_UEFI
+#  include <fcntl.h>
+#  include <unistd.h>
+#  include <errno.h>
+#  include <stdlib.h>
+# endif
 # include <openssl/rand.h>
 # include <openssl/fips.h>
 # include "internal/fips_int.h"
@@ -24,6 +26,14 @@
 
 static void init_fips_mode(void)
 {
+#ifdef OPENSSL_SYS_UEFI
+    /* Ensure the selftests always run */
+    /* XXX: TO SOLVE - premature initialization due to selftests */
+    FIPS_mode_set(1);
+
+    /* abort if selftest failed */
+    FIPS_selftest_check();
+#else
     char buf[2] = "0";
     int fd;
 
@@ -49,6 +59,7 @@ static void init_fips_mode(void)
         /* abort if selftest failed */
         FIPS_selftest_check();
     }
+#endif
 }
 
 /*
