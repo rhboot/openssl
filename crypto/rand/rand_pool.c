@@ -19,6 +19,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "rand_pool_noise.h"
 
+#if 0
 /**
   Get some randomness from low-order bits of GetPerformanceCounter results.
   And combine them to the 64-bit value
@@ -52,6 +53,7 @@ GetRandNoise64FromPerformanceCounter(
 
   return TRUE;
 }
+#endif
 
 /**
   Calls RandomNumber64 to fill
@@ -85,9 +87,11 @@ RandGetBytes (
     // GetRandomNoise64FromPlatform.
     //
     Ret = GetRandomNoise64 (&TempRand);
+#if 0
     if (Ret == FALSE) {
       Ret = GetRandNoise64FromPerformanceCounter (&TempRand);
     }
+#endif
     if (!Ret) {
       return Ret;
     }
@@ -267,7 +271,12 @@ int rand_pool_add_nonce_data(RAND_POOL *pool)
   } data = { 0 };
 
   RandGetBytes(8, (UINT8 *)&(data.Rand));
+
+#if 0
   data.TimerValue = GetPerformanceCounter();
+#else
+  data.TimerValue = AsmReadTsc ();
+#endif
 
   return rand_pool_add(pool, (unsigned char*)&data, sizeof(data), 0);
 }
@@ -285,7 +294,11 @@ int rand_pool_add_additional_data(RAND_POOL *pool)
   } data = { 0 };
 
   RandGetBytes(8, (UINT8 *)&(data.Rand));
+#if 0
   data.TimerValue = GetPerformanceCounter();
+#else
+  data.TimerValue = AsmReadTsc ();
+#endif
 
   return rand_pool_add(pool, (unsigned char*)&data, sizeof(data), 0);
 }
