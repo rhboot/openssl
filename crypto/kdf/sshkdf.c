@@ -12,6 +12,7 @@
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
+#include "internal/numbers.h"
 #include "internal/cryptlib.h"
 #include "internal/evp_int.h"
 #include "kdf_local.h"
