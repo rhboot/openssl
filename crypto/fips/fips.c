@@ -472,7 +472,7 @@ int FIPS_module_mode_set(int onoff)
 
         fips_set_mode(onoff);
         /* force RNG reseed with entropy from getrandom() on next call */
-        rand_fork();
+        rand_force_reseed();
 
         ret = 1;
         goto end;
