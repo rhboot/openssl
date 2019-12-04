@@ -68,6 +68,12 @@ static int kdf_sshkdf_parse_buffer_arg(unsigned char **dst, size_t *dst_len,
     p = va_arg(args, const unsigned char *);
     len = va_arg(args, size_t);
     OPENSSL_clear_free(*dst, *dst_len);
+    if (len == 0) {
+        *dst = NULL;
+        *dst_len = 0;
+        return 1;
+    }
+
     *dst = OPENSSL_memdup(p, len);
     if (*dst == NULL)
         return 0;
